@@ -10,6 +10,7 @@ try {
 
 const logger = require('./utils/logger');
 const prisma = require('./config/db');
+const { closeSessionStore } = require('./middleware/session');
 const { createApp } = require('./app');
 
 const server = createApp().listen(env.PORT, () => {
@@ -36,6 +37,7 @@ function shutdown(signal) {
   force.unref();
 
   server.close(async () => {
+    await closeSessionStore().catch((err) => logger.error({ err }, 'error while closing the session store'));
     await prisma.$disconnect().catch((err) => logger.error({ err }, 'error while closing the database'));
     process.exit(0);
   });

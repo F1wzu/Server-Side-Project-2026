@@ -1,7 +1,7 @@
 # สถาปัตยกรรม — วันนี้ไปไหนดี @ ลาดกระบัง
 
 สถานะ: **ร่างเพื่อให้ทีมตรวจ** (พฤ. 12 พ.ย. 2569) ขั้นที่ 1 (พื้นฐาน)
-สร้างแล้ว หัวข้อที่เหลืออธิบายสิ่งที่ขั้นถัดไปจะเพิ่ม
+และขั้นที่ 2 (บัญชีผู้ใช้) สร้างแล้ว หัวข้อที่เหลืออธิบายสิ่งที่ขั้นถัดไปจะเพิ่ม
 
 เอกสารที่เกี่ยวข้อง: [PLAN.md](PLAN.md) (กำหนดการและขั้นตอน) ·
 [DESIGN.md](DESIGN.md) (ฟีเจอร์ ฐานข้อมูล API)
@@ -43,6 +43,7 @@ flowchart LR
 | การทดสอบ | Jest + `supertest` | บทที่ 10 ส่ง HTTP request จริงไปที่แอป |
 | ทดสอบ API | Postman collection | บทที่ 11 |
 | แผนที่ | Leaflet + OpenStreetMap | ฟรี ไม่ต้องใช้ API key |
+| ฟอนต์ | Chonburi (หัวเรื่อง) และ IBM Plex Sans Thai Looped (เนื้อความ) จากแพ็กเกจ `@fontsource` | ให้บริการจากเว็บของเราเอง ไม่เรียกเซิร์ฟเวอร์ภายนอก |
 | Package manager | npm | ใช้ในแล็บ |
 
 ## 3. ชั้นของระบบ (MVC)
@@ -91,11 +92,12 @@ src/
   validation/    หนึ่งไฟล์ schema ต่อหนึ่งฟีเจอร์
   middleware/    session, auth, csrf, rateLimit, upload, errors
   storage/       index.js, local.js, cloud.js
-  utils/         AppError.js, pagination.js, logger.js
-  views/         หน้าเว็บ + partials/
-public/          css, js, รูป (ไฟล์ของเว็บเท่านั้น)
+  utils/         AppError.js, validate.js, safeRedirect.js, pagination.js, logger.js
+  views/         หน้าเว็บ + partials/ และ helpers.js (ไอคอน ป้ายกำกับ การจัดรูปแบบ ที่ทุกเทมเพลตใช้)
+public/          css/site.css, js/site.js, favicon และรูป (ไฟล์ของเว็บเท่านั้น)
 storage/uploads/ รูปที่อัปโหลดตอนพัฒนา (git ไม่เก็บ)
 test/            การทดสอบ Jest โดย support/ เก็บตัวช่วยเรื่องฐานข้อมูล
+scripts/         create-admin.js (สร้างบัญชีผู้ดูแลจาก command line)
 postman/         Postman collection
 docs/
 ```
@@ -110,7 +112,7 @@ middleware ทำงานตามลำดับนี้ ลำดับเ�
 | 1 | Request ID + logger | log ทุกบรรทัดมี ID เดียวกัน |
 | 2 | `helmet` | security header และ Content Security Policy |
 | 3 | Compression | ลดขนาดคำตอบ |
-| 4 | ไฟล์ static | `public/` และ `/uploads` เมื่อเก็บรูปบนเครื่อง |
+| 4 | ไฟล์ static | `public/`, ฟอนต์ที่ `/fonts` และ `/uploads` เมื่อเก็บรูปบนเครื่อง |
 | 5 | Body parser | body ของฟอร์มและ JSON จำกัด 64 KB |
 | 6 | Session | อ่านคุกกี้ โหลด session จาก PostgreSQL |
 | 7 | ผู้ใช้ปัจจุบัน | โหลดผู้ใช้และบทบาทจากฐานข้อมูลสำหรับคำขอนี้ |
@@ -247,7 +249,7 @@ flowchart LR
 | ความเสี่ยง | การป้องกัน |
 |---|---|
 | รหัสผ่านถูกขโมย | bcrypt (cost 12) ความยาว 8–72 ตัวอักษร |
-| การเดารหัสผ่าน | จำกัดการเข้าสู่ระบบที่ผิดต่อ IP และต่ออีเมล อีเมลผิดและรหัสผ่านผิดได้ข้อความเดียวกัน |
+| การเดารหัสผ่าน | นับเฉพาะการเข้าสู่ระบบที่ผิด: 5 ครั้งต่อบัญชีต่อ IP และ 30 ครั้งต่อ IP ใน 15 นาที ครั้งถัดไปได้ 429 อีเมลผิดและรหัสผ่านผิดได้ข้อความเดียวกัน |
 | session ถูกขโมย / ถูกตรึง | ค่าคุกกี้ตามด้านบน session ID ใหม่เมื่อเข้าสู่ระบบ ทำลายเมื่อออกจากระบบ |
 | CSRF | token ในทุกฟอร์ม และบังคับในทุกคำขอที่เปลี่ยนข้อมูล |
 | SQL injection | ทุก query ผ่าน Prisma แบบมีพารามิเตอร์ escape อักขระพิเศษในการค้นหา |

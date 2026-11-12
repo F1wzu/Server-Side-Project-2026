@@ -1,0 +1,64 @@
+<%- include('partials/head') %>
+<div class="container narrow page-content">
+  <div class="profile-heading">
+    <span class="avatar avatar-large"><%= currentUser.username.slice(0, 1) %></span>
+    <div>
+      <p class="eyebrow">บัญชีของฉัน</p>
+      <h1>สวัสดี <%= currentUser.username %></h1>
+      <p class="meta"><%= currentUser.email %> · <%= currentUser.role === 'admin' ? 'ผู้ดูแล' : 'สมาชิก' %> · เป็นสมาชิกตั้งแต่ <%= date(currentUser.createdAt) %></p>
+    </div>
+  </div>
+
+  <div class="account-grid">
+    <a class="panel account-card" href="/me/favorites">
+      <span class="account-icon"><%- icon('heart', 24) %></span>
+      <h2>ที่บันทึกไว้</h2>
+      <p>วางแผนไปมุมโปรดครั้งถัดไป</p>
+    </a>
+    <a class="panel account-card" href="/me/reviews">
+      <span class="account-icon"><%- icon('star', 24) %></span>
+      <h2>รีวิวของฉัน</h2>
+      <p>แก้ไขและจัดการรีวิวที่เคยเขียน</p>
+    </a>
+    <a class="panel account-card" href="/me/submissions">
+      <span class="account-icon"><%- icon('pin', 24) %></span>
+      <h2>คำขอของฉัน</h2>
+      <p>ติดตามสถานที่ที่คุณแนะนำ</p>
+    </a>
+    <% if (currentUser.role === 'admin') { %>
+    <a class="panel account-card" href="/admin">
+      <span class="account-icon"><%- icon('shield', 24) %></span>
+      <h2>งานผู้ดูแล</h2>
+      <p>ตรวจคำขอ จัดการสถานที่ รีวิว และหมวดหมู่</p>
+    </a>
+    <% } %>
+  </div>
+
+  <div class="account-forms">
+    <section class="panel" aria-labelledby="username-heading">
+      <h2 id="username-heading">แก้ไขชื่อที่แสดง</h2>
+      <form method="post" action="/me" class="stack-form" novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <%- include('partials/field', { name: 'username', label: 'ชื่อที่แสดง', type: 'text', value: username, error: usernameErrors.username, hint: 'ชื่อที่จะแสดงคู่กับรีวิวของคุณ (3–50 ตัวอักษร)', autocomplete: 'nickname' }) %>
+        <button type="submit" class="button button-primary">บันทึกชื่อ</button>
+      </form>
+    </section>
+
+    <section class="panel" aria-labelledby="password-heading">
+      <h2 id="password-heading">เปลี่ยนรหัสผ่าน</h2>
+      <p class="meta">เมื่อเปลี่ยนแล้ว อุปกรณ์อื่นที่เข้าสู่ระบบด้วยบัญชีนี้จะถูกออกจากระบบ</p>
+      <form method="post" action="/me/password" class="stack-form" novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <%- include('partials/field', { name: 'currentPassword', label: 'รหัสผ่านเดิม', type: 'password', error: passwordErrors.currentPassword, autocomplete: 'current-password' }) %>
+        <%- include('partials/field', { name: 'newPassword', label: 'รหัสผ่านใหม่', type: 'password', error: passwordErrors.newPassword, hint: 'อย่างน้อย 8 ตัวอักษร', autocomplete: 'new-password' }) %>
+        <button type="submit" class="button button-primary">เปลี่ยนรหัสผ่าน</button>
+      </form>
+    </section>
+  </div>
+
+  <form class="logout-form" action="/logout" method="post">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <button class="button button-outline" type="submit"><%- icon('logout', 18) %>ออกจากระบบ</button>
+  </form>
+</div>
+<%- include('partials/foot') %>

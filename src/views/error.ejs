@@ -1,8 +1,12 @@
 <%- include('partials/head') %>
-<section class="error-page">
-  <p class="error-status"><%= status %></p>
-  <h1><%= title %></h1>
-  <p><%= message %></p>
-  <p><a class="button" href="/">กลับหน้าแรก</a></p>
-</section>
+<div class="container page-content">
+  <div class="empty-state error-state">
+    <span class="error-code"><%= status %></span>
+    <h1><%= message %></h1>
+    <div class="error-actions">
+      <a class="button button-primary" href="/">กลับหน้าแรก</a>
+      <a class="button button-outline" href="/places">สำรวจสถานที่</a>
+    </div>
+  </div>
+</div>
 <%- include('partials/foot') %>

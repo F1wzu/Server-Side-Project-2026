@@ -1,0 +1,20 @@
+<%# One labelled form field with its hint and error.
+    Expects: name, label, type, and optionally value, error, hint, autocomplete. %>
+<div class="field">
+  <label for="<%= name %>"><%= label %></label>
+  <input
+    id="<%= name %>"
+    name="<%= name %>"
+    type="<%= type %>"
+    value="<%= locals.value ?? '' %>"
+    <% if (locals.autocomplete) { %>autocomplete="<%= autocomplete %>"<% } %>
+    <% if (locals.error) { %>aria-invalid="true"<% } %>
+    aria-describedby="<%= locals.hint ? name + '-hint ' : '' %><%= locals.error ? name + '-error' : '' %>"
+    required>
+  <% if (locals.error) { %>
+  <p class="field-error" id="<%= name %>-error"><%= error %></p>
+  <% } %>
+  <% if (locals.hint) { %>
+  <small id="<%= name %>-hint"><%= hint %></small>
+  <% } %>
+</div>

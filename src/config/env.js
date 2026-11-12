@@ -26,7 +26,11 @@ const schema = z
       z.string().regex(/^https?:\/\/[^/\s]+$/, 'must be an address such as https://example.com, without a trailing slash')
     ),
     TRUST_PROXY: optional(z.string()),
-    STORAGE_DRIVER: z.enum(['local', 'cloud'], { error: 'must be local or cloud' }).default('local'),
+    // Empty ("STORAGE_DRIVER=") means the default, local.
+    STORAGE_DRIVER: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.enum(['local', 'cloud'], { error: 'must be local or cloud' }).default('local')
+    ),
     LOG_LEVEL: optional(z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])),
   })
   .superRefine((value, ctx) => {

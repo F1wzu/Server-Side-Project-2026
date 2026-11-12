@@ -1,0 +1,26 @@
+<%- include('partials/head') %>
+<div class="container auth-layout page-content">
+  <%- include('partials/auth-intro') %>
+
+  <section class="panel auth-panel" aria-labelledby="auth-heading">
+    <h2 id="auth-heading">สมัครสมาชิก</h2>
+    <p class="meta">เริ่มบันทึกและแบ่งปันสถานที่ที่คุณชอบ</p>
+    <% if (formError) { %>
+    <div class="form-error" role="alert" id="form-error" tabindex="-1"><%= formError %></div>
+    <% } %>
+    <form method="post" action="/register" class="stack-form" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <input type="hidden" name="next" value="<%= next %>">
+      <%- include('partials/field', { name: 'username', label: 'ชื่อที่แสดง', type: 'text', value: values.username, error: errors.username, hint: 'ชื่อที่จะแสดงคู่กับรีวิวของคุณ (3–50 ตัวอักษร)', autocomplete: 'nickname' }) %>
+      <%- include('partials/field', { name: 'email', label: 'อีเมล', type: 'email', value: values.email, error: errors.email, autocomplete: 'email' }) %>
+      <%- include('partials/field', { name: 'password', label: 'รหัสผ่าน', type: 'password', error: errors.password, hint: 'อย่างน้อย 8 ตัวอักษร', autocomplete: 'new-password' }) %>
+      <button class="button button-primary button-block" type="submit">สร้างบัญชี</button>
+    </form>
+    <p class="auth-switch">
+      มีบัญชีแล้ว?
+      <a class="text-link" href="/login<%= next ? '?next=' + encodeURIComponent(next) : '' %>">เข้าสู่ระบบ</a>
+    </p>
+    <p class="small-note">อีเมลใช้สำหรับเข้าสู่ระบบและไม่แสดงในรีวิวสาธารณะ</p>
+  </section>
+</div>
+<%- include('partials/foot') %>

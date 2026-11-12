@@ -1,0 +1,22 @@
+<%# One place in a grid. Expects: place (with category, ratingAvg, ratingCount). %>
+<article class="place-card tone-<%= categoryKind(place.category) %>">
+  <a class="card-media" href="/places/<%= place.id %>" aria-label="ดู <%= place.name %>">
+    <% if (place.imagePath) { %>
+    <img src="<%= place.imagePath %>" alt="<%= isIllustration(place.imagePath) ? '' : place.name %>" loading="lazy">
+    <% } else { %>
+    <span class="image-placeholder"><%- icon(categoryIcon(place.category), 36) %></span>
+    <% } %>
+    <span class="card-category"><%- icon(categoryIcon(place.category), 15) %><%= place.category.name %></span>
+  </a>
+  <div class="card-body">
+    <h3><a href="/places/<%= place.id %>"><%= place.name %></a></h3>
+    <p class="card-description"><%= place.description %></p>
+    <div class="card-meta">
+      <span class="card-rating">
+        <span class="star" aria-hidden="true">★</span>
+        <% if (place.ratingAvg === null) { %>ยังไม่มีรีวิว<% } else { %><strong><%= rating(place.ratingAvg) %></strong> <span>(<%= place.ratingCount %> รีวิว)</span><% } %>
+      </span>
+      <%- include('open-badge', { status: place.openStatus }) %>
+    </div>
+  </div>
+</article>

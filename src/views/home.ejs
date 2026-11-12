@@ -1,17 +1,100 @@
 <%- include('partials/head') %>
-<h1>วันนี้ไปไหนดี?</h1>
-<p class="lead">คู่มือสถานที่ในเขตลาดกระบัง จากคนที่อยู่ที่นี่จริง</p>
-
-<dl class="stats">
-  <div class="stat">
-    <dt>สถานที่</dt>
-    <dd><%= placeCount %></dd>
+<section class="hero">
+  <div class="container hero-inner">
+    <p class="eyebrow"><%- icon('pin', 18) %>เขตลาดกระบัง · กรุงเทพฯ</p>
+    <h1>วันนี้<span>ไปไหนดี</span>?</h1>
+    <p class="hero-lead">ตลาดเก่าริมคลอง วัดมอญ คาเฟ่ข้างรั้วสถาบัน ไปจนถึงตลาดนัดปลายรันเวย์ รวมที่กิน ที่เที่ยว ที่พักของย่านไว้ให้เลือกในที่เดียว</p>
+    <form action="/places" method="get" class="hero-search" role="search">
+      <label class="sr-only" for="home-q">ค้นหาสถานที่</label>
+      <%- icon('search', 22) %>
+      <input id="home-q" name="q" maxlength="100" placeholder="ลองค้นหา “หัวตะเข้” “คาเฟ่” หรือชื่อซอย">
+      <button class="button button-primary" type="submit">ค้นหา</button>
+    </form>
+    <div class="hero-actions">
+      <a class="button button-accent" href="/places/random"><%- icon('shuffle', 18) %>สุ่มให้หน่อย</a>
+      <a class="button button-ghost" href="/places?sort=rating"><%- icon('star', 18) %>คะแนนสูงสุด</a>
+      <a class="button button-ghost" href="/map"><%- icon('map', 18) %>ดูบนแผนที่</a>
+    </div>
   </div>
-  <div class="stat">
-    <dt>หมวดหมู่</dt>
-    <dd><%= categoryCount %></dd>
-  </div>
-</dl>
+  <%- include('partials/scene') %>
+</section>
 
-<p class="note">เว็บไซต์กำลังอยู่ระหว่างการพัฒนา หน้าค้นหาและรายละเอียดสถานที่จะเปิดใช้งานเร็ว ๆ นี้</p>
+<div class="container home-content">
+  <section class="content-section" aria-labelledby="categories-heading">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">เลือกตามอารมณ์วันนี้</p>
+        <h2 id="categories-heading">อยากไปแบบไหน</h2>
+      </div>
+      <p class="section-stat"><strong><%= totalPlaces %></strong> สถานที่ · <strong><%= categories.filter((category) => category.placeCount).length %></strong> หมวดหมู่</p>
+    </div>
+    <nav class="category-grid" aria-label="ค้นหาตามหมวดหมู่">
+      <% categories.filter((category) => category.placeCount).forEach((category) => { %>
+      <a class="category-tile tone-<%= categoryKind(category) %>" href="/places?categoryId=<%= category.id %>">
+        <span class="category-icon"><%- icon(categoryIcon(category), 24) %></span>
+        <span class="category-name"><%= category.name %></span>
+        <span class="category-count"><%= category.placeCount %> แห่ง</span>
+      </a>
+      <% }) %>
+    </nav>
+  </section>
+
+  <section class="content-section" aria-labelledby="featured-heading">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">เลือกมาให้แล้ว</p>
+        <h2 id="featured-heading">ทีมงานชวนไป</h2>
+      </div>
+      <a class="text-link" href="/places">ดูสถานที่ทั้งหมด <%- icon('arrow', 16) %></a>
+    </div>
+    <% if (featured.length) { %>
+    <div class="card-grid spotlight-grid">
+      <% featured.forEach((place) => { %><%- include('partials/card', { place }) %><% }) %>
+    </div>
+    <% } else { %>
+    <div class="empty-state"><h3>กำลังรวบรวมสถานที่แนะนำ</h3><p>เริ่มสำรวจจากหมวดหมู่ที่สนใจได้เลย</p></div>
+    <% } %>
+  </section>
+
+  <section class="content-section" aria-labelledby="rated-heading">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">จากรีวิวของสมาชิก</p>
+        <h2 id="rated-heading">คนในย่านให้คะแนนสูง</h2>
+        <p>นับเฉพาะสถานที่ที่มีอย่างน้อย 3 รีวิว เพื่อให้คะแนนเปรียบเทียบกันได้</p>
+      </div>
+      <a class="text-link" href="/places?sort=rating">เรียงตามคะแนน <%- icon('arrow', 16) %></a>
+    </div>
+    <% if (highlyRated.length) { %>
+    <div class="card-grid">
+      <% highlyRated.forEach((place) => { %><%- include('partials/card', { place }) %><% }) %>
+    </div>
+    <% } else { %>
+    <div class="empty-state">
+      <%- icon('star', 28) %>
+      <h3>ยังมีรีวิวไม่เพียงพอ</h3>
+      <p>เคยไปที่ไหนในย่านนี้แล้ว? เขียนรีวิวแรกให้สถานที่นั้นได้เลย</p>
+      <a class="button button-outline" href="/places">เลือกสถานที่ที่เคยไป</a>
+    </div>
+    <% } %>
+  </section>
+
+  <section class="map-teaser">
+    <div>
+      <p class="eyebrow">ดูทั้งย่านในภาพเดียว</p>
+      <h2>เปิดแผนที่ลาดกระบัง</h2>
+      <p>ดูว่าสถานที่ไหนอยู่ใกล้กัน แล้ววางแผนแวะหลายที่ในเที่ยวเดียว</p>
+    </div>
+    <a class="button button-light" href="/map"><%- icon('map', 18) %>เปิดแผนที่</a>
+  </section>
+
+  <section class="contribute-panel">
+    <span class="contribute-icon"><%- icon('pin', 26) %></span>
+    <div>
+      <h2>มีมุมโปรดที่อยากบอกต่อ?</h2>
+      <p>แนะนำสถานที่ให้ผู้ดูแลตรวจสอบ แล้วแบ่งปันกับคนในย่าน</p>
+    </div>
+    <a class="button button-primary" href="/submissions/new"><%- icon('plus', 18) %>แนะนำสถานที่</a>
+  </section>
+</div>
 <%- include('partials/foot') %>

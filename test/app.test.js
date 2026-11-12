@@ -2,13 +2,13 @@ const request = require('supertest');
 const { createApp } = require('../src/app');
 const healthModel = require('../src/models/health');
 const placeModel = require('../src/models/place');
-const { prisma, resetDatabase } = require('./support/db');
+const { prisma, resetDatabase, closeDatabase } = require('./support/db');
 
 const app = createApp();
 
 beforeAll(resetDatabase);
 afterEach(() => jest.restoreAllMocks());
-afterAll(() => prisma.$disconnect());
+afterAll(closeDatabase);
 
 describe('GET /healthz', () => {
   test('returns 200 when the database answers', async () => {
@@ -42,8 +42,7 @@ describe('home page', () => {
     expect(res.text).toContain('<html lang="th">');
     expect(res.text).toContain('วันนี้ไปไหนดี');
     // one published place, one category; the unpublished place is not counted
-    expect(res.text).toMatch(/สถานที่<\/dt>\s*<dd>1<\/dd>/);
-    expect(res.text).toMatch(/หมวดหมู่<\/dt>\s*<dd>1<\/dd>/);
+    expect(res.text).toMatch(/<strong>1<\/strong> สถานที่ · <strong>1<\/strong> หมวดหมู่/);
   });
 });
 

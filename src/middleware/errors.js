@@ -1,11 +1,14 @@
 // The last two middleware in the app: "no route matched" and "something failed".
 const AppError = require('../utils/AppError');
+const wantsJson = require('../utils/wantsJson');
 
 const GENERIC_MESSAGE = 'เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง';
 
-function wantsJson(req) {
-  return req.originalUrl.startsWith('/api/') || req.accepts(['html', 'json']) === 'json';
-}
+const TITLES = {
+  403: 'ไม่มีสิทธิ์เข้าถึง',
+  404: 'ไม่พบหน้านี้',
+  429: 'ลองบ่อยเกินไป',
+};
 
 function notFound(req, res, next) {
   next(new AppError(404, 'NOT_FOUND', wantsJson(req) ? 'ไม่พบข้อมูลที่ต้องการ' : 'ไม่พบหน้าที่คุณต้องการ'));
@@ -14,6 +17,11 @@ function notFound(req, res, next) {
 // Turns anything that was thrown into an AppError.
 function normalize(err) {
   if (err instanceof AppError) return err;
+
+  // A missing or wrong CSRF token (see middleware/csrf.js).
+  if (err.code === 'EBADCSRFTOKEN') {
+    return new AppError(403, 'FORBIDDEN', 'แบบฟอร์มหมดอายุหรือไม่ถูกต้อง กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง');
+  }
 
   // Errors from the body parsers.
   if (err.type === 'entity.too.large') return new AppError(413, 'PAYLOAD_TOO_LARGE', 'ข้อมูลที่ส่งมามีขนาดใหญ่เกินไป');
@@ -43,7 +51,7 @@ function errorHandler(err, req, res, next) {
   if (wantsJson(req)) {
     return res.json({ error: { code, message, details: known?.details ?? null } });
   }
-  return res.render('error', { title: status === 404 ? 'ไม่พบหน้านี้' : 'เกิดข้อผิดพลาด', status, message });
+  return res.render('error', { title: TITLES[status] ?? 'เกิดข้อผิดพลาด', status, message });
 }
 
 module.exports = { notFound, errorHandler };

@@ -1,0 +1,99 @@
+<%- include('partials/head') %>
+<div class="container page-content">
+  <nav class="breadcrumb" aria-label="ตำแหน่งหน้า">
+    <a href="/places">สำรวจสถานที่</a><%- icon('chevron', 16) %>
+    <a href="/places?categoryId=<%= place.category.id %>"><%= place.category.name %></a><%- icon('chevron', 16) %>
+    <span><%= place.name %></span>
+  </nav>
+
+  <header class="detail-heading tone-<%= categoryKind(place.category) %>">
+    <div>
+      <span class="tag"><%- icon(categoryIcon(place.category), 15) %><%= place.category.name %></span>
+      <h1><%= place.name %></h1>
+      <div class="detail-meta">
+        <span class="card-rating"><span class="star" aria-hidden="true">★</span><strong><%= rating(place.ratingAvg) %></strong></span>
+        <a href="#reviews"><%= place.ratingCount %> รีวิว</a>
+        <span class="detail-district"><%- icon('pin', 16) %>ลาดกระบัง กรุงเทพฯ</span>
+      </div>
+    </div>
+    <div class="detail-actions">
+      <a class="button button-outline" href="<%= currentUser ? '/me/favorites' : '/login?next=' + encodeURIComponent('/places/' + place.id) %>"><%- icon('heart', 18) %>บันทึกสถานที่</a>
+    </div>
+  </header>
+
+  <div class="detail-grid">
+    <div class="detail-main">
+      <div class="detail-image tone-<%= categoryKind(place.category) %>">
+        <% if (place.imagePath && isIllustration(place.imagePath)) { %>
+        <img src="<%= place.imagePath %>" alt="ภาพประกอบหมวด<%= place.category.name %> ไม่ใช่ภาพถ่ายของสถานที่จริง">
+        <span class="image-note" aria-hidden="true">ภาพประกอบ</span>
+        <% } else if (place.imagePath) { %>
+        <img src="<%= place.imagePath %>" alt="<%= place.name %>">
+        <% } else { %>
+        <span class="image-placeholder"><%- icon(categoryIcon(place.category), 48) %></span>
+        <% } %>
+      </div>
+
+      <section class="detail-section">
+        <h2>เกี่ยวกับสถานที่</h2>
+        <p class="preserve-lines"><%= place.description %></p>
+      </section>
+
+      <section class="detail-section">
+        <div class="section-heading">
+          <h2 id="reviews">รีวิวจากผู้ใช้</h2>
+          <span class="meta"><%= place.ratingCount %> รีวิว</span>
+        </div>
+        <% if (!currentUser) { %>
+        <div class="review-prompt">
+          <p>เคยไปที่นี่แล้ว? บอกเล่าประสบการณ์ของคุณ</p>
+          <a class="button button-outline" href="/login?next=<%= encodeURIComponent('/places/' + place.id) %>">เข้าสู่ระบบเพื่อรีวิว</a>
+        </div>
+        <% } else { %>
+        <p class="small-note">การเขียนรีวิวจะเปิดใช้งานเร็ว ๆ นี้</p>
+        <% } %>
+        <div class="empty-state compact"><p>สถานที่นี้ยังไม่มีรีวิว เป็นคนแรกที่เล่าให้คนในย่านฟัง</p></div>
+      </section>
+    </div>
+
+    <aside class="detail-aside">
+      <section class="side-panel visit-panel">
+        <h2><%- icon('pin') %>ไปที่นี่</h2>
+        <p class="address"><%= place.address %></p>
+        <a class="button button-primary button-block" href="<%= mapsUrl(place) %>" target="_blank" rel="noopener noreferrer"><%- icon('external', 18) %><%= place.latitude !== null ? 'นำทางด้วย Google Maps' : 'ค้นหาใน Google Maps' %> <span class="sr-only">(หน้าต่างใหม่)</span></a>
+        <% if (place.latitude === null) { %>
+        <p class="small-note">สถานที่นี้ยังไม่มีหมุดบนแผนที่</p>
+        <% } %>
+      </section>
+
+      <section class="side-panel">
+        <h2><%- icon('clock') %>เวลาเปิดบริการ</h2>
+        <dl class="opening-hours">
+          <% place.hours.forEach((day) => { %>
+          <div class="<%= day.weekday === todayWeekday ? 'is-today' : '' %>">
+            <dt><%= weekdayLabels[day.weekday] %><% if (day.weekday === todayWeekday) { %> <span class="today-tag">วันนี้</span><% } %></dt>
+            <dd class="<%= day.state %>"><%= hoursLabel(day) %><% if (day.closesNextDay) { %> <small>(วันถัดไป)</small><% } %></dd>
+          </div>
+          <% }) %>
+        </dl>
+        <p class="side-note"><%- icon('info', 18) %><span>เวลาประเทศไทย เวลาเปิดอาจเปลี่ยนแปลง ควรตรวจสอบกับสถานที่ก่อนเดินทาง</span></p>
+      </section>
+    </aside>
+  </div>
+
+  <% if (related.length) { %>
+  <section class="content-section" aria-labelledby="similar-heading">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">ถ้าชอบแบบนี้</p>
+        <h2 id="similar-heading"><%= place.category.name %>อื่นในย่าน</h2>
+      </div>
+      <a class="text-link" href="/places?categoryId=<%= place.category.id %>">ดูทั้งหมวด <%- icon('arrow', 16) %></a>
+    </div>
+    <div class="card-grid card-grid-3">
+      <% related.forEach((item) => { %><%- include('partials/card', { place: item }) %><% }) %>
+    </div>
+  </section>
+  <% } %>
+</div>
+<%- include('partials/foot') %>

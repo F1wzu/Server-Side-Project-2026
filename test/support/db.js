@@ -9,4 +9,11 @@ async function resetDatabase() {
   );
 }
 
-module.exports = { prisma, resetDatabase };
+// Closes every database connection so Jest can exit.
+async function closeDatabase() {
+  const { closeSessionStore } = require('../../src/middleware/session');
+  await closeSessionStore();
+  await prisma.$disconnect();
+}
+
+module.exports = { prisma, resetDatabase, closeDatabase };
