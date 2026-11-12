@@ -1,0 +1,40 @@
+{
+  "name": "pai-nai-dee-lat-krabang",
+  "version": "0.1.0",
+  "private": true,
+  "description": "วันนี้ไปไหนดี @ ลาดกระบัง — a place guide for Lat Krabang district",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:reset": "prisma migrate reset",
+    "db:studio": "prisma studio",
+    "test": "jest",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "compression": "^1.8.2",
+    "dotenv": "^18.0.10",
+    "ejs": "^7.0.2",
+    "express": "^5.3.0",
+    "helmet": "^8.3.0",
+    "pino": "^10.4.0",
+    "pino-http": "^11.0.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "jest": "^30.5.2",
+    "nodemon": "^3.1.14",
+    "pino-pretty": "^13.2.0",
+    "prisma": "7.10.1",
+    "supertest": "^7.3.2"
+  }
+}

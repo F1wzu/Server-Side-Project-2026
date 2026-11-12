@@ -1,0 +1,28 @@
+# PostgreSQL for local development.
+#   docker compose up -d      start the database
+#   docker compose down       stop it (data is kept)
+#   docker compose down -v    stop it and delete the data
+# The password comes from POSTGRES_PASSWORD in .env.
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: painaidee
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: painaidee_dev
+    ports:
+      # Reachable from this computer only.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      # Creates the second database used by `npm test` (first start only).
+      - ./docker/create-test-database.sql:/docker-entrypoint-initdb.d/create-test-database.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U painaidee -d painaidee_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  db-data:

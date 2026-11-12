@@ -1,0 +1,224 @@
+// Database schema — see docs/DESIGN.md section 3 for the reasoning.
+//
+// Rules Prisma cannot express (CHECK constraints, the case-insensitive unique
+// category name) are written by hand at the end of the migration SQL files.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  member
+  admin
+
+  @@map("role")
+}
+
+enum PlaceStatus {
+  published
+  unpublished
+
+  @@map("place_status")
+}
+
+enum HoursState {
+  open
+  closed
+  unknown
+
+  @@map("hours_state")
+}
+
+enum ReviewStatus {
+  active
+  deleted
+  removed
+
+  @@map("review_status")
+}
+
+enum SubmissionStatus {
+  pending
+  changes_requested
+  approved
+  rejected
+
+  @@map("submission_status")
+}
+
+enum SubmissionAction {
+  submitted
+  edited
+  resubmitted
+  returned
+  approved
+  rejected
+
+  @@map("submission_action")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @db.VarChar(50)
+  email        String   @unique @db.VarChar(254)
+  passwordHash String   @map("password_hash") @db.VarChar(100)
+  role         Role     @default(member)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  reviews          Review[]          @relation("ReviewAuthor")
+  removedReviews   Review[]          @relation("ReviewRemover")
+  favorites        Favorite[]
+  submissions      Submission[]
+  submissionEvents SubmissionEvent[]
+  createdPlaces    Place[]
+
+  @@map("users")
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(80)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  places      Place[]
+  submissions Submission[]
+
+  @@map("categories")
+}
+
+model Place {
+  id            Int         @id @default(autoincrement())
+  categoryId    Int         @map("category_id")
+  name          String      @db.VarChar(200)
+  description   String
+  address       String      @db.VarChar(500)
+  latitude      Decimal?    @db.Decimal(9, 6)
+  longitude     Decimal?    @db.Decimal(9, 6)
+  imagePath     String?     @map("image_path") @db.VarChar(500)
+  status        PlaceStatus @default(published)
+  featuredOrder Int?        @map("featured_order")
+  ratingAvg     Decimal?    @map("rating_avg") @db.Decimal(3, 2)
+  ratingCount   Int         @default(0) @map("rating_count")
+  createdById   Int?        @map("created_by")
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  category   Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdBy  User?       @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  hours      PlaceHours[]
+  reviews    Review[]
+  favorites  Favorite[]
+  submission Submission?
+
+  @@index([status, categoryId])
+  @@index([status, ratingAvg])
+  @@map("places")
+}
+
+model PlaceHours {
+  placeId       Int        @map("place_id")
+  weekday       Int        @db.SmallInt
+  state         HoursState @default(unknown)
+  opensAt       DateTime?  @map("opens_at") @db.Time(0)
+  closesAt      DateTime?  @map("closes_at") @db.Time(0)
+  closesNextDay Boolean    @default(false) @map("closes_next_day")
+
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@id([placeId, weekday])
+  @@map("place_hours")
+}
+
+model Review {
+  id            Int          @id @default(autoincrement())
+  userId        Int          @map("user_id")
+  placeId       Int          @map("place_id")
+  rating        Int          @db.SmallInt
+  comment       String?      @db.VarChar(2000)
+  status        ReviewStatus @default(active)
+  removedById   Int?         @map("removed_by")
+  removedReason String?      @map("removed_reason") @db.VarChar(500)
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user      User  @relation("ReviewAuthor", fields: [userId], references: [id], onDelete: Restrict)
+  place     Place @relation(fields: [placeId], references: [id], onDelete: Restrict)
+  removedBy User? @relation("ReviewRemover", fields: [removedById], references: [id], onDelete: Restrict)
+
+  @@unique([userId, placeId])
+  @@index([placeId, status])
+  @@map("reviews")
+}
+
+model Favorite {
+  userId    Int      @map("user_id")
+  placeId   Int      @map("place_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, placeId])
+  @@index([placeId])
+  @@map("favorites")
+}
+
+model Submission {
+  id          Int              @id @default(autoincrement())
+  userId      Int              @map("user_id")
+  categoryId  Int              @map("category_id")
+  name        String           @db.VarChar(200)
+  description String
+  address     String           @db.VarChar(500)
+  latitude    Decimal?         @db.Decimal(9, 6)
+  longitude   Decimal?         @db.Decimal(9, 6)
+  imagePath   String?          @map("image_path") @db.VarChar(500)
+  hours       Json
+  status      SubmissionStatus @default(pending)
+  version     Int              @default(1)
+  reviewNote  String?          @map("review_note") @db.VarChar(1000)
+  placeId     Int?             @unique @map("place_id")
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Restrict)
+  category Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  place    Place?            @relation(fields: [placeId], references: [id], onDelete: Restrict)
+  events   SubmissionEvent[]
+
+  @@index([status, createdAt])
+  @@index([userId])
+  @@map("submissions")
+}
+
+model SubmissionEvent {
+  id           Int              @id @default(autoincrement())
+  submissionId Int              @map("submission_id")
+  actorId      Int              @map("actor_id")
+  action       SubmissionAction
+  note         String?          @db.VarChar(1000)
+  snapshot     Json
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  actor      User       @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([submissionId, createdAt])
+  @@map("submission_events")
+}
+
+// Owned by the session store (connect-pg-simple, added in step 2).
+// The column names and types are the ones that library expects.
+model Session {
+  sid    String   @id @db.VarChar
+  sess   Json     @db.Json
+  expire DateTime @db.Timestamp(6)
+
+  @@index([expire])
+  @@map("sessions")
+}

@@ -1,0 +1,17 @@
+<%- include('partials/head') %>
+<h1>วันนี้ไปไหนดี?</h1>
+<p class="lead">คู่มือสถานที่ในเขตลาดกระบัง จากคนที่อยู่ที่นี่จริง</p>
+
+<dl class="stats">
+  <div class="stat">
+    <dt>สถานที่</dt>
+    <dd><%= placeCount %></dd>
+  </div>
+  <div class="stat">
+    <dt>หมวดหมู่</dt>
+    <dd><%= categoryCount %></dd>
+  </div>
+</dl>
+
+<p class="note">เว็บไซต์กำลังอยู่ระหว่างการพัฒนา หน้าค้นหาและรายละเอียดสถานที่จะเปิดใช้งานเร็ว ๆ นี้</p>
+<%- include('partials/foot') %>

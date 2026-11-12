@@ -1,0 +1,152 @@
+/* Mobile first: the base rules are for a 375 px screen; wider screens are added below. */
+:root {
+  --bg: #fbfaf7;
+  --surface: #ffffff;
+  --text: #1f2933;
+  --muted: #52606d;
+  --line: #d9dee3;
+  --brand: #0b6e4f;
+  --brand-text: #ffffff;
+  --danger: #b42318;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Sarabun", "Noto Sans Thai", "Leelawadee UI", "Thonburi", Tahoma, sans-serif;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text);
+  background: var(--bg);
+}
+
+a {
+  color: var(--brand);
+}
+
+:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -999px;
+  top: 0;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+}
+
+.skip-link:focus {
+  left: 0;
+  z-index: 10;
+}
+
+.site-header {
+  padding: 0.75rem 1rem;
+  background: var(--brand);
+}
+
+.site-name {
+  display: inline-block;
+  min-height: 44px;
+  line-height: 44px;
+  font-weight: 700;
+  color: var(--brand-text);
+  text-decoration: none;
+}
+
+.container {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.75rem;
+  line-height: 1.3;
+}
+
+.lead {
+  margin: 0 0 1.5rem;
+  font-size: 1.125rem;
+  color: var(--muted);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
+}
+
+.stat {
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+}
+
+.stat dt {
+  color: var(--muted);
+}
+
+.stat dd {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.note {
+  color: var(--muted);
+}
+
+.button {
+  display: inline-block;
+  min-height: 44px;
+  padding: 0.5rem 1.25rem;
+  line-height: 28px;
+  font-weight: 600;
+  color: var(--brand-text);
+  background: var(--brand);
+  border-radius: 0.5rem;
+  text-decoration: none;
+}
+
+.error-page {
+  padding: 2rem 0;
+  text-align: center;
+}
+
+.error-status {
+  margin: 0;
+  font-size: 4rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--danger);
+}
+
+.site-footer {
+  padding: 1rem;
+  font-size: 0.875rem;
+  text-align: center;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+}
+
+@media (min-width: 768px) {
+  h1 {
+    font-size: 2.25rem;
+  }
+
+  .stats {
+    max-width: 32rem;
+  }
+}

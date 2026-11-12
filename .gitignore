@@ -1,2 +1,15 @@
+# Secrets
 .env
+.env.*
+!.env.example
+
+# Dependencies and generated files
 node_modules/
+coverage/
+
+# Uploaded photos (development)
+storage/uploads/
+
+# Logs and editor files
+*.log
+.DS_Store
