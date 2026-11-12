@@ -79,13 +79,16 @@ enum ReportStatus {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  username     String   @db.VarChar(50)
-  email        String   @unique @db.VarChar(254)
-  passwordHash String   @map("password_hash") @db.VarChar(100)
-  role         Role     @default(member)
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id             Int      @id @default(autoincrement())
+  username       String   @db.VarChar(50)
+  email          String   @unique @db.VarChar(254)
+  passwordHash   String   @map("password_hash") @db.VarChar(100)
+  role           Role     @default(member)
+  // Raised when the password changes. A session that remembers an older
+  // value is treated as logged out (see middleware/auth.js).
+  sessionVersion Int      @default(1) @map("session_version")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   reviews          Review[]          @relation("ReviewAuthor")
   removedReviews   Review[]          @relation("ReviewRemover")
@@ -129,8 +132,8 @@ model Place {
   createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  category   Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  createdBy  User?       @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  category   Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdBy  User?         @relation(fields: [createdById], references: [id], onDelete: Restrict)
   hours      PlaceHours[]
   reviews    Review[]
   favorites  Favorite[]

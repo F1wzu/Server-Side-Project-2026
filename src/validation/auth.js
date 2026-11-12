@@ -2,6 +2,7 @@
 // Only the fields listed here are ever read; anything else in the request,
 // such as `role`, is dropped.
 const { z } = require('zod');
+const { visibleText } = require('./text');
 
 const email = z
   .string({ error: 'กรุณากรอกอีเมล' })
@@ -11,11 +12,11 @@ const email = z
   .max(254, 'อีเมลยาวเกินไป')
   .pipe(z.email({ error: 'รูปแบบอีเมลไม่ถูกต้อง' }));
 
-const username = z
-  .string({ error: 'กรุณากรอกชื่อผู้ใช้' })
-  .trim()
-  .min(3, 'ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร')
-  .max(50, 'ชื่อผู้ใช้ต้องไม่เกิน 50 ตัวอักษร');
+// A display name: 3–50 characters a person can see, on one line.
+const username = visibleText({ label: 'ชื่อผู้ใช้', min: 3, max: 50, minMessage: 'ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร' }).refine(
+  (value) => !/[\r\n\t]/.test(value),
+  'ชื่อผู้ใช้ต้องอยู่ในบรรทัดเดียว'
+);
 
 // The rule for choosing a password (register and change password).
 const newPassword = z

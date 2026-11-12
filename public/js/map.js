@@ -29,6 +29,54 @@
     L.marker(position, { icon: pin(element.dataset.kind), keyboard: false }).addTo(map);
   });
 
+  // Pin picker on the submission form: tap the map or drag the pin, and the
+  // latitude and longitude boxes fill in. Typing in the boxes moves the pin.
+  // Without JavaScript the boxes are still there and work on their own.
+  document.querySelectorAll('[data-map-picker]').forEach((element) => {
+    const form = element.closest('form');
+    const latInput = form.elements.namedItem('latitude');
+    const lngInput = form.elements.namedItem('longitude');
+    const bounds = JSON.parse(element.dataset.bounds);
+    const area = L.latLngBounds([bounds.minLat, bounds.minLng], [bounds.maxLat, bounds.maxLng]);
+    const map = L.map(element, { maxBounds: area.pad(0.2) }).setView([13.7245, 100.765], 13);
+    tiles().addTo(map);
+    // The allowed area, so a member sees where a pin is accepted.
+    L.rectangle(area, { color: '#0e5a52', weight: 1, fill: false, dashArray: '4 6', interactive: false }).addTo(map);
+
+    let marker = null;
+    const fix = (value) => Number(value).toFixed(6);
+    function place(latlng, { pan = false } = {}) {
+      if (!marker) {
+        marker = L.marker(latlng, { icon: pin(element.dataset.kind || 'other', true), draggable: true, keyboard: false }).addTo(map);
+        marker.on('dragend', () => write(marker.getLatLng()));
+      } else marker.setLatLng(latlng);
+      if (pan) map.setView(latlng, Math.max(map.getZoom(), 16));
+    }
+    function write(latlng) {
+      latInput.value = fix(latlng.lat);
+      lngInput.value = fix(latlng.lng);
+      latInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    const read = () => {
+      const lat = Number(latInput.value);
+      const lng = Number(lngInput.value);
+      return latInput.value !== '' && lngInput.value !== '' && Number.isFinite(lat) && Number.isFinite(lng) ? L.latLng(lat, lng) : null;
+    };
+
+    const start = read();
+    if (start) place(start, { pan: true });
+    map.on('click', (event) => {
+      place(event.latlng);
+      write(event.latlng);
+    });
+    [latInput, lngInput].forEach((input) =>
+      input.addEventListener('input', () => {
+        const latlng = read();
+        if (latlng) place(latlng, { pan: true });
+      })
+    );
+  });
+
   // District map: markers come from the JSON API, the list beside it is server-rendered.
   const page = document.querySelector('[data-map-page]');
   if (!page) return;

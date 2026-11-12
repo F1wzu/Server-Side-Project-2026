@@ -82,7 +82,7 @@
         </form>
         <% } %>
 
-        <% if (!reviews.data.length) { %>
+        <% if (reviews.pagination.total === 0) { %>
         <div class="empty-state compact"><p>สถานที่นี้ยังไม่มีรีวิว เป็นคนแรกที่เล่าให้คนในย่านฟัง</p></div>
         <% } %>
         <% reviews.data.forEach((review) => { %>

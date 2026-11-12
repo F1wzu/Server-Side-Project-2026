@@ -9,7 +9,9 @@
     <p>รีวิวที่คุณเขียน แก้ไขหรือลบได้ทุกเมื่อ</p>
   </div>
 
-  <% if (!result.data.length) { %>
+  <%# Depends on the total, not on this page: the model shows the last page
+      for a page number past the end. %>
+  <% if (result.pagination.total === 0) { %>
   <div class="empty-state">
     <%- icon('star', 28) %>
     <h2>ยังไม่มีรีวิว</h2>
@@ -35,6 +37,8 @@
       <div class="feedback-panel"><strong>เหตุผลจากผู้ดูแล</strong><p><%= review.removedReason %></p></div>
       <% } %>
 
+      <%# Editing needs a published place; deleting does not, so the author can
+          still take a review down after the place was unpublished. %>
       <% if (review.status === 'active' && live) { %>
       <details>
         <summary>แก้ไขรีวิว</summary>
@@ -53,6 +57,8 @@
           <button class="button button-primary" type="submit">บันทึกการแก้ไข</button>
         </form>
       </details>
+      <% } %>
+      <% if (review.status === 'active') { %>
       <form class="remove-review" method="post" action="/reviews/<%= review.id %>/delete">
         <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
         <button class="text-button" type="submit">ลบรีวิวของฉัน</button>

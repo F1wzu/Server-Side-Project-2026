@@ -10,10 +10,12 @@ const { sessionMiddleware } = require('./middleware/session');
 const { loadCurrentUser } = require('./middleware/auth');
 const { csrfProtection, exposeCsrfToken } = require('./middleware/csrf');
 const { exposeFlash } = require('./middleware/flash');
+const { stripNul } = require('./middleware/sanitize');
 const { notFound, errorHandler } = require('./middleware/errors');
 const webRoutes = require('./routes/webRoutes');
 const apiRoutes = require('./routes/apiRoutes');
 const viewHelpers = require('./views/helpers');
+const { UPLOAD_DIR } = require('./storage');
 
 // A folder inside an installed package (the fonts are served from node_modules).
 const packageFolder = (name, folder) => path.join(path.dirname(require.resolve(`${name}/package.json`)), folder);
@@ -24,7 +26,8 @@ function createApp() {
   app.disable('x-powered-by');
   if (env.TRUST_PROXY) {
     // A number means "how many proxies are in front of the app".
-    app.set('trust proxy', /^\d+$/.test(env.TRUST_PROXY) ? Number(env.TRUST_PROXY) : env.TRUST_PROXY);
+    const value = env.TRUST_PROXY;
+    app.set('trust proxy', /^\d+$/.test(value) ? Number(value) : value === 'true' ? true : value === 'false' ? false : value);
   }
   app.set('view engine', 'ejs');
   app.set('views', path.join(__dirname, 'views'));
@@ -52,8 +55,12 @@ function createApp() {
   app.use('/fonts/display', express.static(packageFolder('@fontsource/chonburi', 'files'), fonts));
   app.use('/fonts/text', express.static(packageFolder('@fontsource/ibm-plex-sans-thai-looped', 'files'), fonts));
   app.use('/vendor/leaflet', express.static(packageFolder('leaflet', 'dist'), fonts)); // the map library
+  // Uploaded photos, when they are stored on this computer (STORAGE_DRIVER=local).
+  // Names are random and never reused, so they can be cached for a long time.
+  if (UPLOAD_DIR) app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: env.isProduction ? '30d' : 0, fallthrough: false }));
   app.use(express.urlencoded({ extended: false, limit: '64kb' })); // 5. form bodies
   app.use(express.json({ limit: '64kb' })); //    JSON bodies
+  app.use(stripNul); //    no NUL characters in the query or the body
   app.use(sessionMiddleware); // 6. session from the cookie
   app.use(exposeFlash);
   app.use((req, res, next) => {

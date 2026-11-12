@@ -1,0 +1,49 @@
+<%- include('partials/head') %>
+<div class="container page-content">
+  <div class="section-heading page-heading">
+    <div>
+      <p class="eyebrow">สถานที่ที่คุณแบ่งปัน</p>
+      <h1>คำขอของฉัน</h1>
+      <p>ติดตามสถานะ อ่านคำแนะนำจากผู้ดูแล และส่งข้อมูลที่แก้ไขแล้ว</p>
+    </div>
+    <a class="button button-primary" href="/submissions/new"><%- icon('plus', 18) %>แนะนำสถานที่</a>
+  </div>
+
+  <% if (result.data.length) { %>
+  <div class="table-shell">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">สถานที่</th>
+          <th scope="col">สถานะ</th>
+          <th scope="col">อัปเดตล่าสุด</th>
+          <th scope="col"><span class="sr-only">เปิดคำขอ</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% result.data.forEach((item) => { %>
+        <tr>
+          <td>
+            <a class="table-title" href="/me/submissions/<%= item.id %>"><%= item.name %></a>
+            <span class="meta table-meta"><%= item.category.name %> · คำขอ #<%= item.id %></span>
+          </td>
+          <td data-label="สถานะ"><span class="status status-<%= item.status %>"><%= statusLabels[item.status] %></span></td>
+          <td data-label="อัปเดตล่าสุด" class="table-date"><%= date(item.updatedAt) %></td>
+          <td><a class="text-link" aria-label="ดูคำขอ <%= item.name %>" href="/me/submissions/<%= item.id %>">ดูรายละเอียด</a></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <p class="meta list-count"><%= result.pagination.total %> คำขอ</p>
+  <% } else { %>
+  <div class="empty-state">
+    <%- icon('pin', 28) %>
+    <h2>ยังไม่มีคำขอของคุณ</h2>
+    <p>เริ่มแบ่งปันสถานที่ในลาดกระบังที่คุณรู้จัก</p>
+    <a class="button button-primary" href="/submissions/new">แนะนำสถานที่</a>
+  </div>
+  <% } %>
+  <%- include('partials/pagination', { pagination: result.pagination, pageLink }) %>
+</div>
+<%- include('partials/foot') %>

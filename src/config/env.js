@@ -25,7 +25,18 @@ const schema = z
     PUBLIC_ORIGIN: optional(
       z.string().regex(/^https?:\/\/[^/\s]+$/, 'must be an address such as https://example.com, without a trailing slash')
     ),
-    TRUST_PROXY: optional(z.string()),
+    // How many proxies sit in front of the app (a number), "true"/"false", or
+    // a list of trusted addresses (loopback, linklocal, uniquelocal, IPs or
+    // subnets). Anything else would crash Express at start, so it is refused.
+    TRUST_PROXY: optional(
+      z
+        .string()
+        .trim()
+        .regex(
+          /^(true|false|\d{1,2}|((loopback|linklocal|uniquelocal|[0-9a-fA-F:.]+(\/\d{1,3})?)(\s*,\s*(loopback|linklocal|uniquelocal|[0-9a-fA-F:.]+(\/\d{1,3})?))*))$/,
+          'must be a number of proxies (e.g. 1), true, false, or a list such as loopback, 10.0.0.0/8'
+        )
+    ),
     // Empty ("STORAGE_DRIVER=") means the default, local.
     STORAGE_DRIVER: z.preprocess(
       (value) => (value === '' ? undefined : value),

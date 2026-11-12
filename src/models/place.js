@@ -65,19 +65,35 @@ function present(place, now, { withHours = false } = {}) {
 // so they are escaped here; otherwise a search for "%" matches everything.
 const escapeLike = (text) => text.replace(/[\\%_]/g, '\\$&');
 
-// Almost every address ends with these words. A search for part of them
-// (for example "ตลาด", which hides inside "เขตลาดกระบัง") must not match
-// every address, so such a search skips the address column.
-const ADDRESS_BOILERPLATE = 'แขวงลาดกระบัง เขตลาดกระบัง กรุงเทพมหานคร 10520';
+// Almost every address ends with the district's own name. A search for a
+// word hidden inside it (for example "ตลาด" inside "เขตลาดกระบัง") must not
+// match every address, so addresses are searched with these words blanked
+// out. The rest of the address (road, soi, landmark) is still searched.
+const ADDRESS_BOILERPLATE = 'แขวงลาดกระบัง|เขตลาดกระบัง|กรุงเทพมหานคร|กรุงเทพฯ|10520';
 
-function buildWhere({ q = '', categoryId = null, openNow = false } = {}, now) {
+// Searching for the district itself: every place in this site is in it, so
+// every place matches by address and the text filter is simply dropped.
+const DISTRICT_WORDS = new Set(['ลาดกระบัง', 'แขวงลาดกระบัง', 'เขตลาดกระบัง', 'กรุงเทพ', 'กรุงเทพฯ', 'กรุงเทพมหานคร', '10520']);
+
+// Ids of places whose address, without the district words, contains `q`.
+// Prisma cannot express regexp_replace, so this is a raw query; the values
+// are still sent as parameters, never pasted into the SQL text.
+// ILIKE only folds the case of ASCII letters here (Thai has no case).
+async function idsByAddress(q) {
+  const pattern = `%${escapeLike(q)}%`;
+  const rows = await prisma.$queryRaw`
+    SELECT id FROM places
+    WHERE regexp_replace(address, ${ADDRESS_BOILERPLATE}, ' ', 'g') ILIKE ${pattern} ESCAPE '\\'`;
+  return rows.map((row) => row.id);
+}
+
+async function buildWhere({ q = '', categoryId = null, openNow = false } = {}, now) {
   const conditions = [published];
   if (categoryId) conditions.push({ categoryId });
   if (openNow) conditions.push(openNowFilter(now));
-  if (q) {
+  if (q && !DISTRICT_WORDS.has(q.trim().toLowerCase())) {
     const contains = { contains: escapeLike(q), mode: 'insensitive' };
-    const fields = [{ name: contains }, { description: contains }, { category: { name: contains } }];
-    if (!ADDRESS_BOILERPLATE.includes(q)) fields.push({ address: contains });
+    const fields = [{ name: contains }, { description: contains }, { category: { name: contains } }, { id: { in: await idsByAddress(q) } }];
     conditions.push({ OR: fields });
   }
   return { AND: conditions };
@@ -90,7 +106,7 @@ function countPublished() {
 // Search, filter, sort and page through published places.
 // With `clamp`, a page number past the end shows the last page instead of nothing.
 async function list({ q, categoryId, openNow, sort = 'name', page = 1, pageSize = 12, clamp = false } = {}, now = new Date()) {
-  const where = buildWhere({ q, categoryId, openNow }, now);
+  const where = await buildWhere({ q, categoryId, openNow }, now);
   const total = await prisma.place.count({ where });
   const pagination = paginate(total, page, pageSize);
   if (clamp && pagination.page > pagination.totalPages) pagination.page = pagination.totalPages;
@@ -161,7 +177,9 @@ async function related(place, limit = 3, now = new Date()) {
     .map((row) => present(row, now))
     .map((other) => ({ ...other, distanceKm: distanceKm(place, other) }))
     .filter((other) => other.distanceKm <= NEARBY_KM)
-    .sort((a, b) => a.distanceKm - b.distanceKm)
+    // Equal distances (two shops in one building) are ordered by name, then
+    // id, so the list is the same on every visit.
+    .sort((a, b) => a.distanceKm - b.distanceKm || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0) || a.id - b.id)
     .slice(0, limit);
 
   return { sameCategory: sameRows.map((row) => present(row, now)), nearby };
@@ -197,7 +215,7 @@ async function savedBy(userId, { page = 1, pageSize = 24 } = {}, now = new Date(
 
 // The id of one published place chosen at random, or null when none match.
 async function randomId({ categoryId = null, openNow = false } = {}, now = new Date()) {
-  const where = buildWhere({ categoryId, openNow }, now);
+  const where = await buildWhere({ categoryId, openNow }, now);
   const total = await prisma.place.count({ where });
   if (!total) return null;
   const [place] = await prisma.place.findMany({ where, orderBy: { id: 'asc' }, skip: Math.floor(Math.random() * total), take: 1, select: { id: true } });

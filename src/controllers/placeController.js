@@ -7,15 +7,17 @@ const favoriteModel = require('../models/favorite');
 const AppError = require('../utils/AppError');
 const { bangkokNow } = require('../utils/openingHours');
 const { validate } = require('../utils/validate');
-const { listQuerySchema, lenientListQuery, randomQuerySchema, idParamSchema } = require('../validation/place');
+const { parseId } = require('../utils/ids');
+const { listQuerySchema, lenientListQuery, randomQuerySchema } = require('../validation/place');
 
 const notFound = () => AppError.notFound('ไม่พบสถานที่นี้');
 
-// The id from the URL, or a 404 when it is not a positive whole number.
+// The id from the URL, or a 404 when it is not written exactly as an id
+// ("01" or "1e0" would otherwise be a second address for the same place).
 function placeId(req) {
-  const parsed = idParamSchema.safeParse(req.params);
-  if (!parsed.success || !/^\d+$/.test(req.params.id)) throw notFound();
-  return parsed.data.id;
+  const id = parseId(req.params.id);
+  if (id === null) throw notFound();
+  return id;
 }
 
 async function findPlace(req) {

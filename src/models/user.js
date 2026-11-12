@@ -46,6 +46,12 @@ function findById(id) {
   return prisma.user.findUnique({ where: { id }, select: publicFields });
 }
 
+// The account as the login check needs it: public fields plus the session
+// version (which never leaves the server).
+function findForSession(id) {
+  return prisma.user.findUnique({ where: { id }, select: { ...publicFields, sessionVersion: true } });
+}
+
 function updateUsername(id, username) {
   return prisma.user.update({ where: { id }, data: { username }, select: publicFields });
 }
@@ -59,7 +65,10 @@ async function changePassword(id, { currentPassword, newPassword }) {
     throw new AppError(400, 'VALIDATION_ERROR', 'รหัสผ่านเดิมไม่ถูกต้อง', [{ field: 'currentPassword', message: 'รหัสผ่านเดิมไม่ถูกต้อง' }]);
   }
   const passwordHash = await bcrypt.hash(newPassword, BCRYPT_COST);
-  await prisma.user.update({ where: { id }, data: { passwordHash } });
+  // Raising the session version logs out every session made before this
+  // moment (see middleware/auth.js), including ones a running request might
+  // still write back after they were deleted.
+  await prisma.user.update({ where: { id }, data: { passwordHash, sessionVersion: { increment: 1 } } });
 }
 
 // Logs the account out everywhere except the session that is kept.
@@ -87,4 +96,4 @@ function emailExists(email) {
   return prisma.user.findUnique({ where: { email }, select: { id: true } }).then(Boolean);
 }
 
-module.exports = { register, authenticate, findById, updateUsername, changePassword, endOtherSessions, createOrPromoteAdmin, emailExists };
+module.exports = { register, authenticate, findById, findForSession, updateUsername, changePassword, endOtherSessions, createOrPromoteAdmin, emailExists };

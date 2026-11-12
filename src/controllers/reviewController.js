@@ -4,18 +4,19 @@
 const reviewModel = require('../models/review');
 const favoriteModel = require('../models/favorite');
 const placeModel = require('../models/place');
-const { reviewSchema } = require('../validation/review');
-const { idParamSchema } = require('../validation/place');
+const { reviewSchema, reviewPatchSchema } = require('../validation/review');
+const { parseId } = require('../utils/ids');
 const { validate } = require('../utils/validate');
 const { setFlash } = require('../middleware/flash');
 const safeRedirect = require('../utils/safeRedirect');
 const AppError = require('../utils/AppError');
 
-// The id from the URL (/places/:id, /reviews/:id ...), or a 404.
+// The id from the URL (/places/:id, /reviews/:id ...), or a 404. Only the
+// plain form counts, so /reviews/01 is not /reviews/1.
 function idFrom(value, what = 'ข้อมูล') {
-  const parsed = idParamSchema.safeParse({ id: value });
-  if (!parsed.success || !/^\d+$/.test(String(value))) throw AppError.notFound(`ไม่พบ${what}นี้`);
-  return parsed.data.id;
+  const id = parseId(value);
+  if (id === null) throw AppError.notFound(`ไม่พบ${what}นี้`);
+  return id;
 }
 
 // A page number from the query string; anything odd means page 1.
@@ -50,7 +51,7 @@ async function createFromForm(req, res) {
 // POST /reviews/:id/edit
 async function updateFromForm(req, res) {
   try {
-    await reviewModel.update(req.user.id, idFrom(req.params.id, 'รีวิว'), validate(reviewSchema, req.body));
+    await reviewModel.update(req.user.id, idFrom(req.params.id, 'รีวิว'), validate(reviewPatchSchema, req.body));
     setFlash(req, 'success', 'บันทึกการแก้ไขรีวิวแล้ว');
   } catch (err) {
     flashError(req, err);
@@ -119,9 +120,10 @@ async function apiCreate(req, res) {
   res.status(201).json({ data: review });
 }
 
-// PATCH /api/v1/reviews/:id
+// PATCH /api/v1/reviews/:id — partial: only the fields sent change.
 async function apiUpdate(req, res) {
-  res.json({ data: await reviewModel.update(req.user.id, idFrom(req.params.id, 'รีวิว'), validate(reviewSchema, req.body)) });
+  const reviewId = idFrom(req.params.id, 'รีวิว');
+  res.json({ data: await reviewModel.update(req.user.id, reviewId, validate(reviewPatchSchema, req.body)) });
 }
 
 // DELETE /api/v1/reviews/:id
@@ -145,7 +147,7 @@ async function apiMyFavorites(req, res) {
 // PUT /api/v1/me/favorites/:placeId — 201 the first time, 200 when already saved
 async function apiSaveFavorite(req, res) {
   const { created } = await favoriteModel.save(req.user.id, idFrom(req.params.placeId, 'สถานที่'));
-  res.status(created ? 201 : 200).json({ data: { placeId: Number(req.params.placeId), saved: true } });
+  res.status(created ? 201 : 200).json({ data: { placeId: parseId(req.params.placeId), saved: true } });
 }
 
 // DELETE /api/v1/me/favorites/:placeId

@@ -7,8 +7,15 @@ const adminController = require('../controllers/adminController');
 const placeController = require('../controllers/placeController');
 const reviewController = require('../controllers/reviewController');
 const reportController = require('../controllers/reportController');
+const submissionController = require('../controllers/submissionController');
+const { photoUpload } = require('../middleware/upload');
+const { csrfAfterUpload } = require('../middleware/csrf');
+const { stripNul } = require('../middleware/sanitize');
+
+// Parse the photo form, then check its CSRF token (see middleware/csrf.js).
+const withPhoto = [photoUpload, stripNul, csrfAfterUpload];
 const { requireLogin, requireAdmin, redirectIfLoggedIn } = require('../middleware/auth');
-const { loginLimiter, passwordChangeLimiter } = require('../middleware/rateLimit');
+const { loginLimiter, passwordChangeLimiter, registerLimiter } = require('../middleware/rateLimit');
 
 const router = express.Router();
 
@@ -23,8 +30,6 @@ router.get('/places/:id', placeController.show);
 // Pages that are in the menu already; their features arrive in later steps.
 const { comingSoon } = placeController;
 router.get('/map', placeController.map);
-router.get('/me/submissions', requireLogin, comingSoon('คำขอของฉัน', 'สถานที่ที่คุณแนะนำและสถานะการตรวจสอบจะแสดงที่นี่'));
-router.get('/submissions/new', requireLogin, comingSoon('แนะนำสถานที่', 'ฟอร์มแนะนำสถานที่ พร้อมรูปและแผนที่สำหรับปักหมุด'));
 
 // Reviews and saved places (members)
 router.post('/places/:id/reviews', requireLogin, reviewController.createFromForm);
@@ -35,9 +40,18 @@ router.post('/favorites/:placeId', requireLogin, reviewController.favoriteFromFo
 router.get('/me/favorites', requireLogin, reviewController.myFavorites);
 router.post('/places/:id/reports', requireLogin, reportController.create);
 
+// Submissions (members). Login is checked before the upload is read.
+router.get('/submissions/new', requireLogin, submissionController.newForm);
+router.post('/submissions', requireLogin, withPhoto, submissionController.create);
+router.get('/me/submissions', requireLogin, submissionController.mine);
+router.get('/me/submissions/:id', requireLogin, submissionController.show);
+router.get('/me/submissions/:id/edit', requireLogin, submissionController.editForm);
+router.post('/me/submissions/:id', requireLogin, withPhoto, submissionController.update);
+router.post('/me/submissions/:id/resubmit', requireLogin, submissionController.resubmit);
+
 // Accounts
 router.get('/register', redirectIfLoggedIn, authController.showRegister);
-router.post('/register', redirectIfLoggedIn, authController.register);
+router.post('/register', redirectIfLoggedIn, registerLimiter, authController.register);
 router.get('/login', redirectIfLoggedIn, authController.showLogin);
 router.post('/login', redirectIfLoggedIn, loginLimiter, authController.login);
 router.post('/logout', authController.logout);

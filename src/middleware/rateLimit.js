@@ -2,11 +2,12 @@
 // successful one does not use up an attempt.
 const { rateLimit, ipKeyGenerator, MemoryStore } = require('express-rate-limit');
 const AppError = require('../utils/AppError');
+const env = require('../config/env');
 
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
 const stores = [];
 
-function failureLimiter({ limit, keyGenerator, message }) {
+function failureLimiter({ limit, keyGenerator, message, requestWasSuccessful }) {
   const store = new MemoryStore();
   stores.push(store);
   return rateLimit({
@@ -15,6 +16,7 @@ function failureLimiter({ limit, keyGenerator, message }) {
     store,
     keyGenerator,
     skipSuccessfulRequests: true, // responses below 400 are not counted
+    ...(requestWasSuccessful && { requestWasSuccessful }),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     handler: (req, res, next) => next(new AppError(429, 'RATE_LIMITED', message)),
@@ -38,6 +40,25 @@ const passwordChangeLimiter = failureLimiter({
   limit: 5,
   keyGenerator: (req) => `user:${req.user.id}`,
   message: 'ใส่รหัสผ่านเดิมผิดหลายครั้งเกินไป กรุณารอ 15 นาทีแล้วลองใหม่',
+  // Only a wrong current password counts; a too-short new password does not.
+  requestWasSuccessful: (req, res) => !res.locals.wrongCurrentPassword,
+});
+
+// Registering costs a slow password hash, and its answer shows whether an
+// email already has an account. So each address may try it a limited number
+// of times an hour, successful or not. Tests register many accounts from one
+// address, so they get a high limit unless a test asks for the real one.
+const REGISTER_LIMIT = 20;
+const registerStore = new MemoryStore();
+stores.push(registerStore);
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: (req) => (env.isTest && !req.get('x-test-real-limits') ? 100000 : REGISTER_LIMIT),
+  store: registerStore,
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  handler: (req, res, next) => next(new AppError(429, 'RATE_LIMITED', 'สมัครสมาชิกหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่')),
 });
 
 // For the tests: forget every counted attempt.
@@ -45,4 +66,4 @@ function resetRateLimits() {
   stores.forEach((store) => store.resetAll());
 }
 
-module.exports = { loginLimiter, passwordChangeLimiter, resetRateLimits };
+module.exports = { loginLimiter, passwordChangeLimiter, registerLimiter, REGISTER_LIMIT, resetRateLimits };

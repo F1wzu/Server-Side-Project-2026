@@ -25,6 +25,21 @@ async function lockPublishedPlace(tx, placeId) {
   if (!rows.length) throw AppError.notFound('ไม่พบสถานที่นี้');
 }
 
+// Locks the place's row whatever its status. Used when a member edits or
+// deletes a review they already wrote: if an admin unpublishes the place
+// afterwards, the author must still be able to take their review down.
+async function lockPlace(tx, placeId) {
+  await tx.$queryRaw`SELECT id FROM places WHERE id = ${placeId} FOR UPDATE`;
+}
+
+// A page number past the end shows the last page instead of an empty list
+// (like /places), so an old or edited link still shows something.
+function pageWithin(total, page, pageSize) {
+  const pagination = paginate(total, page, pageSize);
+  if (pagination.page > pagination.totalPages) pagination.page = pagination.totalPages;
+  return pagination;
+}
+
 // Recalculates the average and the count from the active reviews.
 // Never incremented, so it cannot drift from the reviews table.
 async function recalculateRating(tx, placeId) {
@@ -74,21 +89,27 @@ async function create(userId, placeId, { rating, comment }) {
 
 // Finds the member's own active review, inside a transaction, locking the
 // place first. Someone else's review is reported as "not found", so its
-// existence is not revealed.
+// existence is not revealed. The place does not have to be published any
+// more (see lockPlace).
 async function lockOwnActive(tx, userId, reviewId) {
   const review = await tx.review.findUnique({ where: { id: reviewId }, select: { userId: true, placeId: true, status: true } });
   if (!review || review.userId !== userId) throw notFound();
-  await lockPublishedPlace(tx, review.placeId);
+  await lockPlace(tx, review.placeId);
   // Read again under the lock: the status may have changed while waiting.
   const current = await tx.review.findUnique({ where: { id: reviewId } });
   if (current.status !== 'active') throw notFound();
   return current;
 }
 
+// Partial update: only the fields that were sent (not undefined) change, so
+// a new rating alone keeps the comment. A comment of null clears it.
 async function update(userId, reviewId, { rating, comment }) {
+  const data = {};
+  if (rating !== undefined) data.rating = rating;
+  if (comment !== undefined) data.comment = comment;
   return prisma.$transaction(async (tx) => {
     const review = await lockOwnActive(tx, userId, reviewId);
-    const updated = await tx.review.update({ where: { id: review.id }, data: { rating, comment }, include: { user: authorFields } });
+    const updated = await tx.review.update({ where: { id: review.id }, data, include: { user: authorFields } });
     await recalculateRating(tx, review.placeId);
     return present(updated);
   });
@@ -108,14 +129,15 @@ async function remove(userId, reviewId) {
 async function listForPlace(placeId, { page = 1, pageSize = 10 } = {}) {
   const where = { placeId, status: 'active', place: { status: 'published' } };
   const total = await prisma.review.count({ where });
+  const pagination = pageWithin(total, page, pageSize);
   const rows = await prisma.review.findMany({
     where,
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-    skip: (page - 1) * pageSize,
+    skip: (pagination.page - 1) * pageSize,
     take: pageSize,
     include: { user: authorFields },
   });
-  return { data: rows.map(present), pagination: paginate(total, page, pageSize) };
+  return { data: rows.map(present), pagination };
 }
 
 // The member's own review of a place, whatever its status, or null.
@@ -129,14 +151,15 @@ async function findOwnForPlace(userId, placeId) {
 async function listOwn(userId, { page = 1, pageSize = 20 } = {}) {
   const where = { userId, status: { not: 'deleted' } };
   const total = await prisma.review.count({ where });
+  const pagination = pageWithin(total, page, pageSize);
   const rows = await prisma.review.findMany({
     where,
     orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
-    skip: (page - 1) * pageSize,
+    skip: (pagination.page - 1) * pageSize,
     take: pageSize,
     include: { place: { select: { id: true, name: true, status: true } } },
   });
-  return { data: rows.map(present), pagination: paginate(total, page, pageSize) };
+  return { data: rows.map(present), pagination };
 }
 
 module.exports = { create, update, remove, listForPlace, findOwnForPlace, listOwn, recalculateRating };

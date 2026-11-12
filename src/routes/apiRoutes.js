@@ -5,14 +5,21 @@ const authController = require('../controllers/authController');
 const placeController = require('../controllers/placeController');
 const reviewController = require('../controllers/reviewController');
 const reportController = require('../controllers/reportController');
+const submissionController = require('../controllers/submissionController');
+const { photoUpload } = require('../middleware/upload');
+const { csrfAfterUpload } = require('../middleware/csrf');
+const { stripNul } = require('../middleware/sanitize');
+
+// Parse a multipart body, then check its CSRF token (see middleware/csrf.js).
+const withPhoto = [photoUpload, stripNul, csrfAfterUpload];
 const { requireLogin } = require('../middleware/auth');
-const { loginLimiter, passwordChangeLimiter } = require('../middleware/rateLimit');
+const { loginLimiter, passwordChangeLimiter, registerLimiter } = require('../middleware/rateLimit');
 
 const router = express.Router();
 
 // Accounts
 router.get('/auth/csrf', authController.apiCsrf);
-router.post('/auth/register', authController.apiRegister);
+router.post('/auth/register', registerLimiter, authController.apiRegister);
 router.post('/auth/login', loginLimiter, authController.apiLogin);
 router.post('/auth/logout', requireLogin, authController.apiLogout);
 router.get('/me', requireLogin, authController.apiMe);
@@ -38,5 +45,12 @@ router.get('/me/favorites', requireLogin, reviewController.apiMyFavorites);
 router.put('/me/favorites/:placeId', requireLogin, reviewController.apiSaveFavorite);
 router.delete('/me/favorites/:placeId', requireLogin, reviewController.apiRemoveFavorite);
 router.post('/places/:id/reports', requireLogin, reportController.apiCreate);
+
+// Submissions (members)
+router.post('/submissions', requireLogin, withPhoto, submissionController.apiCreate);
+router.get('/me/submissions', requireLogin, submissionController.apiMine);
+router.get('/me/submissions/:id', requireLogin, submissionController.apiShow);
+router.patch('/me/submissions/:id', requireLogin, withPhoto, submissionController.apiUpdate);
+router.post('/me/submissions/:id/resubmit', requireLogin, submissionController.apiResubmit);
 
 module.exports = router;

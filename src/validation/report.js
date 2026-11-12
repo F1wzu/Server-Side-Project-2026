@@ -1,5 +1,6 @@
 // Input rules for "report wrong information" (docs/DESIGN.md, place_reports).
 const { z } = require('zod');
+const { optionalText } = require('./text');
 
 // The reasons a member can pick, with the label shown in the form.
 const REPORT_REASONS = {
@@ -9,11 +10,10 @@ const REPORT_REASONS = {
   other: 'อื่น ๆ',
 };
 
-// An empty textarea arrives as "", which means "no details".
-const details = z.preprocess(
-  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
-  z.string({ error: 'รายละเอียดไม่ถูกต้อง' }).trim().max(1000, 'รายละเอียดต้องไม่เกิน 1000 ตัวอักษร').optional()
-);
+// An empty textarea arrives as "", which means "no details". Text made only
+// of invisible characters (zero-width spaces ...) also counts as empty, so it
+// cannot satisfy the "please explain" rule for "other".
+const details = optionalText({ label: 'รายละเอียด', max: 1000 }).transform((value) => value ?? undefined);
 
 const createReportSchema = z
   .object({

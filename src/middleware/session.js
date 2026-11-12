@@ -1,5 +1,6 @@
 // Server-side sessions. The browser only holds a random session ID in a
-// cookie; the data (just the user ID) lives in the `sessions` table.
+// cookie; the data (the user ID, the account's session version, the CSRF
+// token and any flash message) lives in the `sessions` table.
 const session = require('express-session');
 const connectPgSimple = require('connect-pg-simple');
 const { Pool } = require('pg');
@@ -21,6 +22,27 @@ const store = new PgStore({
   pruneSessionInterval: env.isTest ? false : 15 * 60,
   errorLog: (err) => logger.error({ err }, 'session store error'),
 });
+
+// Session IDs that were logged out in the last hour. The store saves a
+// session with "insert or update", so a request that was still running when
+// its session was logged out would otherwise write the session back, logged
+// in, after the logout had deleted it. Writes for these IDs are ignored.
+// Kept in memory: enough for the single server this app runs on.
+const REVOKED_FOR_MS = 60 * 60 * 1000;
+const revoked = new Map();
+
+function revokeSession(sid) {
+  if (!sid) return;
+  const now = Date.now();
+  revoked.set(sid, now + REVOKED_FOR_MS);
+  for (const [id, until] of revoked) if (until < now) revoked.delete(id);
+}
+const isRevoked = (sid) => (revoked.get(sid) ?? 0) > Date.now();
+
+for (const method of ['set', 'touch']) {
+  const original = store[method].bind(store);
+  store[method] = (sid, sess, callback) => (isRevoked(sid) ? callback?.() : original(sid, sess, callback));
+}
 
 function cookieOptions(isProduction) {
   return {
@@ -46,4 +68,4 @@ async function closeSessionStore() {
   await pool.end();
 }
 
-module.exports = { sessionMiddleware, closeSessionStore, cookieOptions, COOKIE_NAME };
+module.exports = { sessionMiddleware, closeSessionStore, cookieOptions, revokeSession, COOKIE_NAME, store };

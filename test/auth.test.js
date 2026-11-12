@@ -151,12 +151,12 @@ describe('login', () => {
     expect(after).not.toBe(before);
   });
 
-  test('the session stores only the user ID', async () => {
+  test('the session stores only the user ID and the session version', async () => {
     const client = createClient(app);
     const { body } = await client.login();
     const sessions = await prisma.session.findMany();
     const mine = sessions.find((session) => session.sess.userId === body.data.id);
-    expect(Object.keys(mine.sess).sort()).toEqual(['cookie', 'userId']);
+    expect(Object.keys(mine.sess).sort()).toEqual(['cookie', 'sessionVersion', 'userId']);
   });
 
   test('the form redirects back to the page the visitor wanted', async () => {

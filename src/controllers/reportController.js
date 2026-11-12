@@ -5,7 +5,7 @@ const reportModel = require('../models/report');
 const AppError = require('../utils/AppError');
 const { validate } = require('../utils/validate');
 const { setFlash } = require('../middleware/flash');
-const { idParamSchema } = require('../validation/place');
+const { parseId } = require('../utils/ids');
 const { createReportSchema } = require('../validation/report');
 
 const notFound = () => AppError.notFound('ไม่พบสถานที่นี้');
@@ -13,9 +13,9 @@ const notFound = () => AppError.notFound('ไม่พบสถานที่�
 // Only a published place can be reported. An unknown or hidden place is a
 // 404, so the answer does not reveal that a hidden place exists.
 async function publishedPlaceId(req) {
-  const parsed = idParamSchema.safeParse(req.params);
-  if (!parsed.success || !/^\d+$/.test(req.params.id)) throw notFound();
-  const place = await placeModel.findPublishedById(parsed.data.id);
+  const id = parseId(req.params.id);
+  if (id === null) throw notFound();
+  const place = await placeModel.findPublishedById(id);
   if (!place) throw notFound();
   return place.id;
 }

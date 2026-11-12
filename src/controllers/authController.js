@@ -88,17 +88,25 @@ async function updateProfile(req, res) {
 }
 
 // Changes the password, gives this browser a new session ID and logs the
-// account out everywhere else.
-async function changeOwnPassword(req, flash) {
+// account out everywhere else. A wrong current password is marked on the
+// response, so the throttle counts only those guesses, not typos in the new
+// password (see middleware/rateLimit.js).
+async function changeOwnPassword(req, res, flash) {
   const userId = req.user.id;
-  await userModel.changePassword(userId, validate(changePasswordSchema, req.body));
+  const input = validate(changePasswordSchema, req.body);
+  try {
+    await userModel.changePassword(userId, input);
+  } catch (err) {
+    if (err.details?.[0]?.field === 'currentPassword') res.locals.wrongCurrentPassword = true;
+    throw err;
+  }
   await startSession(req, userId, flash);
   await userModel.endOtherSessions(userId, req.sessionID);
 }
 
 async function changePassword(req, res) {
   try {
-    await changeOwnPassword(req, { type: 'success', text: 'เปลี่ยนรหัสผ่านแล้ว อุปกรณ์อื่นที่เข้าสู่ระบบไว้ถูกออกจากระบบ' });
+    await changeOwnPassword(req, res, { type: 'success', text: 'เปลี่ยนรหัสผ่านแล้ว อุปกรณ์อื่นที่เข้าสู่ระบบไว้ถูกออกจากระบบ' });
     return res.redirect(303, '/me');
   } catch (err) {
     if (!isFormError(err)) throw err;
@@ -148,7 +156,7 @@ async function apiUpdateProfile(req, res) {
 
 // PUT /api/v1/me/password
 async function apiChangePassword(req, res) {
-  await changeOwnPassword(req);
+  await changeOwnPassword(req, res);
   res.status(204).end();
 }
 

@@ -2041,3 +2041,27 @@ details .stack-form {
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+/* Submissions: the pin picker, the attached photo, and the rejected status. */
+.picker-map {
+  height: 320px;
+  margin: 0.5rem 0 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  overflow: hidden;
+}
+.current-photo {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  margin: 0.25rem 0;
+  border-radius: var(--radius-small);
+}
+.status-rejected {
+  color: var(--brick);
+  background: var(--brick-tint);
+}
+.form-error ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}

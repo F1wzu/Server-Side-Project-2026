@@ -1,0 +1,95 @@
+<%- include('partials/head') %>
+<%
+  const lastNote = [...submission.events].reverse().find((event) => event.action === 'returned' || event.action === 'rejected');
+  const hoursText = (day) => (day.state === 'open' ? day.opensAt + '–' + day.closesAt : day.state === 'closed' ? 'ปิด' : 'ยังไม่ระบุ');
+%>
+<div class="container page-content">
+  <nav class="breadcrumb" aria-label="ตำแหน่งหน้า">
+    <a href="/me/submissions">คำขอของฉัน</a><%- icon('chevron', 16) %>
+    <span>คำขอ #<%= submission.id %></span>
+  </nav>
+
+  <header class="detail-heading">
+    <div>
+      <p class="eyebrow">คำขอ #<%= submission.id %> · ฉบับที่ <%= submission.version %></p>
+      <h1><%= submission.name %></h1>
+      <p class="meta">อัปเดตล่าสุด <%= date(submission.updatedAt) %></p>
+    </div>
+    <span class="status status-<%= submission.status %>"><%= statusLabels[submission.status] %></span>
+  </header>
+
+  <% if ((submission.status === 'changes_requested' || submission.status === 'rejected') && lastNote) { %>
+  <div class="feedback-panel">
+    <h2><%= submission.status === 'rejected' ? 'เหตุผลที่ไม่อนุมัติ' : 'สิ่งที่ต้องแก้ไข' %></h2>
+    <p class="preserve-lines"><%= lastNote.note %></p>
+  </div>
+  <% } %>
+
+  <div class="detail-grid">
+    <section class="panel proposal-content">
+      <h2>ข้อมูลที่ส่งมา</h2>
+      <dl class="proposal-fields">
+        <div><dt>ชื่อสถานที่</dt><dd><%= submission.name %></dd></div>
+        <div><dt>หมวดหมู่</dt><dd><%= submission.category.name %></dd></div>
+        <div><dt>รายละเอียด</dt><dd class="preserve-lines"><%= submission.description %></dd></div>
+        <div><dt>ที่อยู่</dt><dd class="preserve-lines"><%= submission.address %></dd></div>
+        <div><dt>ตำแหน่ง</dt><dd><%= submission.latitude %>, <%= submission.longitude %> · <a class="text-link" href="https://www.google.com/maps/search/?api=1&amp;query=<%= submission.latitude %>,<%= submission.longitude %>" target="_blank" rel="noopener noreferrer">ดูบน Google Maps <span class="sr-only">(หน้าต่างใหม่)</span></a></dd></div>
+        <% if (submission.phone) { %><div><dt>เบอร์โทร</dt><dd><%= submission.phone %></dd></div><% } %>
+        <% if (submission.websiteUrl) { %><div><dt>ลิงก์</dt><dd><a class="text-link" href="<%= submission.websiteUrl %>" target="_blank" rel="noopener noreferrer nofollow"><%= submission.websiteUrl %></a></dd></div><% } %>
+        <% if (submission.imagePath) { %><div><dt>รูปภาพ</dt><dd><img class="current-photo" src="<%= submission.imagePath %>" alt="รูปที่แนบมากับคำขอ" width="320"></dd></div><% } %>
+        <div>
+          <dt>เวลาเปิดบริการ</dt>
+          <dd>
+            <dl class="opening-hours">
+              <% submission.hours.forEach((day) => { %>
+              <div><dt><%= weekdayLabels[day.weekday] %></dt><dd class="<%= day.state %>"><%= hoursText(day) %><% if (day.closesNextDay) { %> <small>(วันถัดไป)</small><% } %></dd></div>
+              <% }) %>
+            </dl>
+          </dd>
+        </div>
+      </dl>
+
+      <% if (submission.placeId) { %>
+      <div class="approved-link">
+        <%- icon('check', 22) %>
+        <div><strong>เผยแพร่สถานที่แล้ว</strong><p><a class="text-link" href="/places/<%= submission.placeId %>">เปิดหน้าสถานที่</a></p></div>
+      </div>
+      <% } %>
+
+      <% if (submission.status === 'changes_requested') { %>
+      <div class="form-actions">
+        <a class="button button-outline" href="/me/submissions/<%= submission.id %>/edit">แก้ไขข้อมูล</a>
+        <form method="post" action="/me/submissions/<%= submission.id %>/resubmit">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <input type="hidden" name="version" value="<%= submission.version %>">
+          <button class="button button-primary" type="submit">ส่งตรวจสอบอีกครั้ง</button>
+        </form>
+      </div>
+      <% } else if (submission.status === 'pending') { %>
+      <p class="small-note">คำขออยู่ระหว่างรอผู้ดูแลตรวจสอบ ระหว่างนี้แก้ไขไม่ได้</p>
+      <% } %>
+    </section>
+
+    <aside>
+      <section class="side-panel">
+        <h2>ประวัติคำขอ</h2>
+        <ol class="timeline">
+          <% submission.events.forEach((event) => { %>
+          <li>
+            <strong><%= actionLabels[event.action] %></strong>
+            <span class="meta"><%= date(event.createdAt) %> · <%= event.actor.username %></span>
+            <% if (event.note) { %><p class="preserve-lines"><%= event.note %></p><% } %>
+            <details class="snapshot">
+              <summary>ดูข้อมูลฉบับนี้</summary>
+              <p><strong><%= event.snapshot.name %></strong> · <%= event.snapshot.categoryName %></p>
+              <p class="preserve-lines"><%= event.snapshot.description %></p>
+              <p><%= event.snapshot.address %></p>
+            </details>
+          </li>
+          <% }) %>
+        </ol>
+      </section>
+    </aside>
+  </div>
+</div>
+<%- include('partials/foot') %>
