@@ -20,7 +20,7 @@ router.get('/places/:id', placeController.show);
 
 // Pages that are in the menu already; their features arrive in later steps.
 const { comingSoon } = placeController;
-router.get('/map', comingSoon('แผนที่ลาดกระบัง', 'แผนที่ของทุกสถานที่ที่มีหมุด พร้อมตัวกรองตามหมวดหมู่'));
+router.get('/map', placeController.map);
 router.get('/me/favorites', requireLogin, comingSoon('ที่บันทึกไว้', 'สถานที่ที่คุณบันทึกไว้จะแสดงที่นี่'));
 router.get('/me/reviews', requireLogin, comingSoon('รีวิวของฉัน', 'รีวิวที่คุณเขียนจะแสดงที่นี่ พร้อมปุ่มแก้ไขและลบ'));
 router.get('/me/submissions', requireLogin, comingSoon('คำขอของฉัน', 'สถานที่ที่คุณแนะนำและสถานะการตรวจสอบจะแสดงที่นี่'));

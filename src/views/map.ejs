@@ -1,0 +1,41 @@
+<%- include('partials/head') %>
+<div class="container page-content">
+  <div class="page-heading">
+    <p class="eyebrow">ดูทั้งย่านในภาพเดียว</p>
+    <h1>แผนที่ลาดกระบัง</h1>
+    <p>แสดง <strong><%= places.length %></strong> จาก <%= total %> สถานที่ที่มีหมุดบนแผนที่ สถานที่ที่เหลือยังค้นหาได้จากหน้าสำรวจ</p>
+  </div>
+
+  <div class="map-layout" data-map-page data-endpoint="/api/v1/places/map">
+    <div class="map-canvas" data-map-canvas role="region" aria-label="แผนที่สถานที่ในลาดกระบัง">
+      <p class="map-status" data-map-status>กำลังโหลดแผนที่…</p>
+    </div>
+    <div class="map-side">
+      <div class="map-filters" role="group" aria-label="กรองสถานที่บนแผนที่">
+        <button class="chip is-active" type="button" data-map-filter="all" aria-pressed="true">ทั้งหมด</button>
+        <button class="chip" type="button" data-map-filter="open" aria-pressed="false"><span class="dot dot-open" aria-hidden="true"></span>เปิดอยู่</button>
+        <% [...new Map(places.map((place) => [place.category.id, place.category])).values()].forEach((category) => { %>
+        <button class="chip" type="button" data-map-filter="category-<%= category.id %>" aria-pressed="false"><%= category.name %></button>
+        <% }) %>
+      </div>
+      <h2 class="sr-only">รายการสถานที่บนแผนที่</h2>
+      <ul class="map-list">
+        <% places.forEach((place) => { %>
+        <li class="map-item tone-<%= categoryKind(place.category) %>" data-map-item="<%= place.id %>" data-kind="<%= categoryKind(place.category) %>" data-category="<%= place.category.id %>" data-open="<%= place.openStatus.state === 'open' %>">
+          <button class="map-item-focus" type="button" data-map-focus="<%= place.id %>" aria-label="แสดง <%= place.name %> บนแผนที่">
+            <span class="category-icon"><%- icon(categoryIcon(place.category), 20) %></span>
+          </button>
+          <div>
+            <a class="map-item-name" href="/places/<%= place.id %>"><%= place.name %></a>
+            <span class="meta"><%= place.category.name %></span>
+            <%- include('partials/open-badge', { status: place.openStatus }) %>
+          </div>
+        </li>
+        <% }) %>
+      </ul>
+      <p class="map-empty" data-map-empty hidden>ไม่มีสถานที่ที่ตรงกับตัวกรองนี้</p>
+    </div>
+  </div>
+  <noscript><p class="small-note">แผนที่ต้องใช้ JavaScript รายการสถานที่ด้านบนยังเปิดดูได้ตามปกติ</p></noscript>
+</div>
+<%- include('partials/foot') %>

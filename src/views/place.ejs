@@ -13,6 +13,7 @@
       <div class="detail-meta">
         <span class="card-rating"><span class="star" aria-hidden="true">★</span><strong><%= rating(place.ratingAvg) %></strong></span>
         <a href="#reviews"><%= place.ratingCount %> รีวิว</a>
+        <%- include('partials/open-badge', { status: place.openStatus }) %>
         <span class="detail-district"><%- icon('pin', 16) %>ลาดกระบัง กรุงเทพฯ</span>
       </div>
     </div>
@@ -60,9 +61,22 @@
       <section class="side-panel visit-panel">
         <h2><%- icon('pin') %>ไปที่นี่</h2>
         <p class="address"><%= place.address %></p>
+        <% if (place.latitude !== null) { %>
+        <div class="mini-map" data-map-mini data-lat="<%= place.latitude %>" data-lng="<%= place.longitude %>" data-kind="<%= categoryKind(place.category) %>" role="img" aria-label="แผนที่ตำแหน่งของ <%= place.name %>"></div>
+        <% } %>
         <a class="button button-primary button-block" href="<%= mapsUrl(place) %>" target="_blank" rel="noopener noreferrer"><%- icon('external', 18) %><%= place.latitude !== null ? 'นำทางด้วย Google Maps' : 'ค้นหาใน Google Maps' %> <span class="sr-only">(หน้าต่างใหม่)</span></a>
         <% if (place.latitude === null) { %>
         <p class="small-note">สถานที่นี้ยังไม่มีหมุดบนแผนที่</p>
+        <% } %>
+        <% if (place.phone || place.websiteUrl) { %>
+        <dl class="contact-list">
+          <% if (place.phone) { %>
+          <div><dt>โทร</dt><dd><a class="text-link" href="tel:<%= place.phone.replace(/[^0-9+]/g, '') %>"><%= place.phone %></a></dd></div>
+          <% } %>
+          <% if (place.websiteUrl) { %>
+          <div><dt>ลิงก์</dt><dd><a class="text-link" href="<%= place.websiteUrl %>" target="_blank" rel="noopener noreferrer nofollow"><%= place.websiteUrl.replace(/^https?:\/\//i, '').replace(/\/$/, '') %> <span class="sr-only">(หน้าต่างใหม่)</span>↗</a></dd></div>
+          <% } %>
+        </dl>
         <% } %>
       </section>
 
@@ -81,7 +95,22 @@
     </aside>
   </div>
 
-  <% if (related.length) { %>
+  <% if (related.nearby.length) { %>
+  <section class="content-section" aria-labelledby="nearby-heading">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">แวะต่อได้เลย</p>
+        <h2 id="nearby-heading">ใกล้ ๆ กัน</h2>
+      </div>
+      <a class="text-link" href="/map">ดูบนแผนที่ <%- icon('arrow', 16) %></a>
+    </div>
+    <div class="card-grid card-grid-3">
+      <% related.nearby.forEach((item) => { %><%- include('partials/card', { place: item }) %><% }) %>
+    </div>
+  </section>
+  <% } %>
+
+  <% if (related.sameCategory.length) { %>
   <section class="content-section" aria-labelledby="similar-heading">
     <div class="section-heading">
       <div>
@@ -91,7 +120,7 @@
       <a class="text-link" href="/places?categoryId=<%= place.category.id %>">ดูทั้งหมวด <%- icon('arrow', 16) %></a>
     </div>
     <div class="card-grid card-grid-3">
-      <% related.forEach((item) => { %><%- include('partials/card', { place: item }) %><% }) %>
+      <% related.sameCategory.forEach((item) => { %><%- include('partials/card', { place: item }) %><% }) %>
     </div>
   </section>
   <% } %>

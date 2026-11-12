@@ -1,10 +1,16 @@
 <%- include('partials/head') %>
-<% const active = filters.q || filters.categoryId; %>
+<%
+  const active = filters.q || filters.categoryId || filters.openNow;
+  const randomQuery = new URLSearchParams({
+    ...(filters.categoryId ? { categoryId: String(filters.categoryId) } : {}),
+    ...(filters.openNow ? { openNow: 'true' } : {}),
+  }).toString();
+%>
 <div class="container page-content">
   <div class="page-heading">
     <p class="eyebrow">ค้นหามุมที่ใช่</p>
     <h1>สำรวจสถานที่</h1>
-    <p>ค้นด้วยชื่อ ย่าน หรือหมวดหมู่ แล้วเรียงลำดับตามที่ต้องการ</p>
+    <p>ค้นด้วยชื่อ ย่าน หรือหมวดหมู่ แล้วกรองเฉพาะที่เปิดอยู่ตอนนี้ได้</p>
   </div>
 
   <form class="filter-panel" action="/places" method="get" role="search">
@@ -32,30 +38,39 @@
         <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>เพิ่มล่าสุด</option>
       </select>
     </div>
+    <label class="toggle">
+      <input type="checkbox" name="openNow" value="true" <%= filters.openNow ? 'checked' : '' %>>
+      <span><span class="dot dot-open" aria-hidden="true"></span>เปิดอยู่ตอนนี้</span>
+    </label>
     <button class="button button-primary" type="submit">ค้นหา</button>
   </form>
 
   <div class="results-heading">
-    <p>พบ <strong><%= places.length %></strong> สถานที่<% if (filters.q) { %> สำหรับ “<%= filters.q %>”<% } %></p>
+    <p>พบ <strong><%= result.pagination.total %></strong> สถานที่<% if (filters.q) { %> สำหรับ “<%= filters.q %>”<% } %><% if (filters.openNow) { %> ที่เปิดอยู่ตอนนี้<% } %></p>
     <div class="results-actions">
       <% if (active) { %><a class="text-link" href="/places">ล้างตัวกรอง</a><% } %>
-      <a class="text-link" href="/places/random<%= filters.categoryId ? '?categoryId=' + filters.categoryId : '' %>"><%- icon('shuffle', 16) %>สุ่มจากรายการนี้</a>
+      <a class="text-link" href="/places/random<%= randomQuery ? '?' + randomQuery : '' %>"><%- icon('shuffle', 16) %>สุ่มจากรายการนี้</a>
       <a class="text-link" href="/map"><%- icon('map', 16) %>ดูบนแผนที่</a>
     </div>
   </div>
 
-  <% if (places.length) { %>
+  <% if (result.data.length) { %>
   <h2 class="sr-only">ผลการค้นหาสถานที่</h2>
   <div class="card-grid">
-    <% places.forEach((place) => { %><%- include('partials/card', { place }) %><% }) %>
+    <% result.data.forEach((place) => { %><%- include('partials/card', { place }) %><% }) %>
   </div>
   <% } else { %>
   <div class="empty-state">
     <%- icon('search', 28) %>
     <h2>ยังไม่พบสถานที่ที่ตรงกัน</h2>
+    <% if (filters.openNow) { %>
+    <p>สถานที่ส่วนใหญ่ยังไม่มีเวลาเปิดที่ยืนยันแล้ว ลองปิดตัวกรอง “เปิดอยู่ตอนนี้” เพื่อดูทั้งหมด</p>
+    <% } else { %>
     <p>ลองเปลี่ยนคำค้น หรือเลือกหมวดหมู่อื่น</p>
+    <% } %>
     <a class="button button-outline" href="/places">ดูสถานที่ทั้งหมด</a>
   </div>
   <% } %>
+  <%- include('partials/pagination', { pagination: result.pagination, pageLink }) %>
 </div>
 <%- include('partials/foot') %>

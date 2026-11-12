@@ -3,13 +3,22 @@ const categoryModel = require('../models/category');
 
 // GET /
 async function home(req, res) {
-  const [totalPlaces, categories, featured] = await Promise.all([
+  const [totalPlaces, categories, featured, openNow, highlyRated] = await Promise.all([
     placeModel.countPublished(),
     categoryModel.listWithCounts(),
     placeModel.featured(),
+    placeModel.list({ openNow: true, pageSize: 4 }),
+    placeModel.highlyRated(),
   ]);
-  // "Open now" and "highly rated" are filled in by the catalog and review steps.
-  res.render('home', { title: 'หน้าแรก', totalPlaces, categories, featured, highlyRated: [] });
+  res.render('home', {
+    title: 'หน้าแรก',
+    totalPlaces,
+    categories,
+    featured,
+    openNow,
+    highlyRated,
+    minimumReviews: placeModel.MIN_REVIEWS_FOR_TOP_RATED,
+  });
 }
 
 module.exports = { home };

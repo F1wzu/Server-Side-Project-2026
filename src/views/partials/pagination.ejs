@@ -1,0 +1,8 @@
+<%# Previous / next links. Expects: pagination { page, totalPages } and pageLink(page). %>
+<% if (pagination.totalPages > 1) { %>
+<nav class="pagination" aria-label="เปลี่ยนหน้า">
+  <% if (pagination.page > 1) { %><a class="button button-outline" href="<%= pageLink(pagination.page - 1) %>" rel="prev">ก่อนหน้า</a><% } %>
+  <span>หน้า <%= pagination.page %> จาก <%= pagination.totalPages %></span>
+  <% if (pagination.page < pagination.totalPages) { %><a class="button button-outline" href="<%= pageLink(pagination.page + 1) %>" rel="next">ถัดไป</a><% } %>
+</nav>
+<% } %>

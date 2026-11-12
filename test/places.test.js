@@ -146,12 +146,6 @@ describe('place page', () => {
 });
 
 describe('pages that are in the menu but not built yet', () => {
-  test('the map page explains that it is coming', async () => {
-    const res = await request(app).get('/map');
-    expect(res.status).toBe(200);
-    expect(res.text).toContain('ส่วนนี้จะเปิดใช้งานเร็ว ๆ นี้');
-  });
-
   test('member pages still require a login', async () => {
     for (const path of ['/me/favorites', '/me/reviews', '/me/submissions', '/submissions/new']) {
       const res = await request(app).get(path);

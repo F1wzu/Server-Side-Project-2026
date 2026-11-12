@@ -39,12 +39,19 @@ function createApp() {
   Object.assign(app.locals, viewHelpers); // icon(), rating(), date() ...
 
   app.use(requestLogger); // 1. request ID + log line
-  app.use(helmet()); // 2. security headers
+  // 2. security headers. The map loads its picture tiles from OpenStreetMap;
+  //    every other kind of content may only come from this site.
+  app.use(
+    helmet({
+      contentSecurityPolicy: { directives: { 'img-src': ["'self'", 'data:', 'https://tile.openstreetmap.org'] } },
+    })
+  );
   app.use(compression()); // 3. smaller responses
   app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: env.isProduction ? '7d' : 0 })); // 4. site assets
   const fonts = { maxAge: env.isProduction ? '30d' : 0 };
   app.use('/fonts/display', express.static(packageFolder('@fontsource/chonburi', 'files'), fonts));
   app.use('/fonts/text', express.static(packageFolder('@fontsource/ibm-plex-sans-thai-looped', 'files'), fonts));
+  app.use('/vendor/leaflet', express.static(packageFolder('leaflet', 'dist'), fonts)); // the map library
   app.use(express.urlencoded({ extended: false, limit: '64kb' })); // 5. form bodies
   app.use(express.json({ limit: '64kb' })); //    JSON bodies
   app.use(sessionMiddleware); // 6. session from the cookie

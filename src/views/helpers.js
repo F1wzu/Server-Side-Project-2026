@@ -61,14 +61,14 @@ const date = (value) =>
 // A place with no reviews shows no number.
 const rating = (value) => (value === null || value === undefined ? 'ยังไม่มีคะแนน' : Number(value).toFixed(2));
 
-// Opening hours are stored as wall-clock times; "09:00" is read back unchanged.
-const clock = (time) => new Date(time).toISOString().slice(11, 16);
-
-// Unknown hours are shown as unknown, never as closed.
+// One row of the weekly hours table. Unknown hours are shown as unknown, never as closed.
 const hoursLabel = (day) => {
-  if (day.state === 'open') return `${clock(day.opensAt)}–${clock(day.closesAt)}`;
+  if (day.state === 'open') return `${day.opensAt}–${day.closesAt}`;
   return day.state === 'closed' ? 'ปิด' : 'ยังไม่ระบุ';
 };
+
+// "350 ม." or "1.2 กม."
+const distanceLabel = (km) => (km < 1 ? `${Math.max(50, Math.round((km * 1000) / 50) * 50)} ม.` : `${km.toFixed(1)} กม.`);
 
 // "เปิดอยู่ ถึง 21:00" / "ปิดอยู่ เปิด 10:00". Unknown hours produce no label at all.
 function openLabel(status) {
@@ -85,4 +85,4 @@ function mapsUrl(place) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.name} ${place.address}`)}`;
 }
 
-module.exports = { icon, isIllustration, categoryKind, categoryIcon, weekdayLabels, date, rating, hoursLabel, openLabel, mapsUrl };
+module.exports = { icon, isIllustration, categoryKind, categoryIcon, weekdayLabels, date, rating, hoursLabel, distanceLabel, openLabel, mapsUrl };

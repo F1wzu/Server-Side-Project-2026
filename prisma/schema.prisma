@@ -100,6 +100,8 @@ model Place {
   latitude      Decimal?    @db.Decimal(9, 6)
   longitude     Decimal?    @db.Decimal(9, 6)
   imagePath     String?     @map("image_path") @db.VarChar(500)
+  phone         String?     @db.VarChar(30)
+  websiteUrl    String?     @map("website_url") @db.VarChar(500)
   status        PlaceStatus @default(published)
   featuredOrder Int?        @map("featured_order")
   ratingAvg     Decimal?    @map("rating_avg") @db.Decimal(3, 2)
@@ -178,6 +180,8 @@ model Submission {
   latitude    Decimal?         @db.Decimal(9, 6)
   longitude   Decimal?         @db.Decimal(9, 6)
   imagePath   String?          @map("image_path") @db.VarChar(500)
+  phone       String?          @db.VarChar(30)
+  websiteUrl  String?          @map("website_url") @db.VarChar(500)
   hours       Json
   status      SubmissionStatus @default(pending)
   version     Int              @default(1)

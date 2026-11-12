@@ -17,6 +17,7 @@
         <% if (place.ratingAvg === null) { %>ยังไม่มีรีวิว<% } else { %><strong><%= rating(place.ratingAvg) %></strong> <span>(<%= place.ratingCount %> รีวิว)</span><% } %>
       </span>
       <%- include('open-badge', { status: place.openStatus }) %>
+      <% if (place.distanceKm !== undefined) { %><span class="card-distance"><%- icon('pin', 15) %>ห่าง <%= distanceLabel(place.distanceKm) %></span><% } %>
     </div>
   </div>
 </article>

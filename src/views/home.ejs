@@ -12,7 +12,7 @@
     </form>
     <div class="hero-actions">
       <a class="button button-accent" href="/places/random"><%- icon('shuffle', 18) %>สุ่มให้หน่อย</a>
-      <a class="button button-ghost" href="/places?sort=rating"><%- icon('star', 18) %>คะแนนสูงสุด</a>
+      <a class="button button-ghost" href="/places?openNow=true"><span class="dot dot-open" aria-hidden="true"></span>เปิดอยู่ตอนนี้</a>
       <a class="button button-ghost" href="/map"><%- icon('map', 18) %>ดูบนแผนที่</a>
     </div>
   </div>
@@ -56,12 +56,27 @@
     <% } %>
   </section>
 
+  <% if (openNow.data.length) { %>
+  <section class="content-section" aria-labelledby="open-heading">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow"><span class="dot dot-open" aria-hidden="true"></span>ตามเวลาประเทศไทยขณะนี้</p>
+        <h2 id="open-heading">เปิดอยู่ตอนนี้</h2>
+      </div>
+      <a class="text-link" href="/places?openNow=true">ดูทั้งหมด <%= openNow.pagination.total %> แห่ง <%- icon('arrow', 16) %></a>
+    </div>
+    <div class="card-grid">
+      <% openNow.data.forEach((place) => { %><%- include('partials/card', { place }) %><% }) %>
+    </div>
+  </section>
+  <% } %>
+
   <section class="content-section" aria-labelledby="rated-heading">
     <div class="section-heading">
       <div>
         <p class="eyebrow">จากรีวิวของสมาชิก</p>
         <h2 id="rated-heading">คนในย่านให้คะแนนสูง</h2>
-        <p>นับเฉพาะสถานที่ที่มีอย่างน้อย 3 รีวิว เพื่อให้คะแนนเปรียบเทียบกันได้</p>
+        <p>นับเฉพาะสถานที่ที่มีอย่างน้อย <%= minimumReviews %> รีวิว เพื่อให้คะแนนเปรียบเทียบกันได้</p>
       </div>
       <a class="text-link" href="/places?sort=rating">เรียงตามคะแนน <%- icon('arrow', 16) %></a>
     </div>

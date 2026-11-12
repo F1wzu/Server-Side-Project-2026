@@ -1,7 +1,7 @@
 # สถาปัตยกรรม — วันนี้ไปไหนดี @ ลาดกระบัง
 
 สถานะ: **ร่างเพื่อให้ทีมตรวจ** (พฤ. 12 พ.ย. 2569) ขั้นที่ 1 (พื้นฐาน)
-และขั้นที่ 2 (บัญชีผู้ใช้) สร้างแล้ว หัวข้อที่เหลืออธิบายสิ่งที่ขั้นถัดไปจะเพิ่ม
+ขั้นที่ 2 (บัญชีผู้ใช้) และขั้นที่ 3 (การสำรวจสถานที่) สร้างแล้ว หัวข้อที่เหลืออธิบายสิ่งที่ขั้นถัดไปจะเพิ่ม
 
 เอกสารที่เกี่ยวข้อง: [PLAN.md](PLAN.md) (กำหนดการและขั้นตอน) ·
 [DESIGN.md](DESIGN.md) (ฟีเจอร์ ฐานข้อมูล API)
@@ -92,7 +92,7 @@ src/
   validation/    หนึ่งไฟล์ schema ต่อหนึ่งฟีเจอร์
   middleware/    session, auth, csrf, rateLimit, upload, errors
   storage/       index.js, local.js, cloud.js
-  utils/         AppError.js, validate.js, safeRedirect.js, pagination.js, logger.js
+  utils/         AppError.js, validate.js, safeRedirect.js, pagination.js, openingHours.js, logger.js
   views/         หน้าเว็บ + partials/ และ helpers.js (ไอคอน ป้ายกำกับ การจัดรูปแบบ ที่ทุกเทมเพลตใช้)
 public/          css/site.css, js/site.js, favicon และรูป (ไฟล์ของเว็บเท่านั้น)
 storage/uploads/ รูปที่อัปโหลดตอนพัฒนา (git ไม่เก็บ)
@@ -112,7 +112,7 @@ middleware ทำงานตามลำดับนี้ ลำดับเ�
 | 1 | Request ID + logger | log ทุกบรรทัดมี ID เดียวกัน |
 | 2 | `helmet` | security header และ Content Security Policy |
 | 3 | Compression | ลดขนาดคำตอบ |
-| 4 | ไฟล์ static | `public/`, ฟอนต์ที่ `/fonts` และ `/uploads` เมื่อเก็บรูปบนเครื่อง |
+| 4 | ไฟล์ static | `public/`, ฟอนต์ที่ `/fonts`, ไลบรารีแผนที่ที่ `/vendor/leaflet` และ `/uploads` เมื่อเก็บรูปบนเครื่อง |
 | 5 | Body parser | body ของฟอร์มและ JSON จำกัด 64 KB |
 | 6 | Session | อ่านคุกกี้ โหลด session จาก PostgreSQL |
 | 7 | ผู้ใช้ปัจจุบัน | โหลดผู้ใช้และบทบาทจากฐานข้อมูลสำหรับคำขอนี้ |
@@ -253,7 +253,7 @@ flowchart LR
 | session ถูกขโมย / ถูกตรึง | ค่าคุกกี้ตามด้านบน session ID ใหม่เมื่อเข้าสู่ระบบ ทำลายเมื่อออกจากระบบ |
 | CSRF | token ในทุกฟอร์ม และบังคับในทุกคำขอที่เปลี่ยนข้อมูล |
 | SQL injection | ทุก query ผ่าน Prisma แบบมีพารามิเตอร์ escape อักขระพิเศษในการค้นหา |
-| XSS | EJS escape ผลลัพธ์ มี Content Security Policy ไม่มี inline script |
+| XSS | EJS escape ผลลัพธ์ มี Content Security Policy ไม่มี inline script สคริปต์ ฟอนต์ และสไตล์โหลดจากเว็บของเราเท่านั้น ภายนอกอนุญาตเฉพาะรูปแผนที่จาก `tile.openstreetmap.org` ลิงก์ของสถานที่ต้องขึ้นต้นด้วย `http(s)://` (บังคับในฐานข้อมูล) |
 | สวมรอยเป็นผู้ใช้อื่น | user ID มาจาก session เท่านั้น model ตรวจความเป็นเจ้าของ |
 | สิทธิ์ผู้ดูแลค้าง | โหลดบทบาทจากฐานข้อมูลใหม่ทุกคำขอ |
 | ไฟล์อัปโหลดอันตราย | จำกัดขนาด ตรวจชนิดจากไบต์ของไฟล์ เข้ารหัสใหม่ ตั้งชื่อสุ่ม |
