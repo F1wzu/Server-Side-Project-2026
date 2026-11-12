@@ -1,7 +1,8 @@
 # สถาปัตยกรรม — วันนี้ไปไหนดี @ ลาดกระบัง
 
 สถานะ: **ร่างเพื่อให้ทีมตรวจ** (พฤ. 12 พ.ย. 2569) ขั้นที่ 1 (พื้นฐาน)
-ขั้นที่ 2 (บัญชีผู้ใช้) และขั้นที่ 3 (การสำรวจสถานที่) สร้างแล้ว หัวข้อที่เหลืออธิบายสิ่งที่ขั้นถัดไปจะเพิ่ม
+ขั้นที่ 2 (บัญชีผู้ใช้) ขั้นที่ 3 (การสำรวจสถานที่) และขั้นที่ 4 (รีวิว รายการโปรด
+การแจ้งข้อมูลผิด) สร้างแล้ว หัวข้อที่เหลืออธิบายสิ่งที่ขั้นถัดไปจะเพิ่ม
 
 เอกสารที่เกี่ยวข้อง: [PLAN.md](PLAN.md) (กำหนดการและขั้นตอน) ·
 [DESIGN.md](DESIGN.md) (ฟีเจอร์ ฐานข้อมูล API)
@@ -87,8 +88,8 @@ src/
   app.js                 สร้างแอป Express (การทดสอบก็ใช้)
   config/        env.js (อ่านและตรวจ .env), db.js (Prisma client)
   routes/        webRoutes.js, apiRoutes.js
-  controllers/   auth, place, review, favorite, submission, admin
-  models/        user, place, review, favorite, submission, category, hours
+  controllers/   auth, place, review (รวม favorite), report, submission, admin
+  models/        user, place, review, favorite, report, submission, category
   validation/    หนึ่งไฟล์ schema ต่อหนึ่งฟีเจอร์
   middleware/    session, auth, csrf, rateLimit, upload, errors
   storage/       index.js, local.js, cloud.js

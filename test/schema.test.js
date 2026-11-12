@@ -21,7 +21,7 @@ beforeAll(async () => {
 
 afterAll(() => prisma.$disconnect());
 
-test('the database has the nine tables from the design', async () => {
+test('the database has the ten tables from the design', async () => {
   const rows = await prisma.$queryRaw`
     SELECT table_name FROM information_schema.tables
     WHERE table_schema = 'public' AND table_name <> '_prisma_migrations'
@@ -30,6 +30,7 @@ test('the database has the nine tables from the design', async () => {
     'categories',
     'favorites',
     'place_hours',
+    'place_reports',
     'places',
     'reviews',
     'sessions',

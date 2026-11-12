@@ -1,0 +1,34 @@
+<%- include('partials/head') %>
+<div class="container page-content">
+  <div class="page-heading">
+    <p class="eyebrow">เก็บไว้ไปวันหลัง</p>
+    <h1>สถานที่ที่บันทึก</h1>
+    <p><%= result.pagination.total %> สถานที่ในรายการของคุณ</p>
+  </div>
+
+  <% if (result.data.length) { %>
+  <h2 class="sr-only">รายการสถานที่ที่บันทึก</h2>
+  <div class="card-grid">
+    <% result.data.forEach((place) => { %>
+    <div class="saved-item">
+      <%- include('partials/card', { place }) %>
+      <form class="remove-favorite" action="/favorites/<%= place.id %>" method="post">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <input type="hidden" name="action" value="remove">
+        <input type="hidden" name="next" value="/me/favorites">
+        <button class="text-button" type="submit" aria-label="นำ <%= place.name %> ออกจากรายการ">นำออกจากรายการ</button>
+      </form>
+    </div>
+    <% }) %>
+  </div>
+  <% } else { %>
+  <div class="empty-state">
+    <%- icon('heart', 28) %>
+    <h2>ยังไม่มีสถานที่ที่บันทึก</h2>
+    <p>เปิดสถานที่ที่ชอบ แล้วกดบันทึกเพื่อกลับมาดูภายหลัง</p>
+    <a class="button button-primary" href="/places">สำรวจสถานที่</a>
+  </div>
+  <% } %>
+  <%- include('partials/pagination', { pagination: result.pagination, pageLink }) %>
+</div>
+<%- include('partials/foot') %>

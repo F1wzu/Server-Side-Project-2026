@@ -180,6 +180,21 @@ async function forMap(now = new Date()) {
   });
 }
 
+// A member's saved places that are still published, most recently saved first.
+// A place that was unpublished after saving simply drops out of the list.
+async function savedBy(userId, { page = 1, pageSize = 24 } = {}, now = new Date()) {
+  const where = { ...published, favorites: { some: { userId } } };
+  const total = await prisma.place.count({ where });
+  const rows = await prisma.favorite.findMany({
+    where: { userId, place: published },
+    orderBy: [{ createdAt: 'desc' }, { placeId: 'desc' }],
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    select: { place: { select: publicFields } },
+  });
+  return { data: rows.map((row) => present(row.place, now)), pagination: paginate(total, page, pageSize) };
+}
+
 // The id of one published place chosen at random, or null when none match.
 async function randomId({ categoryId = null, openNow = false } = {}, now = new Date()) {
   const where = buildWhere({ categoryId, openNow }, now);
@@ -189,4 +204,4 @@ async function randomId({ categoryId = null, openNow = false } = {}, now = new D
   return place?.id ?? null;
 }
 
-module.exports = { countPublished, list, featured, highlyRated, findPublishedById, related, forMap, randomId, MIN_REVIEWS_FOR_TOP_RATED };
+module.exports = { countPublished, list, featured, highlyRated, findPublishedById, related, forMap, savedBy, randomId, MIN_REVIEWS_FOR_TOP_RATED };

@@ -2,6 +2,8 @@
 // public JSON API. Page handlers and API handlers call the same model.
 const placeModel = require('../models/place');
 const categoryModel = require('../models/category');
+const reviewModel = require('../models/review');
+const favoriteModel = require('../models/favorite');
 const AppError = require('../utils/AppError');
 const { bangkokNow } = require('../utils/openingHours');
 const { validate } = require('../utils/validate');
@@ -58,8 +60,25 @@ async function random(req, res) {
 // GET /places/:id
 async function show(req, res) {
   const place = await findPlace(req);
-  const related = await placeModel.related(place);
-  res.render('place', { title: place.name, place, related, todayWeekday: bangkokNow().weekday, withMap: place.latitude !== null });
+  const reviewsPage = Number.isInteger(Number(req.query.reviewsPage)) && Number(req.query.reviewsPage) >= 1 ? Number(req.query.reviewsPage) : 1;
+  const [related, reviews, ownReview, saved] = await Promise.all([
+    placeModel.related(place),
+    reviewModel.listForPlace(place.id, { page: Math.min(reviewsPage, 100000) }),
+    req.user ? reviewModel.findOwnForPlace(req.user.id, place.id) : null,
+    req.user ? favoriteModel.isSaved(req.user.id, place.id) : false,
+  ]);
+  const reviewsPageLink = (page) => (page > 1 ? `/places/${place.id}?reviewsPage=${page}#reviews` : `/places/${place.id}#reviews`);
+  res.render('place', {
+    title: place.name,
+    place,
+    related,
+    reviews,
+    ownReview,
+    saved,
+    reviewsPageLink,
+    todayWeekday: bangkokNow().weekday,
+    withMap: place.latitude !== null,
+  });
 }
 
 // GET /map

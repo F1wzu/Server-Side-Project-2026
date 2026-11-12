@@ -1,0 +1,33 @@
+<%# "แจ้งข้อมูลผิด" on a place page. Include it inside
+    <section class="detail-section" id="report">. Expects: place.
+    The reasons match REPORT_REASONS in src/validation/report.js. %>
+<h2>แจ้งข้อมูลผิด</h2>
+<% if (!currentUser) { %>
+<div class="panel">
+  <p class="meta">ร้านปิดไปแล้ว ย้ายที่ หรือข้อมูลไม่ตรงกับความจริง? บอกผู้ดูแลได้</p>
+  <a class="button button-outline" href="<%= '/login?next=' + encodeURIComponent('/places/' + place.id) %>"><%- icon('user', 18) %>เข้าสู่ระบบเพื่อแจ้งข้อมูลผิด</a>
+</div>
+<% } else { %>
+<div class="panel">
+  <p class="meta">ร้านปิดไปแล้ว ย้ายที่ หรือข้อมูลไม่ตรงกับความจริง? ผู้ดูแลจะตรวจสอบและแก้ไขให้</p>
+  <form method="post" action="/places/<%= place.id %>/reports" class="stack-form">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <div class="field">
+      <label for="report-reason">เหตุผล</label>
+      <select id="report-reason" name="reason" required>
+        <option value="closed">ปิดกิจการ</option>
+        <option value="moved">ย้ายที่</option>
+        <option value="wrong_info">ข้อมูลผิด</option>
+        <option value="other">อื่น ๆ</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="report-details">รายละเอียด</label>
+      <textarea id="report-details" name="details" rows="3" maxlength="1000" aria-describedby="report-details-hint"></textarea>
+      <small id="report-details-hint">ไม่เกิน 1000 ตัวอักษร ต้องกรอกเมื่อเลือก "อื่น ๆ"</small>
+    </div>
+    <button type="submit" class="button button-outline"><%- icon('info', 18) %>ส่งรายงาน</button>
+  </form>
+  <p class="small-note">ผู้ดูแลจะเห็นว่าใครเป็นผู้แจ้ง แต่จะไม่แสดงต่อสาธารณะ</p>
+</div>
+<% } %>

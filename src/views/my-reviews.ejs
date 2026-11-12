@@ -1,0 +1,66 @@
+<%- include('partials/head') %>
+<%
+  const statusLabels = { active: 'แสดงอยู่', removed: 'ผู้ดูแลนำออก' };
+%>
+<div class="container narrow page-content">
+  <div class="page-heading">
+    <p class="eyebrow">บัญชีของฉัน</p>
+    <h1>รีวิวของฉัน</h1>
+    <p>รีวิวที่คุณเขียน แก้ไขหรือลบได้ทุกเมื่อ</p>
+  </div>
+
+  <% if (!result.data.length) { %>
+  <div class="empty-state">
+    <%- icon('star', 28) %>
+    <h2>ยังไม่มีรีวิว</h2>
+    <p>เปิดหน้าสถานที่ที่เคยไป แล้วแบ่งปันประสบการณ์ของคุณ</p>
+    <a class="button button-outline" href="/places">สำรวจสถานที่</a>
+  </div>
+  <% } %>
+
+  <div class="review-management">
+    <% result.data.forEach((review) => { const live = review.place.status === 'published'; %>
+    <article class="panel managed-review">
+      <div class="section-heading">
+        <div>
+          <h2><% if (live) { %><a href="/places/<%= review.place.id %>"><%= review.place.name %></a><% } else { %><%= review.place.name %><% } %></h2>
+          <p class="meta">แก้ไขล่าสุด <%= date(review.updatedAt) %><% if (!live) { %> · สถานที่นี้ไม่ได้เผยแพร่แล้ว<% } %></p>
+        </div>
+        <span class="status status-review-<%= review.status %>"><%= statusLabels[review.status] %></span>
+      </div>
+      <p><%- include('partials/stars', { value: review.rating }) %></p>
+      <p class="preserve-lines"><%= review.comment || 'ไม่มีข้อความเพิ่มเติม' %></p>
+
+      <% if (review.status === 'removed') { %>
+      <div class="feedback-panel"><strong>เหตุผลจากผู้ดูแล</strong><p><%= review.removedReason %></p></div>
+      <% } %>
+
+      <% if (review.status === 'active' && live) { %>
+      <details>
+        <summary>แก้ไขรีวิว</summary>
+        <form class="stack-form" action="/reviews/<%= review.id %>/edit" method="post">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <div class="field">
+            <label for="rating-<%= review.id %>">คะแนน</label>
+            <select id="rating-<%= review.id %>" name="rating">
+              <% [5, 4, 3, 2, 1].forEach((n) => { %><option value="<%= n %>" <%= n === review.rating ? 'selected' : '' %>><%= '★'.repeat(n) %> <%= n %> / 5</option><% }) %>
+            </select>
+          </div>
+          <div class="field">
+            <label for="comment-<%= review.id %>">รีวิวของคุณ</label>
+            <textarea id="comment-<%= review.id %>" name="comment" maxlength="2000" rows="3"><%= review.comment || '' %></textarea>
+          </div>
+          <button class="button button-primary" type="submit">บันทึกการแก้ไข</button>
+        </form>
+      </details>
+      <form class="remove-review" method="post" action="/reviews/<%= review.id %>/delete">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <button class="text-button" type="submit">ลบรีวิวของฉัน</button>
+      </form>
+      <% } %>
+    </article>
+    <% }) %>
+  </div>
+  <%- include('partials/pagination', { pagination: result.pagination, pageLink }) %>
+</div>
+<%- include('partials/foot') %>

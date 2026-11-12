@@ -3,6 +3,8 @@
 const express = require('express');
 const authController = require('../controllers/authController');
 const placeController = require('../controllers/placeController');
+const reviewController = require('../controllers/reviewController');
+const reportController = require('../controllers/reportController');
 const { requireLogin } = require('../middleware/auth');
 const { loginLimiter, passwordChangeLimiter } = require('../middleware/rateLimit');
 
@@ -25,5 +27,16 @@ router.get('/places/map', placeController.apiMap);
 router.get('/places/random', placeController.apiRandom);
 router.get('/places/:id', placeController.apiShow);
 router.get('/places/:id/related', placeController.apiRelated);
+router.get('/places/:id/reviews', reviewController.apiPlaceReviews);
+
+// Reviews and saved places (members)
+router.post('/places/:id/reviews', requireLogin, reviewController.apiCreate);
+router.patch('/reviews/:id', requireLogin, reviewController.apiUpdate);
+router.delete('/reviews/:id', requireLogin, reviewController.apiDelete);
+router.get('/me/reviews', requireLogin, reviewController.apiMyReviews);
+router.get('/me/favorites', requireLogin, reviewController.apiMyFavorites);
+router.put('/me/favorites/:placeId', requireLogin, reviewController.apiSaveFavorite);
+router.delete('/me/favorites/:placeId', requireLogin, reviewController.apiRemoveFavorite);
+router.post('/places/:id/reports', requireLogin, reportController.apiCreate);
 
 module.exports = router;
