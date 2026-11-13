@@ -1,0 +1,151 @@
+<%- include('../partials/head') %>
+<%
+  const lastNote = [...submission.events].reverse().find((event) => event.action === 'returned' || event.action === 'rejected');
+  const hoursText = (day) => (day.state === 'open' ? day.opensAt + '–' + day.closesAt : day.state === 'closed' ? 'ปิด' : 'ยังไม่ระบุ');
+  const pending = submission.status === 'pending';
+%>
+<div class="container page-content">
+  <%- include('../partials/admin-nav') %>
+  <nav class="breadcrumb" aria-label="ตำแหน่งหน้า">
+    <a href="/admin/submissions">ตรวจสอบคำขอ</a><%- icon('chevron', 16) %>
+    <span>คำขอ #<%= submission.id %></span>
+  </nav>
+
+  <header class="detail-heading">
+    <div>
+      <p class="eyebrow">คำขอ #<%= submission.id %> · ฉบับที่ <%= submission.version %></p>
+      <h1><%= submission.name %></h1>
+      <p class="meta">ผู้ส่ง: <%= submission.user.username %> · <%= submission.user.email %> · อัปเดตล่าสุด <%= date(submission.updatedAt) %></p>
+    </div>
+    <span class="status status-<%= submission.status %>"><%= statusLabels[submission.status] %></span>
+  </header>
+
+  <% if (!pending && lastNote && submission.status !== 'approved') { %>
+  <div class="feedback-panel">
+    <h2><%= submission.status === 'rejected' ? 'เหตุผลที่ไม่อนุมัติ' : 'เหตุผลที่ส่งกลับ' %></h2>
+    <p class="preserve-lines"><%= lastNote.note %></p>
+  </div>
+  <% } %>
+
+  <% if (submission.possibleDuplicates.length) { %>
+  <div class="feedback-panel">
+    <strong>อาจมีสถานที่นี้อยู่แล้ว</strong>
+    <p>ชื่อเหมือนกันหรือหมุดอยู่ใกล้กันมาก ตรวจสอบก่อนอนุมัติ</p>
+    <ul class="plain-list">
+      <% submission.possibleDuplicates.forEach((place) => { %>
+      <li><a class="text-link" href="/admin/places/<%= place.id %>/edit"><%= place.name %> (#<%= place.id %><%= place.status === 'unpublished' ? ' · ไม่เผยแพร่' : '' %>)</a></li>
+      <% }) %>
+    </ul>
+  </div>
+  <% } %>
+
+  <div class="detail-grid">
+    <section class="panel proposal-content">
+      <h2>ข้อมูลที่ส่งมา</h2>
+      <dl class="proposal-fields">
+        <div><dt>ชื่อสถานที่</dt><dd><%= submission.name %></dd></div>
+        <div><dt>หมวดหมู่</dt><dd><%= submission.category.name %></dd></div>
+        <div><dt>รายละเอียด</dt><dd class="preserve-lines"><%= submission.description %></dd></div>
+        <div><dt>ที่อยู่</dt><dd class="preserve-lines"><%= submission.address %></dd></div>
+        <div><dt>ตำแหน่ง</dt><dd><%= submission.latitude %>, <%= submission.longitude %> · <a class="text-link" href="https://www.google.com/maps/search/?api=1&amp;query=<%= submission.latitude %>,<%= submission.longitude %>" target="_blank" rel="noopener noreferrer">ตรวจบน Google Maps <span class="sr-only">(หน้าต่างใหม่)</span></a></dd></div>
+        <% if (submission.phone) { %><div><dt>เบอร์โทร</dt><dd><%= submission.phone %></dd></div><% } %>
+        <% if (submission.websiteUrl) { %><div><dt>ลิงก์</dt><dd><a class="text-link" href="<%= submission.websiteUrl %>" target="_blank" rel="noopener noreferrer nofollow"><%= submission.websiteUrl %></a></dd></div><% } %>
+        <% if (submission.imagePath) { %><div><dt>รูปภาพ</dt><dd><img class="current-photo" src="<%= submission.imagePath %>" alt="รูปที่แนบมากับคำขอ" width="320"></dd></div><% } %>
+        <div>
+          <dt>เวลาเปิดบริการ</dt>
+          <dd>
+            <dl class="opening-hours">
+              <% submission.hours.forEach((day) => { %>
+              <div><dt><%= weekdayLabels[day.weekday] %></dt><dd class="<%= day.state %>"><%= hoursText(day) %><% if (day.closesNextDay) { %> <small>(วันถัดไป)</small><% } %></dd></div>
+              <% }) %>
+            </dl>
+          </dd>
+        </div>
+      </dl>
+
+      <% if (submission.placeId) { %>
+      <div class="approved-link">
+        <%- icon('check', 22) %>
+        <div><strong>เผยแพร่สถานที่แล้ว</strong><p><a class="text-link" href="/places/<%= submission.placeId %>">เปิดหน้าสถานที่</a> · <a class="text-link" href="/admin/places/<%= submission.placeId %>/edit">แก้ไขสถานที่</a></p></div>
+      </div>
+      <% } %>
+
+      <% if (pending) { %>
+      <section class="decision-panel">
+        <h2>ผลการตรวจสอบ</h2>
+        <p>ตรวจสอบชื่อ ที่อยู่ ตำแหน่งหมุด และข้อมูลสถานที่ให้ครบก่อนตัดสินใจ</p>
+
+        <form class="stack-form" method="post" action="/admin/submissions/<%= submission.id %>/approve">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <input type="hidden" name="version" value="<%= submission.version %>">
+          <fieldset class="field-group">
+            <legend>ตำแหน่งหมุด</legend>
+            <p class="meta">ถ้าหมุดไม่ตรง ลากหมุดหรือแตะบนแผนที่เพื่อแก้ไขก่อนอนุมัติ การย้ายหมุดจะถูกบันทึกในประวัติคำขอ</p>
+            <div class="picker-map" data-map-picker data-bounds="<%= JSON.stringify(bounds) %>" role="application" aria-label="แผนที่สำหรับปรับตำแหน่งหมุด ใช้ช่องละติจูดและลองจิจูดด้านล่างแทนได้"></div>
+            <div class="field-pair">
+              <div class="field">
+                <label for="latitude">ละติจูด</label>
+                <input type="text" inputmode="decimal" name="latitude" id="latitude" value="<%= submission.latitude %>">
+              </div>
+              <div class="field">
+                <label for="longitude">ลองจิจูด</label>
+                <input type="text" inputmode="decimal" name="longitude" id="longitude" value="<%= submission.longitude %>">
+              </div>
+            </div>
+          </fieldset>
+          <button class="button button-primary" type="submit"><%- icon('check', 18) %>อนุมัติและเผยแพร่</button>
+        </form>
+
+        <details class="return-details">
+          <summary>ส่งกลับให้สมาชิกแก้ไข</summary>
+          <form class="stack-form" method="post" action="/admin/submissions/<%= submission.id %>/return">
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+            <input type="hidden" name="version" value="<%= submission.version %>">
+            <div class="field">
+              <label for="return-reason">เหตุผลที่ส่งกลับ</label>
+              <textarea id="return-reason" name="reason" required maxlength="1000" rows="3" placeholder="ระบุข้อมูลที่ควรเพิ่มเติมหรือแก้ไข"></textarea>
+            </div>
+            <button class="button button-outline" type="submit">ส่งกลับพร้อมเหตุผล</button>
+          </form>
+        </details>
+
+        <details class="return-details">
+          <summary>ไม่อนุมัติคำขอนี้</summary>
+          <form class="stack-form" method="post" action="/admin/submissions/<%= submission.id %>/reject">
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+            <input type="hidden" name="version" value="<%= submission.version %>">
+            <div class="field">
+              <label for="reject-reason">เหตุผลที่ไม่อนุมัติ</label>
+              <textarea id="reject-reason" name="reason" required maxlength="1000" rows="3" placeholder="เช่น อยู่นอกเขตลาดกระบัง หรือเป็นข้อมูลซ้ำ"></textarea>
+              <small>สมาชิกจะแก้ไขและส่งคำขอนี้ใหม่ไม่ได้</small>
+            </div>
+            <button class="button button-danger" type="submit">ไม่อนุมัติพร้อมเหตุผล</button>
+          </form>
+        </details>
+      </section>
+      <% } %>
+    </section>
+
+    <aside>
+      <section class="side-panel">
+        <h2>ประวัติคำขอ</h2>
+        <ol class="timeline">
+          <% submission.events.forEach((event) => { %>
+          <li>
+            <strong><%= actionLabels[event.action] %></strong>
+            <span class="meta"><%= date(event.createdAt) %> · <%= event.actor.username %></span>
+            <% if (event.note) { %><p class="preserve-lines"><%= event.note %></p><% } %>
+            <details class="snapshot">
+              <summary>ดูข้อมูลฉบับนี้</summary>
+              <p><strong><%= event.snapshot.name %></strong> · <%= event.snapshot.categoryName %></p>
+              <p class="preserve-lines"><%= event.snapshot.description %></p>
+              <p><%= event.snapshot.address %></p>
+            </details>
+          </li>
+          <% }) %>
+        </ol>
+      </section>
+    </aside>
+  </div>
+</div>
+<%- include('../partials/foot') %>

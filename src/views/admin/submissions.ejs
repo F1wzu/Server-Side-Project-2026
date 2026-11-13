@@ -1,0 +1,52 @@
+<%- include('../partials/head') %>
+<div class="container page-content">
+  <%- include('../partials/admin-nav') %>
+  <div class="page-heading">
+    <p class="eyebrow">สำหรับผู้ดูแล</p>
+    <h1>ตรวจสอบคำขอ</h1>
+    <p>ตรวจข้อมูลและตัดสินใจก่อนเผยแพร่สถานที่ คำขอที่รอนานที่สุดอยู่บนสุด</p>
+  </div>
+
+  <nav class="tabs" aria-label="กรองสถานะคำขอ">
+    <% ['pending', 'changes_requested', 'approved', 'rejected', 'all'].forEach((key) => { %>
+    <a href="/admin/submissions?status=<%= key %>"<%- status === key ? ' aria-current="true"' : '' %>><%= key === 'all' ? 'ทั้งหมด' : statusLabels[key] %></a>
+    <% }) %>
+  </nav>
+
+  <% if (result.data.length) { %>
+  <div class="table-shell">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">สถานที่</th>
+          <th scope="col">สถานะ</th>
+          <th scope="col">อัปเดตล่าสุด</th>
+          <th scope="col"><span class="sr-only">เปิดคำขอ</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% result.data.forEach((item) => { %>
+        <tr>
+          <td>
+            <a class="table-title" href="/admin/submissions/<%= item.id %>"><%= item.name %></a>
+            <span class="meta table-meta"><%= item.category.name %> · คำขอ #<%= item.id %> · <%= item.user.username %></span>
+          </td>
+          <td data-label="สถานะ"><span class="status status-<%= item.status %>"><%= statusLabels[item.status] %></span></td>
+          <td data-label="อัปเดตล่าสุด" class="table-date"><%= date(item.updatedAt) %></td>
+          <td><a class="text-link" aria-label="ตรวจคำขอ <%= item.name %>" href="/admin/submissions/<%= item.id %>"><%= item.status === 'pending' ? 'ตรวจสอบ' : 'ดูรายละเอียด' %></a></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <p class="meta list-count"><%= result.pagination.total %> คำขอ</p>
+  <% } else { %>
+  <div class="empty-state">
+    <%- icon('check', 28) %>
+    <h2>ไม่มีคำขอในสถานะนี้</h2>
+    <p>เลือกสถานะอื่นเพื่อดูคำขอที่ผ่านมา</p>
+  </div>
+  <% } %>
+  <%- include('../partials/pagination', { pagination: result.pagination, pageLink }) %>
+</div>
+<%- include('../partials/foot') %>

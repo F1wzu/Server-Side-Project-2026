@@ -1,0 +1,67 @@
+<%- include('../partials/head') %>
+<%
+  const filters = [['open', 'รอตรวจ'], ['resolved', 'แก้ไขแล้ว'], ['dismissed', 'ไม่ดำเนินการ'], ['all', 'ทั้งหมด']];
+  const statusLabels = { open: 'รอตรวจ', resolved: 'แก้ไขแล้ว', dismissed: 'ไม่ดำเนินการ' };
+%>
+<div class="container page-content">
+  <%- include('../partials/admin-nav') %>
+  <div class="page-heading">
+    <h1>แจ้งข้อมูลผิด</h1>
+    <p>ตรวจข้อมูลสถานที่ตามที่สมาชิกแจ้ง แล้วปิดรายการเป็น “แก้ไขแล้ว” หรือ “ไม่ดำเนินการ”</p>
+  </div>
+
+  <nav class="tabs" aria-label="กรองตามสถานะ">
+    <% filters.forEach(([key, label]) => { %>
+    <a href="/admin/reports<%= key === 'open' ? '' : '?status=' + key %>"<%- status === key ? ' aria-current="true"' : '' %>><%= label %></a>
+    <% }) %>
+  </nav>
+
+  <% if (result.pagination.total === 0) { %>
+  <div class="empty-state">
+    <%- icon('shield', 28) %>
+    <h2>ไม่มีรายการในหมวดนี้</h2>
+  </div>
+  <% } else { %>
+  <div class="table-shell">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">สถานที่</th>
+          <th scope="col">ผู้แจ้ง</th>
+          <th scope="col">เหตุผล</th>
+          <th scope="col">รายละเอียด</th>
+          <th scope="col">วันที่แจ้ง</th>
+          <th scope="col">การดำเนินการ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% result.data.forEach((report) => { %>
+        <tr>
+          <td data-label="สถานที่"><a href="/admin/places/<%= report.place.id %>/edit"><%= report.place.name %></a></td>
+          <td data-label="ผู้แจ้ง"><%= report.user.username %></td>
+          <td data-label="เหตุผล"><%= reasonLabels[report.reason] %></td>
+          <td data-label="รายละเอียด" class="preserve-lines"><%= report.details || '-' %></td>
+          <td data-label="วันที่แจ้ง" class="table-date"><%= date(report.createdAt) %></td>
+          <td data-label="การดำเนินการ">
+            <% if (report.status === 'open') { %>
+            <form action="/admin/reports/<%= report.id %>/resolve" method="post">
+              <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+              <input type="hidden" name="filter" value="<%= status %>">
+              <button class="button button-outline button-small" type="submit" name="status" value="resolved">แก้ไขแล้ว</button>
+              <button class="text-button" type="submit" name="status" value="dismissed">ไม่ดำเนินการ</button>
+            </form>
+            <% } else { %>
+            <span class="status"><%= statusLabels[report.status] %></span>
+            <% if (report.resolvedBy) { %><span class="meta">โดย <%= report.resolvedBy.username %></span><% } %>
+            <% } %>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+
+  <%- include('../partials/pagination', { pagination: result.pagination, pageLink }) %>
+</div>
+<%- include('../partials/foot') %>

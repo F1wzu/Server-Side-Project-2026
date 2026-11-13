@@ -37,6 +37,15 @@ function createClient(app) {
     register(overrides = {}) {
       return this.post('/api/v1/auth/register', { username: 'สมชาย', email: 'somchai@example.com', password: 'password123', ...overrides });
     },
+    // Registers an account and makes it an admin (admins cannot be created
+    // through the site, so the role is set in the database).
+    async registerAdmin(overrides = {}) {
+      const res = await this.register({ username: 'ผู้ดูแล', email: 'admin@example.com', ...overrides });
+      const prisma = require('../../src/config/db');
+      await prisma.user.update({ where: { id: res.body.data.id }, data: { role: 'admin' } });
+      this.id = res.body.data.id;
+      return res;
+    },
     login(email = 'somchai@example.com', password = 'password123') {
       return this.post('/api/v1/auth/login', { email, password });
     },

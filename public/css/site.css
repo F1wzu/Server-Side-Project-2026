@@ -2065,3 +2065,9 @@ details .stack-form {
   margin: 0.5rem 0 0;
   padding-left: 1.25rem;
 }
+
+/* admin place list: publish / unpublish button sits beside the edit link */
+.inline-form {
+  display: inline;
+  margin-left: 8px;
+}

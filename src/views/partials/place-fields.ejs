@@ -1,0 +1,107 @@
+<%# The fields that describe a place: used by the member's submission form
+    and by the admin's place form. Expects: values, errors, categories, bounds,
+    and optionally pinRequired (default true). Field names match
+    src/validation/submission.js. %>
+<%
+  const pinRequired = locals.pinRequired !== false;
+  const fieldError = (name) => errors[name];
+  const invalid = (name) => (errors[name] ? 'aria-invalid="true" aria-describedby="' + name + '-error"' : '');
+  const hoursError = Object.keys(errors).find((key) => key.startsWith('hours'));
+%>
+<div class="field">
+  <label for="name">ชื่อสถานที่ <span class="required">*</span></label>
+  <input id="name" name="name" required maxlength="200" value="<%= values.name || '' %>" placeholder="ชื่อร้านหรือสถานที่" <%- invalid('name') %>>
+  <% if (fieldError('name')) { %><p class="field-error" id="name-error"><%= fieldError('name') %></p><% } %>
+</div>
+
+<div class="field">
+  <label for="categoryId">หมวดหมู่ <span class="required">*</span></label>
+  <select id="categoryId" name="categoryId" required <%- invalid('categoryId') %>>
+    <option value="">เลือกหมวดหมู่</option>
+    <% categories.forEach((category) => { %>
+    <option value="<%= category.id %>" <%= Number(values.categoryId) === category.id ? 'selected' : '' %>><%= category.name %></option>
+    <% }) %>
+  </select>
+  <% if (fieldError('categoryId')) { %><p class="field-error" id="categoryId-error"><%= fieldError('categoryId') %></p><% } %>
+</div>
+
+<div class="field">
+  <label for="description">รายละเอียด <span class="required">*</span></label>
+  <textarea id="description" name="description" rows="5" required maxlength="5000" placeholder="สถานที่นี้มีอะไรน่าสนใจ เหมาะกับการไปทำอะไร" <%- invalid('description') %>><%= values.description || '' %></textarea>
+  <% if (fieldError('description')) { %><p class="field-error" id="description-error"><%= fieldError('description') %></p><% } %>
+</div>
+
+<div class="field">
+  <label for="address">ที่อยู่ในเขตลาดกระบัง <span class="required">*</span></label>
+  <textarea id="address" name="address" rows="3" required maxlength="500" placeholder="ถนน ซอย แขวง และจุดสังเกต" <%- invalid('address') %>><%= values.address || '' %></textarea>
+  <% if (fieldError('address')) { %><p class="field-error" id="address-error"><%= fieldError('address') %></p><% } %>
+</div>
+
+<fieldset class="field-group">
+  <legend>ปักหมุดตำแหน่ง<% if (pinRequired) { %> <span class="required">*</span><% } %></legend>
+  <p class="meta">แตะบนแผนที่หรือลากหมุดไปยังตำแหน่งของสถานที่ ต้องอยู่ในกรอบเส้นประ (เขตลาดกระบัง)</p>
+  <div class="picker-map" data-map-picker data-bounds="<%= JSON.stringify(bounds) %>" role="application" aria-label="แผนที่สำหรับปักหมุดตำแหน่ง ใช้ช่องละติจูดและลองจิจูดด้านล่างแทนได้"></div>
+  <div class="field-pair">
+    <div class="field">
+      <label for="latitude">ละติจูด</label>
+      <input type="text" inputmode="decimal" name="latitude" id="latitude" value="<%= values.latitude ?? '' %>" placeholder="13.7279" <%- invalid('latitude') %>>
+      <% if (fieldError('latitude')) { %><p class="field-error" id="latitude-error"><%= fieldError('latitude') %></p><% } %>
+    </div>
+    <div class="field">
+      <label for="longitude">ลองจิจูด</label>
+      <input type="text" inputmode="decimal" name="longitude" id="longitude" value="<%= values.longitude ?? '' %>" placeholder="100.7782" <%- invalid('longitude') %>>
+      <% if (fieldError('longitude')) { %><p class="field-error" id="longitude-error"><%= fieldError('longitude') %></p><% } %>
+    </div>
+  </div>
+</fieldset>
+
+<div class="field-pair">
+  <div class="field">
+    <label for="phone">เบอร์โทร (ถ้ามี)</label>
+    <input id="phone" name="phone" type="tel" maxlength="30" value="<%= values.phone || '' %>" placeholder="02-123-4567" <%- invalid('phone') %>>
+    <% if (fieldError('phone')) { %><p class="field-error" id="phone-error"><%= fieldError('phone') %></p><% } %>
+  </div>
+  <div class="field">
+    <label for="websiteUrl">ลิงก์ เว็บไซต์ Facebook หรือ LINE (ถ้ามี)</label>
+    <input id="websiteUrl" name="websiteUrl" type="url" maxlength="500" value="<%= values.websiteUrl || '' %>" placeholder="https://" <%- invalid('websiteUrl') %>>
+    <% if (fieldError('websiteUrl')) { %><p class="field-error" id="websiteUrl-error"><%= fieldError('websiteUrl') %></p><% } %>
+  </div>
+</div>
+
+<div class="field">
+  <label for="photo">รูปภาพ (ถ้ามี)</label>
+  <% if (values.imagePath) { %>
+  <img class="current-photo" src="<%= values.imagePath %>" alt="รูปที่แนบไว้ในคำขอนี้" width="320">
+  <small>เลือกรูปใหม่เพื่อแทนที่รูปเดิม หรือเว้นว่างเพื่อใช้รูปเดิม</small>
+  <% } %>
+  <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="photo-hint<%= fieldError('photo') ? ' photo-error' : '' %>" <%- fieldError('photo') ? 'aria-invalid="true"' : '' %>>
+  <% if (fieldError('photo')) { %><p class="field-error" id="photo-error"><%= fieldError('photo') %></p><% } %>
+  <small id="photo-hint">JPEG, PNG หรือ WebP ไม่เกิน 5 MB ระบบจะลบข้อมูลตำแหน่ง GPS ในรูปออกให้</small>
+</div>
+
+<fieldset class="field-group">
+  <legend>เวลาเปิดบริการ</legend>
+  <p class="meta">เวลาประเทศไทย เลือก "ยังไม่ทราบ" เมื่อยังไม่ได้ยืนยัน เวลาที่ระบุจะใช้กับตัวกรอง "เปิดอยู่ตอนนี้"</p>
+  <% if (hoursError) { %><p class="field-error"><%= errors[hoursError] %></p><% } %>
+  <div class="hours-editor">
+    <% weekdayLabels.forEach((label, weekday) => { const day = values.hours?.[weekday] || { state: 'unknown' }; %>
+    <div class="hours-day" data-hours-day>
+      <strong><%= label %></strong>
+      <label>
+        <span class="sr-only">สถานะวัน<%= label %></span>
+        <select name="state<%= weekday %>" data-hours-state>
+          <% [['unknown', 'ยังไม่ทราบ'], ['open', 'เปิด'], ['closed', 'ปิด']].forEach(([key, text]) => { %>
+          <option value="<%= key %>" <%= day.state === key ? 'selected' : '' %>><%= text %></option>
+          <% }) %>
+        </select>
+      </label>
+      <span class="hours-range">
+        <input type="time" name="opens<%= weekday %>" value="<%= day.opensAt || '' %>" aria-label="เวลาเปิดวัน<%= label %>" data-hours-time>
+        <span aria-hidden="true">–</span>
+        <input type="time" name="closes<%= weekday %>" value="<%= day.closesAt || '' %>" aria-label="เวลาปิดวัน<%= label %>" data-hours-time>
+      </span>
+      <label class="checkbox-label"><input type="checkbox" name="next<%= weekday %>" <%= day.closesNextDay ? 'checked' : '' %> data-hours-next>ปิดวันถัดไป</label>
+    </div>
+    <% }) %>
+  </div>
+</fieldset>

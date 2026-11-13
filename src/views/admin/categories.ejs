@@ -1,0 +1,41 @@
+<%- include('../partials/head') %>
+<div class="container narrow page-content">
+  <%- include('../partials/admin-nav') %>
+  <div class="page-heading">
+    <h1>จัดการหมวดหมู่</h1>
+    <p>เปลี่ยนชื่อได้เสมอ แต่ลบได้เฉพาะหมวดหมู่ที่ไม่มีสถานที่หรือคำขอใช้อยู่</p>
+  </div>
+
+  <form class="panel category-create" method="post" action="/admin/categories">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <div class="field">
+      <label for="new-name">ชื่อหมวดหมู่ใหม่</label>
+      <input id="new-name" name="name" required maxlength="80">
+    </div>
+    <button class="button button-primary" type="submit"><%- icon('plus', 18) %>เพิ่มหมวดหมู่</button>
+  </form>
+
+  <div class="category-management">
+    <% categories.forEach((category) => { const inUse = category.placeCount > 0 || category.submissionCount > 0; %>
+    <section class="panel category-edit">
+      <form class="category-rename" method="post" action="/admin/categories/<%= category.id %>">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <div class="field">
+          <label for="category-<%= category.id %>"><%= category.placeCount %> สถานที่ · <%= category.pendingCount %> คำขอที่รอตรวจ</label>
+          <input id="category-<%= category.id %>" name="name" value="<%= category.name %>" required maxlength="80">
+        </div>
+        <button class="button button-outline" type="submit">บันทึกชื่อ</button>
+      </form>
+      <% if (!inUse) { %>
+      <form method="post" action="/admin/categories/<%= category.id %>/delete">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <button class="text-button" type="submit" aria-label="ลบหมวดหมู่ <%= category.name %>">ลบหมวดหมู่</button>
+      </form>
+      <% } else { %>
+      <span class="meta">ลบไม่ได้ (มีการใช้งานอยู่)</span>
+      <% } %>
+    </section>
+    <% }) %>
+  </div>
+</div>
+<%- include('../partials/foot') %>

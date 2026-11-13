@@ -1,7 +1,16 @@
-// Admin pages. The tools themselves (queue, places, reviews, categories)
-// are built in step 6; this page proves the admin-only check works.
-function dashboard(req, res) {
-  res.render('admin/index', { title: 'ผู้ดูแลระบบ' });
+// The admin's starting page: what is waiting for a decision.
+const adminSubmissionModel = require('../models/adminSubmission');
+const reportModel = require('../models/report');
+const placeModel = require('../models/place');
+
+// GET /admin
+async function dashboard(req, res) {
+  const [pendingSubmissions, openReports, publishedPlaces] = await Promise.all([
+    adminSubmissionModel.pendingCount(),
+    reportModel.listOpenCount(),
+    placeModel.countPublished(),
+  ]);
+  res.render('admin/index', { title: 'ผู้ดูแลระบบ', pendingSubmissions, openReports, publishedPlaces });
 }
 
 module.exports = { dashboard };

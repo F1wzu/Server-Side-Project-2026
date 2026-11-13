@@ -1,13 +1,38 @@
 <%- include('../partials/head') %>
 <div class="container page-content">
+  <%- include('../partials/admin-nav') %>
   <div class="page-heading">
     <p class="eyebrow">เฉพาะบัญชีผู้ดูแล</p>
     <h1>ผู้ดูแลระบบ</h1>
+    <p>งานที่รอการตัดสินใจ และทางลัดไปยังเครื่องมือจัดการ</p>
   </div>
-  <div class="empty-state">
-    <%- icon('shield', 28) %>
-    <h2>เครื่องมือผู้ดูแลจะเปิดใช้งานเร็ว ๆ นี้</h2>
-    <p>คิวตรวจสถานที่ที่เสนอ การจัดการสถานที่ รีวิว รายการแจ้งข้อมูลผิด และหมวดหมู่</p>
+
+  <div class="account-grid">
+    <a class="panel account-card" href="/admin/submissions">
+      <span class="account-icon"><%- icon('pin', 24) %></span>
+      <h2>คำขอรอตรวจสอบ <strong><%= pendingSubmissions %></strong></h2>
+      <p>อนุมัติ ส่งกลับให้แก้ไข หรือไม่อนุมัติสถานที่ที่สมาชิกแนะนำ</p>
+    </a>
+    <a class="panel account-card" href="/admin/reports">
+      <span class="account-icon"><%- icon('info', 24) %></span>
+      <h2>แจ้งข้อมูลผิดที่ยังเปิดอยู่ <strong><%= openReports %></strong></h2>
+      <p>ตรวจรายงานจากสมาชิก แล้วแก้ไขข้อมูลสถานที่</p>
+    </a>
+    <a class="panel account-card" href="/admin/places">
+      <span class="account-icon"><%- icon('store', 24) %></span>
+      <h2>สถานที่ที่เผยแพร่ <strong><%= publishedPlaces %></strong></h2>
+      <p>เพิ่ม แก้ไข ตั้งเวลาเปิดปิด ปักหมุด และยกเลิกการเผยแพร่</p>
+    </a>
+    <a class="panel account-card" href="/admin/reviews">
+      <span class="account-icon"><%- icon('star', 24) %></span>
+      <h2>รีวิว</h2>
+      <p>ดูรีวิวทั้งหมด และนำรีวิวที่ไม่เหมาะสมออกพร้อมเหตุผล</p>
+    </a>
+    <a class="panel account-card" href="/admin/categories">
+      <span class="account-icon"><%- icon('grid', 24) %></span>
+      <h2>หมวดหมู่</h2>
+      <p>เพิ่ม เปลี่ยนชื่อ และลบหมวดหมู่ที่ไม่มีการใช้งาน</p>
+    </a>
   </div>
 </div>
 <%- include('../partials/foot') %>

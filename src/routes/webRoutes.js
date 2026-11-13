@@ -62,4 +62,9 @@ router.post('/me/password', requireLogin, passwordChangeLimiter, authController.
 // Admin
 router.get('/admin', requireLogin, requireAdmin, adminController.dashboard);
 
+// Admin areas. Everything under /admin needs a logged-in admin.
+for (const area of ['submissions', 'places', 'moderation']) {
+  router.use('/admin', requireLogin, requireAdmin, require(`./admin/${area}`).web);
+}
+
 module.exports = router;

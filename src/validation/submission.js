@@ -122,4 +122,42 @@ const versionSchema = z.object({
   version: z.coerce.number({ error: 'ไม่พบหมายเลขฉบับของคำขอ' }).int('ไม่พบหมายเลขฉบับของคำขอ').min(1, 'ไม่พบหมายเลขฉบับของคำขอ'),
 });
 
-module.exports = { readSubmission, hoursFromForm, versionSchema, LAT_KRABANG };
+// ---------- places managed by an admin ----------
+
+// Thirteen seeded places have no pin yet, so an admin may save a place
+// without one. A pin that is given must still be inside the district.
+const optionalCoordinate = (label, min, max) =>
+  blankAsMissing(
+    z.coerce
+      .number({ error: `${label}ต้องเป็นตัวเลข` })
+      .refine(Number.isFinite, `${label}ต้องเป็นตัวเลข`)
+      .refine((value) => value >= min && value <= max, `${label}อยู่นอกเขตลาดกระบัง กรุณาปักหมุดใหม่`)
+      .transform((value) => Math.round(value * 1e6) / 1e6)
+      .optional()
+  ).transform((value) => value ?? null);
+
+const placeSchema = submissionSchema
+  .extend({
+    latitude: optionalCoordinate('ละติจูด', LAT_KRABANG.minLat, LAT_KRABANG.maxLat),
+    longitude: optionalCoordinate('ลองจิจูด', LAT_KRABANG.minLng, LAT_KRABANG.maxLng),
+  })
+  .superRefine((value, ctx) => {
+    // Half a pin cannot be shown on a map (and the database refuses it).
+    if ((value.latitude === null) !== (value.longitude === null)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [value.latitude === null ? 'latitude' : 'longitude'],
+        message: 'กรุณาระบุทั้งละติจูดและลองจิจูด หรือเว้นว่างทั้งสองช่อง',
+      });
+    }
+  });
+
+// The same content as a submission, for a place an admin adds or edits.
+// With `pinRequired: false` the pin may be left out (both coordinates blank).
+function readPlaceContent(body, { pinRequired = true } = {}) {
+  if (pinRequired) return readSubmission(body);
+  const result = placeSchema.safeParse({ ...body, hours: hoursFromForm(body) });
+  return result.success ? { data: result.data, issues: [] } : { data: null, issues: [...result.error.issues] };
+}
+
+module.exports = { readSubmission, readPlaceContent, hoursFromForm, versionSchema, LAT_KRABANG };

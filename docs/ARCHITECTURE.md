@@ -2,7 +2,7 @@
 
 สถานะ: **ร่างเพื่อให้ทีมตรวจ** (พฤ. 12 พ.ย. 2569) ขั้นที่ 1 (พื้นฐาน)
 ขั้นที่ 2 (บัญชีผู้ใช้) ขั้นที่ 3 (การสำรวจสถานที่) ขั้นที่ 4 (รีวิว รายการโปรด
-การแจ้งข้อมูลผิด) และขั้นที่ 5 (การเสนอสถานที่และรูป) สร้างแล้ว หัวข้อที่เหลืออธิบายสิ่งที่ขั้นถัดไปจะเพิ่ม
+การแจ้งข้อมูลผิด) ขั้นที่ 5 (การเสนอสถานที่และรูป) และขั้นที่ 6 (ผู้ดูแล) สร้างแล้ว หัวข้อที่เหลืออธิบายสิ่งที่ขั้นถัดไปจะเพิ่ม
 
 เอกสารที่เกี่ยวข้อง: [PLAN.md](PLAN.md) (กำหนดการและขั้นตอน) ·
 [DESIGN.md](DESIGN.md) (ฟีเจอร์ ฐานข้อมูล API)
@@ -87,7 +87,7 @@ src/
   server.js              เริ่มทำงาน ปิดอย่างนุ่มนวล
   app.js                 สร้างแอป Express (การทดสอบก็ใช้)
   config/        env.js (อ่านและตรวจ .env), db.js (Prisma client)
-  routes/        webRoutes.js, apiRoutes.js
+  routes/        webRoutes.js, apiRoutes.js, admin/ (submissions, places, moderation)
   controllers/   auth, place, review (รวม favorite), report, submission, admin
   models/        user, place, review, favorite, report, submission, category
   validation/    หนึ่งไฟล์ schema ต่อหนึ่งฟีเจอร์

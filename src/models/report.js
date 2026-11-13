@@ -25,4 +25,54 @@ function listOpenCount() {
   return prisma.placeReport.count({ where: { status: 'open' } });
 }
 
-module.exports = { create, listOpenCount };
+// ---------- admin ----------
+
+const REPORT_STATUSES = ['open', 'resolved', 'dismissed'];
+
+// Reports for the admin list. Open ones come oldest first (the longest
+// waiting is at the top); closed ones newest first.
+async function listAll({ status = 'open', page = 1, pageSize = 20 } = {}) {
+  const where = REPORT_STATUSES.includes(status) ? { status } : {};
+  const total = await prisma.placeReport.count({ where });
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const current = Math.min(page, totalPages);
+  const rows = await prisma.placeReport.findMany({
+    where,
+    orderBy: [{ createdAt: status === 'open' ? 'asc' : 'desc' }, { id: status === 'open' ? 'asc' : 'desc' }],
+    skip: (current - 1) * pageSize,
+    take: pageSize,
+    select: {
+      id: true,
+      placeId: true,
+      reason: true,
+      details: true,
+      status: true,
+      createdAt: true,
+      resolvedAt: true,
+      place: { select: { id: true, name: true } },
+      user: { select: { id: true, username: true } },
+      resolvedBy: { select: { id: true, username: true } },
+    },
+  });
+  return { data: rows, pagination: { page: current, pageSize, total, totalPages } };
+}
+
+// Closes an open report. The update itself only matches an open row, so
+// two admins closing the same report cannot both succeed.
+async function close(adminId, reportId, status) {
+  const { count } = await prisma.placeReport.updateMany({
+    where: { id: reportId, status: 'open' },
+    data: { status, resolvedById: adminId, resolvedAt: new Date() },
+  });
+  if (count === 0) {
+    const exists = await prisma.placeReport.findUnique({ where: { id: reportId }, select: { id: true } });
+    if (!exists) throw AppError.notFound('ไม่พบรายการแจ้งนี้');
+    throw new AppError(409, 'INVALID_STATE', 'รายการแจ้งนี้ถูกปิดไปแล้ว');
+  }
+  return prisma.placeReport.findUnique({
+    where: { id: reportId },
+    select: { id: true, placeId: true, reason: true, details: true, status: true, createdAt: true, resolvedAt: true },
+  });
+}
+
+module.exports = { create, listOpenCount, listAll, close, REPORT_STATUSES };

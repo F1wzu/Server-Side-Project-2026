@@ -1,0 +1,63 @@
+<%- include('../partials/head') %>
+<%
+  const statusLabels = { active: 'แสดงอยู่', deleted: 'ผู้เขียนลบแล้ว', removed: 'นำออกแล้ว' };
+  const filters = [['all', 'ทั้งหมด'], ['active', 'แสดงอยู่'], ['removed', 'นำออกแล้ว'], ['deleted', 'ผู้เขียนลบแล้ว']];
+%>
+<div class="container narrow page-content">
+  <%- include('../partials/admin-nav') %>
+  <div class="page-heading">
+    <h1>ดูแลรีวิว</h1>
+    <p>นำรีวิวที่ไม่เหมาะสมออกพร้อมบันทึกเหตุผล รีวิวที่นำออกแล้วคืนค่าไม่ได้ และผู้เขียนจะเห็นเหตุผลนั้น</p>
+  </div>
+
+  <nav class="tabs" aria-label="กรองตามสถานะ">
+    <% filters.forEach(([key, label]) => { %>
+    <a href="/admin/reviews<%= key === 'all' ? '' : '?status=' + key %>"<%- status === key ? ' aria-current="true"' : '' %>><%= label %></a>
+    <% }) %>
+  </nav>
+
+  <% if (result.pagination.total === 0) { %>
+  <div class="empty-state">
+    <%- icon('star', 28) %>
+    <h2>ไม่มีรีวิวในหมวดนี้</h2>
+  </div>
+  <% } %>
+
+  <div class="review-management">
+    <% result.data.forEach((review) => { %>
+    <article class="panel managed-review">
+      <div class="section-heading">
+        <div>
+          <h2><a href="/admin/places/<%= review.place.id %>/edit"><%= review.place.name %></a></h2>
+          <p class="meta">โดย <%= review.user.username %> · <%= date(review.createdAt) %></p>
+        </div>
+        <span class="status status-review-<%= review.status %>"><%= statusLabels[review.status] %></span>
+      </div>
+      <p><%- include('../partials/stars', { value: review.rating }) %></p>
+      <p class="preserve-lines"><%= review.comment || 'ไม่มีข้อความเพิ่มเติม' %></p>
+
+      <% if (review.status === 'removed') { %>
+      <div class="feedback-panel"><strong>เหตุผลที่นำออก</strong><p><%= review.removedReason %></p></div>
+      <% } %>
+
+      <% if (review.status === 'active') { %>
+      <details>
+        <summary>นำรีวิวนี้ออก</summary>
+        <form class="stack-form" action="/admin/reviews/<%= review.id %>/remove" method="post">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <input type="hidden" name="status" value="<%= status %>">
+          <div class="field">
+            <label for="reason-<%= review.id %>">เหตุผล (ผู้เขียนจะเห็นข้อความนี้)</label>
+            <textarea id="reason-<%= review.id %>" name="reason" maxlength="500" rows="3" required></textarea>
+          </div>
+          <button class="button button-danger" type="submit">นำรีวิวออก</button>
+        </form>
+      </details>
+      <% } %>
+    </article>
+    <% }) %>
+  </div>
+
+  <%- include('../partials/pagination', { pagination: result.pagination, pageLink }) %>
+</div>
+<%- include('../partials/foot') %>

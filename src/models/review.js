@@ -162,4 +162,49 @@ async function listOwn(userId, { page = 1, pageSize = 20 } = {}) {
   return { data: rows.map(present), pagination };
 }
 
-module.exports = { create, update, remove, listForPlace, findOwnForPlace, listOwn, recalculateRating };
+// ---------- admin ----------
+
+const REVIEW_STATUSES = ['active', 'deleted', 'removed'];
+
+// All reviews for the admin list, newest first, optionally of one status.
+// Unlike present(), this shows the admin who removed a review (username only).
+async function listAll({ status, page = 1, pageSize = 20 } = {}) {
+  const where = REVIEW_STATUSES.includes(status) ? { status } : {};
+  const total = await prisma.review.count({ where });
+  const pagination = pageWithin(total, page, pageSize);
+  const rows = await prisma.review.findMany({
+    where,
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    skip: (pagination.page - 1) * pageSize,
+    take: pageSize,
+    include: {
+      user: authorFields,
+      place: { select: { id: true, name: true, status: true } },
+    },
+  });
+  return { data: rows.map(present), pagination };
+}
+
+// An admin takes down an active review. Same lock order as the member side:
+// place row first, then the review is read again under the lock, so two
+// admins (or an admin and the author) cannot both act on it.
+async function adminRemove(adminId, reviewId, reason) {
+  return prisma.$transaction(async (tx) => {
+    const found = await tx.review.findUnique({ where: { id: reviewId }, select: { placeId: true } });
+    if (!found) throw notFound();
+    await lockPlace(tx, found.placeId);
+    const current = await tx.review.findUnique({ where: { id: reviewId } });
+    if (current.status !== 'active') {
+      throw new AppError(409, 'INVALID_STATE', 'รีวิวนี้ไม่ได้อยู่ในสถานะที่นำออกได้');
+    }
+    const updated = await tx.review.update({
+      where: { id: reviewId },
+      data: { status: 'removed', removedById: adminId, removedReason: reason },
+      include: { user: authorFields, place: { select: { id: true, name: true, status: true } } },
+    });
+    await recalculateRating(tx, found.placeId);
+    return present(updated);
+  });
+}
+
+module.exports = { create, update, remove, listForPlace, findOwnForPlace, listOwn, recalculateRating, listAll, adminRemove, REVIEW_STATUSES };

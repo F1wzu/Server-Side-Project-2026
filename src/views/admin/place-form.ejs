@@ -1,0 +1,60 @@
+<%- include('../partials/head') %>
+<%
+  const editing = Boolean(place);
+%>
+<div class="container page-content">
+  <%- include('../partials/admin-nav') %>
+  <nav class="breadcrumb" aria-label="ตำแหน่งหน้า">
+    <a href="/admin/places">จัดการสถานที่</a><%- icon('chevron', 16) %>
+    <span><%= editing ? 'แก้ไข ' + place.name : 'เพิ่มสถานที่' %></span>
+  </nav>
+  <div class="page-heading">
+    <h1><%= editing ? 'แก้ไขสถานที่' : 'เพิ่มสถานที่โดยตรง' %></h1>
+    <p>สถานที่ที่บันทึกจากหน้านี้ไม่ต้องรอการอนุมัติ ปักหมุดไม่บังคับ แต่ถ้าระบุต้องอยู่ในเขตลาดกระบัง</p>
+  </div>
+
+  <% if (formError) { %>
+  <div class="form-error" role="alert" id="form-error" tabindex="-1">
+    <%= formError %>
+    <% if (Object.keys(errors).length) { %>
+    <ul>
+      <% Object.entries(errors).forEach(([field, message]) => { %><li><%= message %></li><% }) %>
+    </ul>
+    <% } %>
+    <% if (!errors.photo && values && Object.keys(values).length > 1) { %><p class="small-note">ถ้าแนบรูปไว้ กรุณาเลือกรูปอีกครั้ง</p><% } %>
+  </div>
+  <% } %>
+
+  <form class="panel submission-form stack-form" method="post" enctype="multipart/form-data"
+        action="<%= editing ? '/admin/places/' + place.id : '/admin/places' %>" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+
+    <%- include('../partials/place-fields', { values, errors, categories, bounds, pinRequired: false }) %>
+
+    <fieldset class="field-group">
+      <legend>การเผยแพร่</legend>
+      <div class="field-pair">
+        <div class="field">
+          <label for="status">สถานะ</label>
+          <select id="status" name="status" <%- errors.status ? 'aria-invalid="true"' : '' %>>
+            <option value="published" <%= values.status !== 'unpublished' ? 'selected' : '' %>>เผยแพร่</option>
+            <option value="unpublished" <%= values.status === 'unpublished' ? 'selected' : '' %>>ซ่อนจากหน้าสาธารณะ</option>
+          </select>
+          <% if (errors.status) { %><p class="field-error"><%= errors.status %></p><% } %>
+        </div>
+        <div class="field">
+          <label for="featuredOrder">ลำดับแนะนำบนหน้าแรก (1-999)</label>
+          <input id="featuredOrder" name="featuredOrder" inputmode="numeric" maxlength="3" value="<%= values.featuredOrder ?? '' %>" placeholder="เว้นว่างถ้าไม่แนะนำ" <%- errors.featuredOrder ? 'aria-invalid="true"' : '' %>>
+          <% if (errors.featuredOrder) { %><p class="field-error"><%= errors.featuredOrder %></p><% } %>
+        </div>
+      </div>
+      <% if (editing) { %><p class="meta">คะแนนรีวิวคำนวณจากรีวิวของสมาชิก แก้ไขที่นี่ไม่ได้</p><% } %>
+    </fieldset>
+
+    <div class="form-actions">
+      <a class="button button-outline" href="/admin/places">ยกเลิก</a>
+      <button class="button button-primary" type="submit"><%= editing ? 'บันทึกการแก้ไข' : 'เพิ่มสถานที่' %></button>
+    </div>
+  </form>
+</div>
+<%- include('../partials/foot') %>

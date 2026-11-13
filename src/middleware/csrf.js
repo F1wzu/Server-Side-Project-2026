@@ -26,6 +26,10 @@ const PHOTO_ROUTES = [
   { method: 'POST', path: /^\/me\/submissions\/\d+$/ },
   { method: 'POST', path: /^\/api\/v1\/submissions$/ },
   { method: 'PATCH', path: /^\/api\/v1\/me\/submissions\/\d+$/ },
+  { method: 'POST', path: /^\/admin\/places$/ },
+  { method: 'POST', path: /^\/admin\/places\/\d+$/ },
+  { method: 'POST', path: /^\/api\/v1\/admin\/places$/ },
+  { method: 'PATCH', path: /^\/api\/v1\/admin\/places\/\d+$/ },
 ];
 
 const isPhotoRoute = (req) =>
