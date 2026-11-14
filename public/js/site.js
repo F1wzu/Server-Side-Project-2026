@@ -14,11 +14,18 @@ const announce = (message) => {
 
 // Mobile menu.
 const menu = document.querySelector('[data-menu]');
-menu?.addEventListener('click', () => {
-  const expanded = menu.getAttribute('aria-expanded') !== 'true';
+const setMenu = (expanded) => {
   menu.setAttribute('aria-expanded', String(expanded));
   menu.setAttribute('aria-label', expanded ? 'ปิดเมนู' : 'เปิดเมนู');
   document.getElementById('site-nav')?.classList.toggle('open', expanded);
+};
+menu?.addEventListener('click', () => setMenu(menu.getAttribute('aria-expanded') !== 'true'));
+// Escape closes the open menu and puts focus back on its button, so keyboard users
+// are never left inside a panel they cannot dismiss.
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || !menu || menu.getAttribute('aria-expanded') !== 'true') return;
+  setMenu(false);
+  menu.focus();
 });
 
 // A broken image becomes a neutral placeholder instead of a broken-image icon.
@@ -91,12 +98,18 @@ document.querySelectorAll('form[data-favorite]').forEach((form) => {
       });
       if (!response.ok) throw new Error('favorite request failed: ' + response.status);
       action.value = saving ? 'remove' : 'save';
-      button.classList.toggle('button-primary', saving);
-      button.classList.toggle('button-outline', !saving);
+      // Only the place page's text button swaps styles; the card heart is
+      // styled from aria-pressed and must not pick up the big button colours.
+      if (button.classList.contains('button')) {
+        button.classList.toggle('button-primary', saving);
+        button.classList.toggle('button-outline', !saving);
+      }
       button.setAttribute('aria-pressed', String(saving));
-      form.querySelector('[data-favorite-label]').textContent = saving
-        ? 'บันทึกแล้ว'
-        : 'บันทึกสถานที่';
+      // The place page has a visible text label; the heart on a card has only an
+      // icon, so its accessible name carries the place name instead.
+      const label = form.querySelector('[data-favorite-label]');
+      if (label) label.textContent = saving ? 'บันทึกแล้ว' : 'บันทึกสถานที่';
+      if (button.dataset.name) button.setAttribute('aria-label', (saving ? 'เลิกบันทึก ' : 'บันทึก ') + button.dataset.name);
       announce(saving ? 'บันทึกสถานที่แล้ว' : 'นำออกจากรายการที่บันทึกแล้ว');
       button.disabled = false;
     } catch {

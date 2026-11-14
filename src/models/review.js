@@ -7,13 +7,15 @@
 const prisma = require('../config/db');
 const AppError = require('../utils/AppError');
 const { paginate } = require('../utils/pagination');
+const replyModel = require('./reply');
 
 const authorFields = { select: { id: true, username: true } };
 
-// What a review looks like outside this file. The admin's id is never shown.
+// What a review looks like outside this file. The admin's id is never shown
+// (nor on its replies, when they were loaded).
 function present(review) {
-  const { removedById, ...rest } = review;
-  return rest;
+  const { removedById, replies, ...rest } = review;
+  return replies === undefined ? rest : { ...rest, replies: replies.map(replyModel.present) };
 }
 
 const notFound = () => AppError.notFound('ไม่พบรีวิวนี้');
@@ -72,6 +74,11 @@ async function create(userId, placeId, { rating, comment }) {
       }
 
       const data = { rating, comment, status: 'active' };
+      // A member writing again after deleting reuses the old row. Replies to
+      // the old text would now sit under a different review, so they go.
+      if (existing) {
+        await tx.reviewReply.updateMany({ where: { reviewId: existing.id, status: 'active' }, data: { status: 'deleted' } });
+      }
       const review = existing
         ? await tx.review.update({ where: { id: existing.id }, data: { ...data, createdAt: new Date() }, include: { user: authorFields } })
         : await tx.review.create({ data: { ...data, userId, placeId }, include: { user: authorFields } });
@@ -125,8 +132,9 @@ async function remove(userId, reviewId) {
   });
 }
 
-// Active reviews of a published place, newest first.
-async function listForPlace(placeId, { page = 1, pageSize = 10 } = {}) {
+// Active reviews of a published place, newest first, each with its replies
+// (what `viewerId` may see: see replyModel.includeFor).
+async function listForPlace(placeId, { page = 1, pageSize = 10, viewerId = null } = {}) {
   const where = { placeId, status: 'active', place: { status: 'published' } };
   const total = await prisma.review.count({ where });
   const pagination = pageWithin(total, page, pageSize);
@@ -135,14 +143,19 @@ async function listForPlace(placeId, { page = 1, pageSize = 10 } = {}) {
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     skip: (pagination.page - 1) * pageSize,
     take: pageSize,
-    include: { user: authorFields },
+    include: { user: authorFields, replies: replyModel.includeFor(viewerId) },
   });
   return { data: rows.map(present), pagination };
 }
 
 // The member's own review of a place, whatever its status, or null.
 async function findOwnForPlace(userId, placeId) {
-  const review = await prisma.review.findUnique({ where: { userId_placeId: { userId, placeId } } });
+  // With its replies: the place page shows the member's own review on top
+  // (not in the list), so the replies to it must come along.
+  const review = await prisma.review.findUnique({
+    where: { userId_placeId: { userId, placeId } },
+    include: { replies: replyModel.includeFor(userId) },
+  });
   return review && present(review);
 }
 
@@ -166,10 +179,11 @@ async function listOwn(userId, { page = 1, pageSize = 20 } = {}) {
 
 const REVIEW_STATUSES = ['active', 'deleted', 'removed'];
 
-// All reviews for the admin list, newest first, optionally of one status.
-// Unlike present(), this shows the admin who removed a review (username only).
-async function listAll({ status, page = 1, pageSize = 20 } = {}) {
+// All reviews for the admin list, newest first, optionally of one status
+// and/or one place (the "reviews" tab of a place in the admin area).
+async function listAll({ status, placeId = null, page = 1, pageSize = 20 } = {}) {
   const where = REVIEW_STATUSES.includes(status) ? { status } : {};
+  if (placeId !== null) where.placeId = placeId;
   const total = await prisma.review.count({ where });
   const pagination = pageWithin(total, page, pageSize);
   const rows = await prisma.review.findMany({
@@ -180,6 +194,7 @@ async function listAll({ status, page = 1, pageSize = 20 } = {}) {
     include: {
       user: authorFields,
       place: { select: { id: true, name: true, status: true } },
+      replies: replyModel.includeAll,
     },
   });
   return { data: rows.map(present), pagination };

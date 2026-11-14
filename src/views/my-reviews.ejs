@@ -44,12 +44,7 @@
         <summary>แก้ไขรีวิว</summary>
         <form class="stack-form" action="/reviews/<%= review.id %>/edit" method="post">
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-          <div class="field">
-            <label for="rating-<%= review.id %>">คะแนน</label>
-            <select id="rating-<%= review.id %>" name="rating">
-              <% [5, 4, 3, 2, 1].forEach((n) => { %><option value="<%= n %>" <%= n === review.rating ? 'selected' : '' %>><%= '★'.repeat(n) %> <%= n %> / 5</option><% }) %>
-            </select>
-          </div>
+          <%- include('partials/star-input', { name: 'rating', value: review.rating, idPrefix: 'rating-' + review.id, required: true }) %>
           <div class="field">
             <label for="comment-<%= review.id %>">รีวิวของคุณ</label>
             <textarea id="comment-<%= review.id %>" name="comment" maxlength="2000" rows="3"><%= review.comment || '' %></textarea>

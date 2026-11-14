@@ -28,6 +28,8 @@ const pageFrom = (value) => {
 };
 
 const queryText = (value) => (typeof value === 'string' ? value.trim().slice(0, 200) : '');
+// ?missing=pin|hours|photo; anything else means no such filter.
+const missingFrom = (value) => (adminPlaceModel.MISSING.includes(value) ? value : null);
 
 function validationError(issues) {
   const details = issues.map((issue) => ({ field: issue.path.join('.') || 'body', message: issue.message }));
@@ -110,16 +112,18 @@ const photoField = (err) => (['UNSUPPORTED_FILE', 'FILE_TOO_LARGE'].includes(err
 async function index(req, res) {
   const q = queryText(req.query.q);
   const status = STATUSES.includes(req.query.status) ? req.query.status : 'all';
-  const result = await adminPlaceModel.list({ q, status, page: pageFrom(req.query.page), pageSize: PAGE_SIZE });
+  const missing = missingFrom(req.query.missing);
+  const result = await adminPlaceModel.list({ q, status, missing, page: pageFrom(req.query.page), pageSize: PAGE_SIZE });
   const pageLink = (page) => {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (status !== 'all') params.set('status', status);
+    if (missing) params.set('missing', missing);
     if (page > 1) params.set('page', String(page));
     const query = params.toString();
     return query ? `/admin/places?${query}` : '/admin/places';
   };
-  res.render('admin/places', { title: 'จัดการสถานที่', result, filters: { q, status }, pageLink });
+  res.render('admin/places', { title: 'จัดการสถานที่', result, filters: { q, status, missing }, pageLink });
 }
 
 // GET /admin/places/new
@@ -133,7 +137,7 @@ async function create(req, res) {
     const { content, publication } = validInput(req.body);
     const place = await withStoredPhoto(req.file, (imagePath) => adminPlaceModel.create(req.user.id, content, imagePath, publication));
     setFlash(req, 'success', `เพิ่มสถานที่ "${place.name}" แล้ว`);
-    return res.redirect(303, '/admin/places');
+    return res.redirect(303, `/admin/places/${place.id}/edit`); // stay on the place for the next change
   } catch (err) {
     if (!FORM_ERRORS.has(err.code)) throw err;
     return renderForm(res, { status: err.status, body: req.body, errors: { ...errorsByField(err), ...photoField(err) }, formError: err.message });
@@ -155,24 +159,31 @@ async function update(req, res) {
     const { orphanedImagePath } = await withStoredPhoto(req.file, (imagePath) => adminPlaceModel.update(id, content, publication, imagePath));
     await removeOrphan(orphanedImagePath);
     setFlash(req, 'success', `บันทึกข้อมูล "${content.name}" แล้ว`);
-    return res.redirect(303, '/admin/places');
+    return res.redirect(303, `/admin/places/${id}/edit`); // keeps the admin on the place, e.g. while filling in hours
   } catch (err) {
     if (!FORM_ERRORS.has(err.code)) throw err;
     return renderForm(res, { status: err.status, place, body: req.body, errors: { ...errorsByField(err), ...photoField(err) }, formError: err.message });
   }
 }
 
+// Where to go back to after the quick publish button: the list the admin was
+// on, with its filters and page. Only a plain /admin/places path with an
+// optional ?query is accepted, so the form field cannot become an open redirect.
+const SAFE_BACK = /^\/admin\/places(\?[A-Za-z0-9%=&_.~+-]{0,500})?$/;
+const backFrom = (value) => (typeof value === 'string' && SAFE_BACK.test(value) ? value : '/admin/places');
+
 // POST /admin/places/:id/status  (quick publish / unpublish from the list)
 async function setStatus(req, res) {
   const id = placeId(req);
+  const back = backFrom(req.body?.back);
   const { data, issues } = readPublication({ status: req.body?.status }, { required: true });
   if (issues.length) {
     setFlash(req, 'error', issues[0].message);
-    return res.redirect(303, '/admin/places');
+    return res.redirect(303, back);
   }
   const { place } = await adminPlaceModel.update(id, null, { status: data.status }, null);
   setFlash(req, 'success', data.status === 'published' ? `เผยแพร่ "${place.name}" แล้ว` : `ซ่อน "${place.name}" จากหน้าสาธารณะแล้ว`);
-  return res.redirect(303, '/admin/places');
+  return res.redirect(303, back);
 }
 
 // ---------- API ----------
@@ -181,7 +192,7 @@ async function setStatus(req, res) {
 async function apiList(req, res) {
   const q = queryText(req.query.q);
   const status = STATUSES.includes(req.query.status) ? req.query.status : 'all';
-  const { data, pagination } = await adminPlaceModel.list({ q, status, page: pageFrom(req.query.page), pageSize: PAGE_SIZE });
+  const { data, pagination } = await adminPlaceModel.list({ q, status, missing: missingFrom(req.query.missing), page: pageFrom(req.query.page), pageSize: PAGE_SIZE });
   res.json({ data, meta: { page: pagination.page, pageSize: pagination.pageSize, total: pagination.total } });
 }
 

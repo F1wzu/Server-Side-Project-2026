@@ -61,9 +61,36 @@ const registerLimiter = rateLimit({
   handler: (req, res, next) => next(new AppError(429, 'RATE_LIMITED', 'สมัครสมาชิกหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่')),
 });
 
+// Writing reviews, reports and place submissions. A real member writes a few
+// of these a day; a script could fill the admin queue or a place's reviews in
+// seconds. Counted per account (these routes need a login), successful or
+// not, so a script cannot keep trying with invalid data either.
+// Use after requireLogin, and before a photo upload so a refused request is
+// never parsed. Tests get a high limit unless a test asks for the real one.
+const WRITE_LIMIT = 30;
+const writeStore = new MemoryStore();
+stores.push(writeStore);
+const memberWriteLimiter = rateLimit({
+  windowMs: FIFTEEN_MINUTES,
+  limit: (req) => (env.isTest && !req.get('x-test-real-limits') ? 100000 : WRITE_LIMIT),
+  store: writeStore,
+  keyGenerator: (req) => `user:${req.user.id}`,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  handler: (req, res, next) => next(new AppError(429, 'RATE_LIMITED', 'ส่งข้อมูลบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่')),
+});
+
 // For the tests: forget every counted attempt.
 function resetRateLimits() {
   stores.forEach((store) => store.resetAll());
 }
 
-module.exports = { loginLimiter, passwordChangeLimiter, registerLimiter, REGISTER_LIMIT, resetRateLimits };
+module.exports = {
+  loginLimiter,
+  passwordChangeLimiter,
+  registerLimiter,
+  REGISTER_LIMIT,
+  memberWriteLimiter,
+  WRITE_LIMIT,
+  resetRateLimits,
+};

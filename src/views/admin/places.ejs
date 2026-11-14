@@ -1,6 +1,7 @@
 <%- include('../partials/head') %>
 <%
   const statusTabs = [['all', 'ทั้งหมด'], ['published', 'เผยแพร่'], ['unpublished', 'ซ่อนอยู่']];
+  const missingOptions = [['', 'ไม่กรอง'], ['pin', 'ยังไม่มีหมุดแผนที่'], ['hours', 'ยังไม่มีเวลาเปิดปิด'], ['photo', 'ยังไม่มีรูป']];
 %>
 <div class="container page-content">
   <%- include('../partials/admin-nav') %>
@@ -23,6 +24,14 @@
       <select id="status" name="status">
         <% statusTabs.forEach(([value, label]) => { %>
         <option value="<%= value %>" <%= filters.status === value ? 'selected' : '' %>><%= label %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label for="missing">ข้อมูลที่ยังขาด</label>
+      <select id="missing" name="missing">
+        <% missingOptions.forEach(([value, label]) => { %>
+        <option value="<%= value %>" <%= (filters.missing || '') === value ? 'selected' : '' %>><%= label %></option>
         <% }) %>
       </select>
     </div>
@@ -55,9 +64,11 @@
           <td data-label="เวลาเปิดปิด"><%= place.hasHours ? 'มีแล้ว' : 'ยังไม่ทราบ' %></td>
           <td>
             <a class="text-link" href="/admin/places/<%= place.id %>/edit" aria-label="แก้ไข <%= place.name %>">แก้ไข</a>
+            <a class="text-link" href="/admin/places/<%= place.id %>/reviews" aria-label="รีวิวของ <%= place.name %>">รีวิว</a>
             <form method="post" action="/admin/places/<%= place.id %>/status" class="inline-form">
               <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
               <input type="hidden" name="status" value="<%= place.status === 'published' ? 'unpublished' : 'published' %>">
+              <input type="hidden" name="back" value="<%= pageLink(result.pagination.page) %>">
               <button class="button button-small button-outline" type="submit" aria-label="<%= (place.status === 'published' ? 'ซ่อน ' : 'เผยแพร่ ') + place.name %>"><%= place.status === 'published' ? 'ซ่อน' : 'เผยแพร่' %></button>
             </form>
           </td>

@@ -169,6 +169,37 @@ describe('the list', () => {
     expect(filteredPage.text).not.toContain('ร้านเผยแพร่');
   });
 
+  test('filters places that still lack a pin, opening hours or a photo', async () => {
+    const complete = await makePlace({ name: 'ครบ', latitude: 13.73, longitude: 100.77, imagePath: '/images/a.webp' });
+    await prisma.placeHours.create({ data: { placeId: complete.id, weekday: 1, state: 'closed' } });
+    const unknownWeek = await makePlace({ name: 'ไม่รู้เวลา', latitude: 13.73, longitude: 100.77, imagePath: '/images/b.webp' });
+    await prisma.placeHours.create({ data: { placeId: unknownWeek.id, weekday: 2, state: 'unknown' } });
+    await makePlace({ name: 'ไม่มีอะไรเลย' });
+
+    const names = async (query) => (await admin.get(`/api/v1/admin/places?${query}`)).body.data.map((p) => p.name).sort();
+    expect(await names('missing=pin')).toEqual(['ไม่มีอะไรเลย']);
+    expect(await names('missing=hours')).toEqual(['ไม่มีอะไรเลย', 'ไม่รู้เวลา'].sort());
+    expect(await names('missing=photo')).toEqual(['ไม่มีอะไรเลย']);
+    expect(await names('missing=bogus')).toHaveLength(3);
+    expect(await names(`missing=hours&q=${encodeURIComponent('เวลา')}`)).toEqual(['ไม่รู้เวลา']);
+    expect((await admin.get('/api/v1/admin/places')).body.data.find((p) => p.name === 'ครบ').hasPhoto).toBe(true);
+
+    const page = await admin.get('/admin/places?missing=pin');
+    expect(page.status).toBe(200);
+    expect(page.text).toContain('ไม่มีอะไรเลย');
+    expect(page.text).not.toContain('ไม่รู้เวลา');
+    expect(page.text).toContain('<option value="pin" selected');
+    expect((await admin.get('/admin/places')).text).toContain(`href="/admin/places/${complete.id}/reviews"`);
+  });
+
+  test('the public place page shows a manage button to admins only', async () => {
+    const place = await makePlace({ name: 'ร้านสาธารณะ' });
+    const link = `href="/admin/places/${place.id}/edit"`;
+    expect((await admin.get(`/places/${place.id}`)).text).toContain(link);
+    expect((await alice.get(`/places/${place.id}`)).text).not.toContain(link);
+    expect((await createClient(app).get(`/places/${place.id}`)).text).not.toContain(link);
+  });
+
   test('reports pin, known hours, rating and featured order; paginates by 20', async () => {
     const pinned = await makePlace({ name: 'มีหมุด', latitude: 13.73, longitude: 100.77, featuredOrder: 3 });
     await prisma.placeHours.create({ data: { placeId: pinned.id, weekday: 1, state: 'closed' } });
@@ -191,11 +222,11 @@ describe('the list', () => {
 // ---------- 3. adding a place ----------
 
 describe('adding a place', () => {
-  test('page form with a photo: 303 to the list, one published place, seven hours rows, createdById set', async () => {
+  test('page form with a photo: 303 to the edit page, one published place, seven hours rows, createdById set', async () => {
     const before = listUploads();
     const res = await formMultipart(admin, '/admin/places', validFields({ state1: 'open', opens1: '09:00', closes1: '17:30', state5: 'open', opens5: '18:00', closes5: '02:00', next5: 'on' }), photo());
     expect(res.status).toBe(303);
-    expect(res.headers.location).toBe('/admin/places');
+    expect(res.headers.location).toBe(`/admin/places/${(await prisma.place.findFirst()).id}/edit`);
 
     const places = await prisma.place.findMany({ include: { hours: { orderBy: { weekday: 'asc' } } } });
     expect(places).toHaveLength(1);
@@ -208,7 +239,7 @@ describe('adding a place', () => {
     expect(place.hours[0]).toMatchObject({ state: 'closed', opensAt: null });
     expect(listUploads()).toEqual([...before, path.basename(place.imagePath)].sort());
 
-    const list = await admin.get('/admin/places');
+    const list = await admin.get(res.headers.location);
     expect(list.text).toContain('data-flash');
     expect(list.text).toContain('&#34;ร้านกาแฟของผู้ดูแล&#34; แล้ว');
     expect((await request(app).get(`/places/${place.id}`)).status).toBe(200);
@@ -369,7 +400,7 @@ describe('editing a place', () => {
     const place = await seeded();
     const ok = await formMultipart(admin, `/admin/places/${place.id}`, validFields({ name: 'แก้ผ่านฟอร์ม', featuredOrder: '7', status: 'unpublished' }));
     expect(ok.status).toBe(303);
-    expect(ok.headers.location).toBe('/admin/places');
+    expect(ok.headers.location).toBe(`/admin/places/${place.id}/edit`);
     expect(await prisma.place.findUnique({ where: { id: place.id } })).toMatchObject({ name: 'แก้ผ่านฟอร์ม', featuredOrder: 7, status: 'unpublished' });
 
     const bad = await formMultipart(admin, `/admin/places/${place.id}`, validFields({ name: '', description: 'พิมพ์ค้างไว้' }));

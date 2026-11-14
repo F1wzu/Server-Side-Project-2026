@@ -6,6 +6,7 @@ const authController = require('../controllers/authController');
 const adminController = require('../controllers/adminController');
 const placeController = require('../controllers/placeController');
 const reviewController = require('../controllers/reviewController');
+const replyController = require('../controllers/replyController');
 const reportController = require('../controllers/reportController');
 const submissionController = require('../controllers/submissionController');
 const { photoUpload } = require('../middleware/upload');
@@ -15,7 +16,7 @@ const { stripNul } = require('../middleware/sanitize');
 // Parse the photo form, then check its CSRF token (see middleware/csrf.js).
 const withPhoto = [photoUpload, stripNul, csrfAfterUpload];
 const { requireLogin, requireAdmin, redirectIfLoggedIn } = require('../middleware/auth');
-const { loginLimiter, passwordChangeLimiter, registerLimiter } = require('../middleware/rateLimit');
+const { loginLimiter, passwordChangeLimiter, registerLimiter, memberWriteLimiter } = require('../middleware/rateLimit');
 
 const router = express.Router();
 
@@ -32,22 +33,25 @@ const { comingSoon } = placeController;
 router.get('/map', placeController.map);
 
 // Reviews and saved places (members)
-router.post('/places/:id/reviews', requireLogin, reviewController.createFromForm);
-router.post('/reviews/:id/edit', requireLogin, reviewController.updateFromForm);
-router.post('/reviews/:id/delete', requireLogin, reviewController.deleteFromForm);
+router.post('/places/:id/reviews', requireLogin, memberWriteLimiter, reviewController.createFromForm);
+router.post('/reviews/:id/edit', requireLogin, memberWriteLimiter, reviewController.updateFromForm);
+router.post('/reviews/:id/delete', requireLogin, memberWriteLimiter, reviewController.deleteFromForm);
+router.post('/reviews/:id/replies', requireLogin, memberWriteLimiter, replyController.createFromForm);
+router.post('/replies/:id/edit', requireLogin, memberWriteLimiter, replyController.updateFromForm);
+router.post('/replies/:id/delete', requireLogin, memberWriteLimiter, replyController.deleteFromForm);
 router.get('/me/reviews', requireLogin, reviewController.myReviews);
 router.post('/favorites/:placeId', requireLogin, reviewController.favoriteFromForm);
 router.get('/me/favorites', requireLogin, reviewController.myFavorites);
-router.post('/places/:id/reports', requireLogin, reportController.create);
+router.post('/places/:id/reports', requireLogin, memberWriteLimiter, reportController.create);
 
 // Submissions (members). Login is checked before the upload is read.
 router.get('/submissions/new', requireLogin, submissionController.newForm);
-router.post('/submissions', requireLogin, withPhoto, submissionController.create);
+router.post('/submissions', requireLogin, memberWriteLimiter, withPhoto, submissionController.create);
 router.get('/me/submissions', requireLogin, submissionController.mine);
 router.get('/me/submissions/:id', requireLogin, submissionController.show);
 router.get('/me/submissions/:id/edit', requireLogin, submissionController.editForm);
-router.post('/me/submissions/:id', requireLogin, withPhoto, submissionController.update);
-router.post('/me/submissions/:id/resubmit', requireLogin, submissionController.resubmit);
+router.post('/me/submissions/:id', requireLogin, memberWriteLimiter, withPhoto, submissionController.update);
+router.post('/me/submissions/:id/resubmit', requireLogin, memberWriteLimiter, submissionController.resubmit);
 
 // Accounts
 router.get('/register', redirectIfLoggedIn, authController.showRegister);

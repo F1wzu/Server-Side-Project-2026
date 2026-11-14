@@ -1,4 +1,11 @@
-<%# One place in a grid. Expects: place (with category, ratingAvg, ratingCount). %>
+<%# One place in a grid. Expects: place (with category, ratingAvg, ratingCount).
+     Optional: savedIds (Set of the member's saved place ids; its presence shows the heart)
+     and cardNext (path + query to come back to). Both are read defensively. %>
+<%
+  const showSave = typeof currentUser !== 'undefined' && currentUser && typeof savedIds !== 'undefined' && savedIds;
+  const isSaved = Boolean(showSave && savedIds.has(place.id));
+  const backTo = typeof cardNext !== 'undefined' && cardNext ? cardNext : (currentPath || '/');
+%>
 <article class="place-card tone-<%= categoryKind(place.category) %>">
   <a class="card-media" href="/places/<%= place.id %>" aria-label="ดู <%= place.name %>">
     <% if (place.imagePath) { %>
@@ -8,6 +15,15 @@
     <% } %>
     <span class="card-category"><%- icon(categoryIcon(place.category), 15) %><%= place.category.name %></span>
   </a>
+  <%# The heart is a sibling of the link, not inside it: a button inside a link is invalid HTML. %>
+  <% if (showSave) { %>
+  <form class="card-save" action="/favorites/<%= place.id %>" method="post" data-favorite data-place="<%= place.id %>">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <input type="hidden" name="action" value="<%= isSaved ? 'remove' : 'save' %>">
+    <input type="hidden" name="next" value="<%= backTo %>">
+    <button class="card-save-button" type="submit" aria-pressed="<%= isSaved ? 'true' : 'false' %>" data-name="<%= place.name %>" aria-label="<%= isSaved ? 'เลิกบันทึก' : 'บันทึก' %> <%= place.name %>"><%- icon('heart', 20) %></button>
+  </form>
+  <% } %>
   <div class="card-body">
     <h3><a href="/places/<%= place.id %>"><%= place.name %></a></h3>
     <p class="card-description"><%= place.description %></p>

@@ -1,0 +1,6 @@
+<%# Tabs on an existing place in the admin area: its details form, its reviews and its reports. %>
+<nav class="tabs" aria-label="ส่วนของสถานที่">
+  <a href="/admin/places/<%= place.id %>/edit"<%- current === 'edit' ? ' aria-current="page"' : '' %>>ข้อมูลสถานที่</a>
+  <a href="/admin/places/<%= place.id %>/reviews"<%- current === 'reviews' ? ' aria-current="page"' : '' %>>รีวิว</a>
+  <a href="/admin/places/<%= place.id %>/reports"<%- current === 'reports' ? ' aria-current="page"' : '' %>>แจ้งข้อมูลผิด</a>
+</nav>

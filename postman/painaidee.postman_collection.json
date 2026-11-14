@@ -1,0 +1,3427 @@
+{
+  "info": {
+    "name": "วันนี้ไปไหนดี @ ลาดกระบัง API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "JSON API /api/v1 รันตามลำดับโฟลเดอร์ 0 ถึง 6 ดู postman/README.md"
+  },
+  "item": [
+    {
+      "name": "0 Setup",
+      "description": "เริ่มที่นี่: ขอ CSRF token ก่อนส่งคำขอที่แก้ไขข้อมูลทุกครั้ง",
+      "item": [
+        {
+          "name": "GET CSRF token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "if (pm.response.code < 300) {",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('csrfToken', json.data.csrfToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/csrf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "csrf"
+              ]
+            },
+            "description": "ขอ CSRF token แล้วเก็บไว้ในตัวแปร csrfToken (ขอใหม่ทุกครั้งที่ session เปลี่ยน)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1 Accounts",
+      "description": "สมัคร เข้าสู่ระบบ ออกจากระบบ และแก้ข้อมูลของตัวเอง",
+      "item": [
+        {
+          "name": "สมัครสมาชิก (บัญชีทดสอบ)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('registerPassword', 'Pm-' + Math.random().toString(36).slice(2, 12));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+                  "pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}/auth/csrf'), method: 'GET' }, (err, res) => { if (!err && res.code === 200) pm.collectionVariables.set('csrfToken', res.json().data.csrfToken); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "สมัครบัญชีทดสอบอีเมลสุ่ม แล้วเข้าสู่ระบบเป็นบัญชีนั้นทันที",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"สมาชิกทดสอบ\",\n  \"email\": \"postman{{$timestamp}}@example.com\",\n  \"password\": \"{{registerPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "ออกจากระบบ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', () => pm.expect(pm.response.code).to.be.oneOf([204]));",
+                  "pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}/auth/csrf'), method: 'GET' }, (err, res) => { if (!err && res.code === 200) pm.collectionVariables.set('csrfToken', res.json().data.csrfToken); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "ออกจากระบบ (ตอบ 204 ไม่มีเนื้อหา) แล้วขอ CSRF token ใหม่"
+          }
+        },
+        {
+          "name": "เข้าสู่ระบบ (สมาชิก)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}/auth/csrf'), method: 'GET' }, (err, res) => { if (!err && res.code === 200) pm.collectionVariables.set('csrfToken', res.json().data.csrfToken); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "เข้าสู่ระบบด้วย memberEmail / memberPassword จาก environment แล้วขอ CSRF token ใหม่",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{memberEmail}}\",\n  \"password\": \"{{memberPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "ดูข้อมูลของฉัน",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "if (pm.response.code < 300) {",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.data).to.have.property('email');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            },
+            "description": "ดูข้อมูลบัญชีที่เข้าสู่ระบบอยู่"
+          }
+        },
+        {
+          "name": "แก้ชื่อผู้ใช้",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            },
+            "description": "เปลี่ยนชื่อผู้ใช้ (3-50 ตัวอักษร)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"สมาชิกวันนี้ไปไหนดี\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "เปลี่ยนรหัสผ่าน (ไปเป็นรหัสชั่วคราว)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('tempPassword', 'Tmp-' + Math.random().toString(36).slice(2, 12));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', () => pm.expect(pm.response.code).to.be.oneOf([204]));",
+                  "pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}/auth/csrf'), method: 'GET' }, (err, res) => { if (!err && res.code === 200) pm.collectionVariables.set('csrfToken', res.json().data.csrfToken); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "password"
+              ]
+            },
+            "description": "เปลี่ยนรหัสผ่านเป็นค่าชั่วคราว (ต้องรันขั้นถัดไปเพื่อเปลี่ยนกลับ)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{memberPassword}}\",\n  \"newPassword\": \"{{tempPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "เปลี่ยนรหัสผ่านกลับเป็นเดิม",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', () => pm.expect(pm.response.code).to.be.oneOf([204]));",
+                  "pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}/auth/csrf'), method: 'GET' }, (err, res) => { if (!err && res.code === 200) pm.collectionVariables.set('csrfToken', res.json().data.csrfToken); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "password"
+              ]
+            },
+            "description": "เปลี่ยนรหัสผ่านกลับเป็น memberPassword เพื่อให้รันรอบหน้าได้",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{tempPassword}}\",\n  \"newPassword\": \"{{memberPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 Places (public)",
+      "description": "เรียกดูสถานที่ ไม่ต้องเข้าสู่ระบบ",
+      "item": [
+        {
+          "name": "รายการหมวดหมู่",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "if (pm.response.code < 300) {",
+                  "const json = pm.response.json();",
+                  "if (json.data.length) pm.collectionVariables.set('categoryId', String(json.data[0].id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            },
+            "description": "ดูหมวดหมู่ทั้งหมดพร้อมจำนวนสถานที่ และเก็บ categoryId แรกไว้ใช้ต่อ"
+          }
+        },
+        {
+          "name": "รายการสถานที่",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "if (pm.response.code < 300) {",
+                  "const json = pm.response.json();",
+                  "if (json.data.length) pm.collectionVariables.set('placeId', String(json.data[0].id));",
+                  "if (json.data.length > 1) pm.collectionVariables.set('placeId2', String(json.data[1].id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/places?page=1&pageSize=12",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "places"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "categoryId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "openNow",
+                  "value": "false",
+                  "disabled": true
+                },
+                {
+                  "key": "sort",
+                  "value": "name",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": false
+                },
+                {
+                  "key": "pageSize",
+                  "value": "12",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "ค้นหาและกรองสถานที่ (q, categoryId, openNow, sort, page, pageSize) และเก็บ placeId ไว้ใช้ต่อ"
+          }
+        },
+        {
+          "name": "สถานที่สำหรับแผนที่",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/places/map",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "places",
+                "map"
+              ]
+            },
+            "description": "ดูสถานที่ที่มีหมุดทั้งหมดสำหรับแสดงบนแผนที่"
+          }
+        },
+        {
+          "name": "สุ่มสถานที่",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200 หรือ 404', () => pm.expect(pm.response.code).to.be.oneOf([200, 404]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/places/random?",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "places",
+                "random"
+              ],
+              "query": [
+                {
+                  "key": "categoryId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "openNow",
+                  "value": "false",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "สุ่มสถานที่หนึ่งแห่ง (กรองด้วย categoryId / openNow ได้)"
+          }
+        },
+        {
+          "name": "รายละเอียดสถานที่",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/places/{{placeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "places",
+                "{{placeId}}"
+              ]
+            },
+            "description": "ดูรายละเอียดสถานที่หนึ่งแห่ง"
+          }
+        },
+        {
+          "name": "สถานที่ที่เกี่ยวข้อง",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/places/{{placeId}}/related",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "places",
+                "{{placeId}}",
+                "related"
+              ]
+            },
+            "description": "ดูสถานที่ที่เกี่ยวข้องกับสถานที่นี้"
+          }
+        },
+        {
+          "name": "รีวิวของสถานที่",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/places/{{placeId}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "places",
+                "{{placeId}}",
+                "reviews"
+              ]
+            },
+            "description": "ดูรีวิวของสถานที่ (แบ่งหน้า)"
+          }
+        },
+        {
+          "name": "สถานที่แนะนำ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recommendations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recommendations"
+              ]
+            },
+            "description": "ดูสถานที่แนะนำและสถานที่คะแนนสูง"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 Reviews & favorites",
+      "description": "ต้องเข้าสู่ระบบเป็นสมาชิก (ทำโฟลเดอร์ 1 และ 2 ก่อน)",
+      "item": [
+        {
+          "name": "เขียนรีวิว",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+                  "if (pm.response.code < 300) {",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('reviewId', String(json.data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/places/{{placeId}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "places",
+                "{{placeId}}",
+                "reviews"
+              ]
+            },
+            "description": "ให้คะแนน 1-5 และเขียนความเห็น (ได้คนละหนึ่งรีวิวต่อสถานที่)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4,\n  \"comment\": \"บรรยากาศดี เดินทางสะดวก ราคาเหมาะสม\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "แก้รีวิว",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reviews/{{reviewId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews",
+                "{{reviewId}}"
+              ]
+            },
+            "description": "แก้คะแนนหรือความเห็นบางส่วน",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"comment\": \"ไปอีกรอบแล้วชอบมากกว่าเดิม\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "ตอบกลับรีวิว",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.expect(pm.response.code).to.eql(201));",
+                  "pm.collectionVariables.set('replyId', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reviews/{{reviewId}}/replies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews",
+                "{{reviewId}}",
+                "replies"
+              ]
+            },
+            "description": "สมาชิกคนใดก็ตอบกลับรีวิวที่แสดงอยู่ได้ (ชั้นเดียว)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"ขอบคุณที่แนะนำครับ\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "แก้ความเห็นตอบกลับ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/replies/{{replyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "replies",
+                "{{replyId}}"
+              ]
+            },
+            "description": "แก้ได้เฉพาะของตัวเอง ของคนอื่นตอบ 404",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"ขอบคุณที่แนะนำครับ ไปมาแล้วอร่อยจริง\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "ตอบกลับอีกรายการ (ไว้ลบ)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.expect(pm.response.code).to.eql(201));",
+                  "pm.collectionVariables.set('replyId2', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reviews/{{reviewId}}/replies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews",
+                "{{reviewId}}",
+                "replies"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"ความเห็นที่จะลบ\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "ลบความเห็นตอบกลับของฉัน",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', () => pm.expect(pm.response.code).to.eql(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/replies/{{replyId2}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "replies",
+                "{{replyId2}}"
+              ]
+            },
+            "description": "ลบแบบ soft"
+          }
+        },
+        {
+          "name": "รีวิวของฉัน",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/me/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "reviews"
+              ]
+            },
+            "description": "ดูรีวิวทั้งหมดที่ฉันเขียน"
+          }
+        },
+        {
+          "name": "เขียนรีวิวสถานที่ที่สอง (ไว้ลบ)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+                  "if (pm.response.code < 300) {",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('reviewId2', String(json.data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/places/{{placeId2}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "places",
+                "{{placeId2}}",
+                "reviews"
+              ]
+            },
+            "description": "เขียนรีวิวอีกสถานที่หนึ่งเพื่อทดสอบการลบ",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 3,\n  \"comment\": \"พอใช้ได้ ไว้จะกลับไปลองอีก\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "ลบรีวิวของฉัน",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', () => pm.expect(pm.response.code).to.be.oneOf([204]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reviews/{{reviewId2}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews",
+                "{{reviewId2}}"
+              ]
+            },
+            "description": "ลบรีวิวของตัวเอง (ตอบ 204)"
+          }
+        },
+        {
+          "name": "บันทึกสถานที่โปรด",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200 หรือ 201', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/favorites/{{placeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "favorites",
+                "{{placeId}}"
+              ]
+            },
+            "description": "บันทึกสถานที่ (201 ครั้งแรก, 200 ถ้าบันทึกไว้แล้ว)"
+          }
+        },
+        {
+          "name": "สถานที่โปรดของฉัน",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/me/favorites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "favorites"
+              ]
+            },
+            "description": "ดูสถานที่ที่บันทึกไว้"
+          }
+        },
+        {
+          "name": "ยกเลิกสถานที่โปรด",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', () => pm.expect(pm.response.code).to.be.oneOf([204]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/favorites/{{placeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "favorites",
+                "{{placeId}}"
+              ]
+            },
+            "description": "เอาสถานที่ออกจากรายการโปรด (ตอบ 204)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 Reports",
+      "description": "แจ้งข้อมูลผิดของสถานที่ (สมาชิก)",
+      "item": [
+        {
+          "name": "แจ้งข้อมูลผิด",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.expect(pm.response.code).to.be.oneOf([201]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/places/{{placeId}}/reports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "places",
+                "{{placeId}}",
+                "reports"
+              ]
+            },
+            "description": "แจ้งว่าข้อมูลสถานที่ผิด (reason: closed, moved, wrong_info, other; other ต้องมี details)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"wrong_info\",\n  \"details\": \"เวลาเปิดปิดไม่ตรงกับหน้าร้านจริง\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 Submissions",
+      "description": "สมาชิกเสนอสถานที่ใหม่ (สร้างคำขอ 3 รายการเพื่อให้ผู้ดูแลอนุมัติ ส่งกลับ และปฏิเสธ)",
+      "item": [
+        {
+          "name": "ส่งคำขอ A (multipart + รูป)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+                  "if (pm.response.code < 300) {",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('submissionId', String(json.data.id));",
+                  "pm.collectionVariables.set('submissionVersion', String(json.data.version));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/submissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "submissions"
+              ]
+            },
+            "description": "เสนอสถานที่ใหม่แบบ multipart เลือกไฟล์ในช่อง photo ได้ (เว้นว่างได้)",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "คาเฟ่ทดสอบ A {{$timestamp}}",
+                  "type": "text"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "คาเฟ่เล็ก ๆ ใกล้สถาบัน เมนูกาแฟและขนมโฮมเมด บรรยากาศสบาย นั่งทำงานได้",
+                  "type": "text"
+                },
+                {
+                  "key": "address",
+                  "value": "123 ถนนฉลองกรุง แขวงลาดกระบัง เขตลาดกระบัง กรุงเทพฯ 10520",
+                  "type": "text"
+                },
+                {
+                  "key": "latitude",
+                  "value": "13.7273",
+                  "type": "text"
+                },
+                {
+                  "key": "longitude",
+                  "value": "100.7752",
+                  "type": "text"
+                },
+                {
+                  "key": "phone",
+                  "value": "02-123-4567",
+                  "type": "text"
+                },
+                {
+                  "key": "websiteUrl",
+                  "value": "https://example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "state0",
+                  "value": "closed",
+                  "type": "text"
+                },
+                {
+                  "key": "state1",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens1",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes1",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state2",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens2",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes2",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state3",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens3",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes3",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state4",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens4",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes4",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state5",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens5",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes5",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state6",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens6",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes6",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "photo",
+                  "type": "file",
+                  "src": [],
+                  "description": "รูปภาพ (jpg/png/webp ไม่เกิน 5 MB) เว้นว่างได้"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "ส่งคำขอ B (JSON)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+                  "if (pm.response.code < 300) {",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('submissionId2', String(json.data.id));",
+                  "pm.collectionVariables.set('submissionVersion2', String(json.data.version));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/submissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "submissions"
+              ]
+            },
+            "description": "เสนอสถานที่ใหม่แบบ JSON (ไม่มีรูป) ไว้ให้ผู้ดูแลส่งกลับให้แก้",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ร้านอาหารทดสอบ B {{$timestamp}}\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"description\": \"คาเฟ่เล็ก ๆ ใกล้สถาบัน เมนูกาแฟและขนมโฮมเมด บรรยากาศสบาย นั่งทำงานได้\",\n  \"address\": \"123 ถนนฉลองกรุง แขวงลาดกระบัง เขตลาดกระบัง กรุงเทพฯ 10520\",\n  \"latitude\": 13.7273,\n  \"longitude\": 100.7752,\n  \"phone\": \"02-123-4567\",\n  \"websiteUrl\": \"https://example.com\",\n  \"hours\": [\n    {\n      \"weekday\": 0,\n      \"state\": \"closed\"\n    },\n    {\n      \"weekday\": 1,\n      \"state\": \"open\",\n      \"opensAt\": \"09:00\",\n      \"closesAt\": \"20:00\",\n      \"closesNextDay\": false\n    },\n    {\n      \"weekday\": 2,\n      \"state\": \"open\",\n      \"opensAt\": \"09:00\",\n      \"closesAt\": \"20:00\",\n      \"closesNextDay\": false\n    },\n    {\n      \"weekday\": 3,\n      \"state\": \"open\",\n      \"opensAt\": \"09:00\",\n      \"closesAt\": \"20:00\",\n      \"closesNextDay\": false\n    },\n    {\n      \"weekday\": 4,\n      \"state\": \"open\",\n      \"opensAt\": \"09:00\",\n      \"closesAt\": \"20:00\",\n      \"closesNextDay\": false\n    },\n    {\n      \"weekday\": 5,\n      \"state\": \"open\",\n      \"opensAt\": \"09:00\",\n      \"closesAt\": \"20:00\",\n      \"closesNextDay\": false\n    },\n    {\n      \"weekday\": 6,\n      \"state\": \"open\",\n      \"opensAt\": \"09:00\",\n      \"closesAt\": \"20:00\",\n      \"closesNextDay\": false\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "ส่งคำขอ C (JSON)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+                  "if (pm.response.code < 300) {",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('submissionId3', String(json.data.id));",
+                  "pm.collectionVariables.set('submissionVersion3', String(json.data.version));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/submissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "submissions"
+              ]
+            },
+            "description": "เสนอสถานที่ใหม่แบบ JSON ไว้ให้ผู้ดูแลปฏิเสธ",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ตลาดทดสอบ C {{$timestamp}}\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"description\": \"คาเฟ่เล็ก ๆ ใกล้สถาบัน เมนูกาแฟและขนมโฮมเมด บรรยากาศสบาย นั่งทำงานได้\",\n  \"address\": \"123 ถนนฉลองกรุง แขวงลาดกระบัง เขตลาดกระบัง กรุงเทพฯ 10520\",\n  \"latitude\": 13.7273,\n  \"longitude\": 100.7752,\n  \"phone\": \"02-123-4567\",\n  \"websiteUrl\": \"https://example.com\",\n  \"hours\": [\n    {\n      \"weekday\": 0,\n      \"state\": \"closed\"\n    },\n    {\n      \"weekday\": 1,\n      \"state\": \"open\",\n      \"opensAt\": \"09:00\",\n      \"closesAt\": \"20:00\",\n      \"closesNextDay\": false\n    },\n    {\n      \"weekday\": 2,\n      \"state\": \"open\",\n      \"opensAt\": \"09:00\",\n      \"closesAt\": \"20:00\",\n      \"closesNextDay\": false\n    },\n    {\n      \"weekday\": 3,\n      \"state\": \"open\",\n      \"opensAt\": \"09:00\",\n      \"closesAt\": \"20:00\",\n      \"closesNextDay\": false\n    },\n    {\n      \"weekday\": 4,\n      \"state\": \"open\",\n      \"opensAt\": \"09:00\",\n      \"closesAt\": \"20:00\",\n      \"closesNextDay\": false\n    },\n    {\n      \"weekday\": 5,\n      \"state\": \"open\",\n      \"opensAt\": \"09:00\",\n      \"closesAt\": \"20:00\",\n      \"closesNextDay\": false\n    },\n    {\n      \"weekday\": 6,\n      \"state\": \"open\",\n      \"opensAt\": \"09:00\",\n      \"closesAt\": \"20:00\",\n      \"closesNextDay\": false\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "คำขอของฉัน",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/me/submissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "submissions"
+              ]
+            },
+            "description": "ดูคำขอทั้งหมดของฉัน (แบ่งหน้า)"
+          }
+        },
+        {
+          "name": "ดูคำขอ A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "if (pm.response.code < 300) {",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('submissionVersion', String(json.data.version));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/me/submissions/{{submissionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "submissions",
+                "{{submissionId}}"
+              ]
+            },
+            "description": "ดูรายละเอียดและประวัติของคำขอ A"
+          }
+        },
+        {
+          "name": "ลองแก้คำขอ A ขณะรอตรวจ (ต้องได้ 409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.expect(pm.response.code).to.be.oneOf([409]));",
+                  "pm.test('code INVALID_STATE', () => pm.expect(pm.response.json().error.code).to.eql('INVALID_STATE'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/submissions/{{submissionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "submissions",
+                "{{submissionId}}"
+              ]
+            },
+            "description": "แก้ได้เฉพาะคำขอที่ผู้ดูแลส่งกลับให้แก้ คำขอที่ยังรอตรวจจึงได้ 409 INVALID_STATE",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "version",
+                  "value": "{{submissionVersion}}",
+                  "type": "text"
+                },
+                {
+                  "key": "name",
+                  "value": "คาเฟ่ทดสอบ A (แก้แล้ว) {{$timestamp}}",
+                  "type": "text"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "คาเฟ่เล็ก ๆ ใกล้สถาบัน เมนูกาแฟและขนมโฮมเมด บรรยากาศสบาย นั่งทำงานได้",
+                  "type": "text"
+                },
+                {
+                  "key": "address",
+                  "value": "123 ถนนฉลองกรุง แขวงลาดกระบัง เขตลาดกระบัง กรุงเทพฯ 10520",
+                  "type": "text"
+                },
+                {
+                  "key": "latitude",
+                  "value": "13.7273",
+                  "type": "text"
+                },
+                {
+                  "key": "longitude",
+                  "value": "100.7752",
+                  "type": "text"
+                },
+                {
+                  "key": "phone",
+                  "value": "02-123-4567",
+                  "type": "text"
+                },
+                {
+                  "key": "websiteUrl",
+                  "value": "https://example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "state0",
+                  "value": "closed",
+                  "type": "text"
+                },
+                {
+                  "key": "state1",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens1",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes1",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state2",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens2",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes2",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state3",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens3",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes3",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state4",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens4",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes4",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state5",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens5",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes5",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state6",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens6",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes6",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "photo",
+                  "type": "file",
+                  "src": [],
+                  "description": "รูปภาพ (jpg/png/webp ไม่เกิน 5 MB) เว้นว่างได้"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 Admin",
+      "description": "ทำหลังโฟลเดอร์ 1-5: ออกจากระบบสมาชิกแล้วเข้าสู่ระบบเป็นผู้ดูแล",
+      "item": [
+        {
+          "name": "ออกจากระบบ (สมาชิก)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', () => pm.expect(pm.response.code).to.be.oneOf([204]));",
+                  "pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}/auth/csrf'), method: 'GET' }, (err, res) => { if (!err && res.code === 200) pm.collectionVariables.set('csrfToken', res.json().data.csrfToken); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "ออกจากระบบสมาชิกก่อนเข้าเป็นผู้ดูแล"
+          }
+        },
+        {
+          "name": "เข้าสู่ระบบ (ผู้ดูแล)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}/auth/csrf'), method: 'GET' }, (err, res) => { if (!err && res.code === 200) pm.collectionVariables.set('csrfToken', res.json().data.csrfToken); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "เข้าสู่ระบบด้วย adminEmail / adminPassword แล้วขอ CSRF token ใหม่",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "รายการคำขอ (รอตรวจ)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/submissions?status=pending&page=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "submissions"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "disabled": false
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "ดูคำขอตามสถานะ (pending, changes_requested, approved, rejected, all)"
+          }
+        },
+        {
+          "name": "ดูคำขอ A (ผู้ดูแล)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "if (pm.response.code < 300) {",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('submissionVersion', String(json.data.version));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/submissions/{{submissionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "submissions",
+                "{{submissionId}}"
+              ]
+            },
+            "description": "ดูรายละเอียดคำขอ A และเก็บ version"
+          }
+        },
+        {
+          "name": "อนุมัติคำขอ A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+                  "if (pm.response.code < 300) {",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('newPlaceId', String(json.data.placeId));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/submissions/{{submissionId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "submissions",
+                "{{submissionId}}",
+                "approve"
+              ]
+            },
+            "description": "อนุมัติคำขอ A สร้างสถานที่ใหม่ (ใส่ latitude/longitude ได้ถ้าต้องการย้ายหมุด)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{submissionVersion}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "ส่งคำขอ B กลับให้แก้",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/submissions/{{submissionId2}}/return",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "submissions",
+                "{{submissionId2}}",
+                "return"
+              ]
+            },
+            "description": "ส่งคำขอ B กลับพร้อมเหตุผลที่สมาชิกอ่านได้",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{submissionVersion2}},\n  \"reason\": \"กรุณาเพิ่มรายละเอียดและตรวจสอบเวลาเปิดปิดอีกครั้ง\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "ปฏิเสธคำขอ C",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/submissions/{{submissionId3}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "submissions",
+                "{{submissionId3}}",
+                "reject"
+              ]
+            },
+            "description": "ปฏิเสธคำขอ C พร้อมเหตุผล",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{submissionVersion3}},\n  \"reason\": \"สถานที่นี้อยู่นอกเขตที่เราดูแล\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "รายการสถานที่ (ผู้ดูแล)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/places?status=all&page=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "places"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "all",
+                  "disabled": false
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "ดูสถานที่ทั้งหมดรวมที่ยังไม่เผยแพร่ (status: all, published, unpublished)"
+          }
+        },
+        {
+          "name": "เพิ่มสถานที่โดยตรง",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+                  "if (pm.response.code < 300) {",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('adminPlaceId', String(json.data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/places",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "places"
+              ]
+            },
+            "description": "ผู้ดูแลเพิ่มสถานที่เอง (multipart เลือกรูปในช่อง photo ได้ ตั้ง status / featuredOrder ได้)",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "ร้านทดสอบผู้ดูแล {{$timestamp}}",
+                  "type": "text"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "คาเฟ่เล็ก ๆ ใกล้สถาบัน เมนูกาแฟและขนมโฮมเมด บรรยากาศสบาย นั่งทำงานได้",
+                  "type": "text"
+                },
+                {
+                  "key": "address",
+                  "value": "123 ถนนฉลองกรุง แขวงลาดกระบัง เขตลาดกระบัง กรุงเทพฯ 10520",
+                  "type": "text"
+                },
+                {
+                  "key": "latitude",
+                  "value": "13.7273",
+                  "type": "text"
+                },
+                {
+                  "key": "longitude",
+                  "value": "100.7752",
+                  "type": "text"
+                },
+                {
+                  "key": "phone",
+                  "value": "02-123-4567",
+                  "type": "text"
+                },
+                {
+                  "key": "websiteUrl",
+                  "value": "https://example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "state0",
+                  "value": "closed",
+                  "type": "text"
+                },
+                {
+                  "key": "state1",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens1",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes1",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state2",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens2",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes2",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state3",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens3",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes3",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state4",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens4",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes4",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state5",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens5",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes5",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state6",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens6",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes6",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "published",
+                  "type": "text"
+                },
+                {
+                  "key": "photo",
+                  "type": "file",
+                  "src": [],
+                  "description": "รูปภาพ (jpg/png/webp ไม่เกิน 5 MB) เว้นว่างได้"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "ดูสถานที่ (ผู้ดูแล)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/places/{{adminPlaceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "places",
+                "{{adminPlaceId}}"
+              ]
+            },
+            "description": "ดูสถานที่หนึ่งแห่งแบบเต็มสำหรับผู้ดูแล"
+          }
+        },
+        {
+          "name": "แก้สถานที่ (multipart)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/places/{{adminPlaceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "places",
+                "{{adminPlaceId}}"
+              ]
+            },
+            "description": "แก้เนื้อหาสถานที่ทั้งชุด พร้อมเปลี่ยนรูปได้",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "ร้านทดสอบผู้ดูแล (แก้แล้ว) {{$timestamp}}",
+                  "type": "text"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "คาเฟ่เล็ก ๆ ใกล้สถาบัน เมนูกาแฟและขนมโฮมเมด บรรยากาศสบาย นั่งทำงานได้",
+                  "type": "text"
+                },
+                {
+                  "key": "address",
+                  "value": "123 ถนนฉลองกรุง แขวงลาดกระบัง เขตลาดกระบัง กรุงเทพฯ 10520",
+                  "type": "text"
+                },
+                {
+                  "key": "latitude",
+                  "value": "13.7273",
+                  "type": "text"
+                },
+                {
+                  "key": "longitude",
+                  "value": "100.7752",
+                  "type": "text"
+                },
+                {
+                  "key": "phone",
+                  "value": "02-123-4567",
+                  "type": "text"
+                },
+                {
+                  "key": "websiteUrl",
+                  "value": "https://example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "state0",
+                  "value": "closed",
+                  "type": "text"
+                },
+                {
+                  "key": "state1",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens1",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes1",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state2",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens2",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes2",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state3",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens3",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes3",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state4",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens4",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes4",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state5",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens5",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes5",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state6",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens6",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes6",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "published",
+                  "type": "text"
+                },
+                {
+                  "key": "featuredOrder",
+                  "value": "",
+                  "type": "text"
+                },
+                {
+                  "key": "photo",
+                  "type": "file",
+                  "src": [],
+                  "description": "รูปภาพ (jpg/png/webp ไม่เกิน 5 MB) เว้นว่างได้"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "ยกเลิกการเผยแพร่",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/places/{{adminPlaceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "places",
+                "{{adminPlaceId}}"
+              ]
+            },
+            "description": "ส่งเฉพาะ status เพื่อเลิกเผยแพร่อย่างเร็ว (ไม่ต้องส่งเนื้อหา)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"unpublished\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "รีวิวทั้งหมด",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/reviews?status=all&page=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "all",
+                  "disabled": false
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "ดูรีวิวทั้งหมด (status: all, active, deleted, removed)"
+          }
+        },
+        {
+          "name": "นำความเห็นตอบกลับออก",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('removed', () => pm.expect(pm.response.json().data.status).to.eql('removed'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/replies/{{replyId}}/remove",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "replies",
+                "{{replyId}}",
+                "remove"
+              ]
+            },
+            "description": "ต้องระบุเหตุผล ผู้เขียนจะเห็นเหตุผลนี้",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"ทดสอบการนำความเห็นตอบกลับออก\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "นำรีวิวออก",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/reviews/{{reviewId}}/remove",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "reviews",
+                "{{reviewId}}",
+                "remove"
+              ]
+            },
+            "description": "นำรีวิวของสมาชิกทดสอบออกพร้อมเหตุผล (ใช้ reviewId จากโฟลเดอร์ 3)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"ข้อความไม่เหมาะสมกับกติกาของเว็บไซต์\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "รายการแจ้งข้อมูลผิด",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "if (pm.response.code < 300) {",
+                  "const json = pm.response.json();",
+                  "if (json.data.length) pm.collectionVariables.set('reportId', String(json.data[0].id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/reports?status=open&page=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "reports"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "open",
+                  "disabled": false
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "ดูรายการแจ้งข้อมูลผิด (status: open, resolved, dismissed, all) และเก็บ reportId แรก"
+          }
+        },
+        {
+          "name": "ปิดรายการแจ้ง",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/reports/{{reportId}}/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "reports",
+                "{{reportId}}",
+                "resolve"
+              ]
+            },
+            "description": "ปิดรายการแจ้งเป็น resolved หรือ dismissed",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"resolved\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "สร้างหมวดหมู่",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+                  "if (pm.response.code < 300) {",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('newCategoryId', String(json.data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "categories"
+              ]
+            },
+            "description": "เพิ่มหมวดหมู่ใหม่",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"หมวดทดสอบ {{$timestamp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "เปลี่ยนชื่อหมวดหมู่",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/categories/{{newCategoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "categories",
+                "{{newCategoryId}}"
+              ]
+            },
+            "description": "เปลี่ยนชื่อหมวดหมู่",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"หมวดทดสอบ (แก้แล้ว) {{$timestamp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "ลบหมวดหมู่",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', () => pm.expect(pm.response.code).to.be.oneOf([204]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/categories/{{newCategoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "categories",
+                "{{newCategoryId}}"
+              ]
+            },
+            "description": "ลบหมวดหมู่ที่ไม่มีสถานที่อยู่ (ตอบ 204)"
+          }
+        },
+        {
+          "name": "ออกจากระบบ (ผู้ดูแล)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', () => pm.expect(pm.response.code).to.be.oneOf([204]));",
+                  "pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}/auth/csrf'), method: 'GET' }, (err, res) => { if (!err && res.code === 200) pm.collectionVariables.set('csrfToken', res.json().data.csrfToken); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "ออกจากระบบผู้ดูแลเมื่อเสร็จ"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7 Member: fix returned submission",
+      "description": "สมาชิกแก้คำขอ B ที่ผู้ดูแลส่งกลับ แล้วส่งใหม่ (รันหลังโฟลเดอร์ 6)",
+      "item": [
+        {
+          "name": "เข้าสู่ระบบ (สมาชิก)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}/auth/csrf'), method: 'GET' }, (err, res) => { if (!err && res.code === 200) pm.collectionVariables.set('csrfToken', res.json().data.csrfToken); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "เข้าสู่ระบบด้วย memberEmail / memberPassword จาก environment แล้วขอ CSRF token ใหม่",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{memberEmail}}\",\n  \"password\": \"{{memberPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "ดูคำขอ B หลังผู้ดูแลส่งกลับ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "if (pm.response.code < 300) {",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('submissionVersion2', String(json.data.version));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/me/submissions/{{submissionId2}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "submissions",
+                "{{submissionId2}}"
+              ]
+            },
+            "description": "ทำหลังผู้ดูแลส่งกลับคำขอ B (โฟลเดอร์ 6) เพื่อดู version ล่าสุด"
+          }
+        },
+        {
+          "name": "แก้คำขอ B (multipart)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "if (pm.response.code < 300) {",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('submissionVersion2', String(json.data.version));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/submissions/{{submissionId2}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "submissions",
+                "{{submissionId2}}"
+              ]
+            },
+            "description": "แก้คำขอที่ผู้ดูแลส่งกลับให้แก้ ต้องส่ง version ล่าสุดมาด้วย",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "version",
+                  "value": "{{submissionVersion2}}",
+                  "type": "text"
+                },
+                {
+                  "key": "name",
+                  "value": "คาเฟ่ทดสอบ B (แก้แล้ว) {{$timestamp}}",
+                  "type": "text"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "คาเฟ่เล็ก ๆ ใกล้สถาบัน เมนูกาแฟและขนมโฮมเมด บรรยากาศสบาย นั่งทำงานได้",
+                  "type": "text"
+                },
+                {
+                  "key": "address",
+                  "value": "123 ถนนฉลองกรุง แขวงลาดกระบัง เขตลาดกระบัง กรุงเทพฯ 10520",
+                  "type": "text"
+                },
+                {
+                  "key": "latitude",
+                  "value": "13.7273",
+                  "type": "text"
+                },
+                {
+                  "key": "longitude",
+                  "value": "100.7752",
+                  "type": "text"
+                },
+                {
+                  "key": "phone",
+                  "value": "02-123-4567",
+                  "type": "text"
+                },
+                {
+                  "key": "websiteUrl",
+                  "value": "https://example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "state0",
+                  "value": "closed",
+                  "type": "text"
+                },
+                {
+                  "key": "state1",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens1",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes1",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state2",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens2",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes2",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state3",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens3",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes3",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state4",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens4",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes4",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state5",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens5",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes5",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "state6",
+                  "value": "open",
+                  "type": "text"
+                },
+                {
+                  "key": "opens6",
+                  "value": "09:00",
+                  "type": "text"
+                },
+                {
+                  "key": "closes6",
+                  "value": "20:00",
+                  "type": "text"
+                },
+                {
+                  "key": "photo",
+                  "type": "file",
+                  "src": [],
+                  "description": "รูปภาพ (jpg/png/webp ไม่เกิน 5 MB) เว้นว่างได้"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "ส่งคำขอ B อีกครั้ง",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/submissions/{{submissionId2}}/resubmit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "submissions",
+                "{{submissionId2}}",
+                "resubmit"
+              ]
+            },
+            "description": "ส่งคำขอที่ถูกส่งกลับให้ตรวจใหม่ (ได้ 200 เฉพาะหลังผู้ดูแลส่งกลับแล้ว ไม่งั้น 409)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{submissionVersion2}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "ออกจากระบบ (สมาชิก)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', () => pm.expect(pm.response.code).to.be.oneOf([204]));",
+                  "pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}/auth/csrf'), method: 'GET' }, (err, res) => { if (!err && res.code === 200) pm.collectionVariables.set('csrfToken', res.json().data.csrfToken); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "ออกจากระบบ (ตอบ 204 ไม่มีเนื้อหา) แล้วขอ CSRF token ใหม่"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "csrfToken",
+      "value": ""
+    },
+    {
+      "key": "categoryId",
+      "value": ""
+    },
+    {
+      "key": "placeId",
+      "value": ""
+    },
+    {
+      "key": "placeId2",
+      "value": ""
+    },
+    {
+      "key": "reviewId",
+      "value": ""
+    },
+    {
+      "key": "reviewId2",
+      "value": ""
+    },
+    {
+      "key": "submissionId",
+      "value": ""
+    },
+    {
+      "key": "submissionVersion",
+      "value": ""
+    },
+    {
+      "key": "submissionId2",
+      "value": ""
+    },
+    {
+      "key": "submissionVersion2",
+      "value": ""
+    },
+    {
+      "key": "submissionId3",
+      "value": ""
+    },
+    {
+      "key": "submissionVersion3",
+      "value": ""
+    },
+    {
+      "key": "newPlaceId",
+      "value": ""
+    },
+    {
+      "key": "adminPlaceId",
+      "value": ""
+    },
+    {
+      "key": "reportId",
+      "value": ""
+    },
+    {
+      "key": "newCategoryId",
+      "value": ""
+    },
+    {
+      "key": "registerPassword",
+      "value": ""
+    },
+    {
+      "key": "tempPassword",
+      "value": ""
+    },
+    {
+      "key": "replyId",
+      "value": ""
+    },
+    {
+      "key": "replyId2",
+      "value": ""
+    }
+  ]
+}

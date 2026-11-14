@@ -1,0 +1,12 @@
+<%# Tappable star rating. Params: name, value (current rating or null), idPrefix, required.
+    Plain radio buttons, so it works with the keyboard (arrow keys) and without
+    JavaScript; the stars are styled in CSS (.star-input). %>
+<fieldset class="star-input">
+  <legend>คะแนน</legend>
+  <div class="star-input-row">
+    <% [1, 2, 3, 4, 5].forEach((n) => { %>
+    <input class="sr-only" type="radio" id="<%= idPrefix %>-<%= n %>" name="<%= name %>" value="<%= n %>" <%= Number(value) === n ? 'checked' : '' %> <%= required ? 'required' : '' %>>
+    <label for="<%= idPrefix %>-<%= n %>"><span class="sr-only"><%= n %> ดาว</span><span aria-hidden="true">★</span></label>
+    <% }) %>
+  </div>
+</fieldset>

@@ -63,11 +63,20 @@ function presentDetail(place) {
 // In a LIKE pattern % and _ are wildcards: escape them so "%" is not "everything".
 const escapeLike = (text) => text.replace(/[\\%_]/g, '\\$&');
 
-// All places, by name, filtered by publication status and name.
-async function list({ q = '', status = 'all', page = 1, pageSize = 20 } = {}) {
+// Filters for places that still lack something an admin should fill in.
+// "No hours" means every day is still 'unknown' (each place has 7 rows).
+const MISSING_FILTERS = {
+  pin: { latitude: null },
+  hours: { hours: { none: { state: { not: 'unknown' } } } },
+  photo: { imagePath: null },
+};
+
+// All places, by name, filtered by publication status, name and missing data.
+async function list({ q = '', status = 'all', missing = null, page = 1, pageSize = 20 } = {}) {
   const where = {};
   if (status === 'published' || status === 'unpublished') where.status = status;
   if (q) where.name = { contains: escapeLike(q), mode: 'insensitive' };
+  if (Object.hasOwn(MISSING_FILTERS, missing)) Object.assign(where, MISSING_FILTERS[missing]);
 
   const total = await prisma.place.count({ where });
   const pagination = paginate(total, page, pageSize);
@@ -83,6 +92,7 @@ async function list({ q = '', status = 'all', page = 1, pageSize = 20 } = {}) {
     ratingAvg: number(ratingAvg),
     hasPin: latitude !== null,
     hasHours: hours.some((day) => day.state !== 'unknown'),
+    hasPhoto: place.imagePath !== null,
   }));
   return { data, pagination };
 }
@@ -174,4 +184,4 @@ async function update(id, data, publication, imagePath) {
   return { place: await findById(id), orphanedImagePath };
 }
 
-module.exports = { list, findById, create, update };
+module.exports = { list, findById, create, update, MISSING: Object.keys(MISSING_FILTERS) };

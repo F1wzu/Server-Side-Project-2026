@@ -1,0 +1,202 @@
+[
+  {
+    "file": "01-home.png",
+    "caption": "หน้าแรก: ค้นหา แนะนำสถานที่ และทางลัด",
+    "url": "/"
+  },
+  {
+    "file": "02-places.png",
+    "caption": "รายการสถานที่ทั้งหมด พร้อมตัวกรอง",
+    "url": "/places"
+  },
+  {
+    "file": "03-search.png",
+    "caption": "ค้นหาคำว่า \"ตลาด\"",
+    "url": "/places?q=%E0%B8%95%E0%B8%A5%E0%B8%B2%E0%B8%94"
+  },
+  {
+    "file": "04-filter-category.png",
+    "caption": "กรองตามหมวดหมู่และเรียงตามคะแนน",
+    "url": "/places?categoryId=7&sort=rating"
+  },
+  {
+    "file": "05-place-detail.png",
+    "caption": "หน้ารายละเอียดสถานที่: เวลาเปิด แผนที่ รีวิว (ผู้เยี่ยมชม)",
+    "url": "/places/1"
+  },
+  {
+    "file": "06-map.png",
+    "caption": "แผนที่สถานที่ทั้งหมด พร้อมรายการที่กดได้",
+    "url": "/map"
+  },
+  {
+    "file": "07-random.png",
+    "caption": "สุ่มสถานที่ (\"ไปไหนดี\")",
+    "url": "/places/19"
+  },
+  {
+    "file": "08-not-found.png",
+    "caption": "หน้า 404 ภาษาไทย",
+    "url": "/nowhere"
+  },
+  {
+    "file": "09-register.png",
+    "caption": "สมัครสมาชิก",
+    "url": "/register"
+  },
+  {
+    "file": "10-register-errors.png",
+    "caption": "สมัครสมาชิกด้วยข้อมูลผิด: แสดงข้อผิดพลาดรายช่อง",
+    "url": "/register"
+  },
+  {
+    "file": "11-login.png",
+    "caption": "เข้าสู่ระบบ",
+    "url": "/login"
+  },
+  {
+    "file": "12-logged-in.png",
+    "caption": "เข้าสู่ระบบสำเร็จ (เมนูเปลี่ยนเป็นของสมาชิก)",
+    "url": "/"
+  },
+  {
+    "file": "13-profile.png",
+    "caption": "โปรไฟล์: แก้ชื่อและเปลี่ยนรหัสผ่าน",
+    "url": "/me"
+  },
+  {
+    "file": "14-review-posted.png",
+    "caption": "เขียนรีวิวแล้ว: คะแนนเฉลี่ยและรายการรีวิวอัปเดต",
+    "url": "/places/1"
+  },
+  {
+    "file": "15-favorite-saved.png",
+    "caption": "บันทึกเป็นสถานที่โปรดแล้ว (ปุ่มเปลี่ยนสถานะ)",
+    "url": "/places/1"
+  },
+  {
+    "file": "16-my-reviews.png",
+    "caption": "รีวิวของฉัน: แก้ไขหรือลบได้",
+    "url": "/me/reviews"
+  },
+  {
+    "file": "17-my-favorites.png",
+    "caption": "สถานที่โปรดของฉัน",
+    "url": "/me/favorites"
+  },
+  {
+    "file": "18-report-sent.png",
+    "caption": "แจ้งข้อมูลผิด: ส่งถึงผู้ดูแลแล้ว",
+    "url": "/places/3"
+  },
+  {
+    "file": "19-submission-form.png",
+    "caption": "เสนอสถานที่ใหม่: กรอกข้อมูล ปักหมุด และแนบรูป",
+    "url": "/submissions/new"
+  },
+  {
+    "file": "20-submission-sent.png",
+    "caption": "ส่งคำขอแล้ว: สถานะ \"รอตรวจ\"",
+    "url": "/me/submissions/1"
+  },
+  {
+    "file": "21-my-submissions.png",
+    "caption": "คำขอของฉัน",
+    "url": "/me/submissions"
+  },
+  {
+    "file": "22-admin-dashboard.png",
+    "caption": "แผงผู้ดูแล: จำนวนงานที่รอ",
+    "url": "/admin"
+  },
+  {
+    "file": "23-admin-queue.png",
+    "caption": "คิวคำขอที่รอตรวจ",
+    "url": "/admin/submissions"
+  },
+  {
+    "file": "24-admin-submission.png",
+    "caption": "ตรวจคำขอ: ดูรูป ปรับหมุด อนุมัติ ส่งกลับ หรือไม่อนุมัติ",
+    "url": "/admin/submissions/1"
+  },
+  {
+    "file": "25-admin-approved.png",
+    "caption": "อนุมัติแล้ว: สถานที่ถูกเผยแพร่",
+    "url": "/places/31"
+  },
+  {
+    "file": "26-admin-returned.png",
+    "caption": "ส่งคำขอกลับให้สมาชิกแก้ไข พร้อมเหตุผล",
+    "url": "/admin/submissions"
+  },
+  {
+    "file": "27-approved-place-public.png",
+    "caption": "สถานที่ที่อนุมัติแล้วแสดงต่อสาธารณะ พร้อมรูปที่อัปโหลด",
+    "url": "/places/31"
+  },
+  {
+    "file": "28-admin-places.png",
+    "caption": "จัดการสถานที่: แก้ไข เผยแพร่/ซ่อน แนะนำ",
+    "url": "/admin/places"
+  },
+  {
+    "file": "29-admin-place-new.png",
+    "caption": "เพิ่มสถานที่โดยตรง",
+    "url": "/admin/places/new"
+  },
+  {
+    "file": "30-admin-place-edit.png",
+    "caption": "แก้ไขสถานที่: ข้อมูล เวลาเปิด หมุด รูป",
+    "url": "/admin/places/1/edit"
+  },
+  {
+    "file": "31-admin-reviews.png",
+    "caption": "จัดการรีวิว",
+    "url": "/admin/reviews"
+  },
+  {
+    "file": "32-admin-review-removed.png",
+    "caption": "นำรีวิวออกพร้อมเหตุผล",
+    "url": "/admin/reviews"
+  },
+  {
+    "file": "33-admin-reports.png",
+    "caption": "รายการแจ้งข้อมูลผิดที่ยังเปิดอยู่",
+    "url": "/admin/reports"
+  },
+  {
+    "file": "34-admin-report-resolved.png",
+    "caption": "ปิดรายการแจ้งว่าแก้ไขแล้ว",
+    "url": "/admin/reports"
+  },
+  {
+    "file": "35-admin-categories.png",
+    "caption": "จัดการหมวดหมู่",
+    "url": "/admin/categories"
+  },
+  {
+    "file": "36-member-returned.png",
+    "caption": "สมาชิกเห็นคำขอที่ถูกส่งกลับ พร้อมเหตุผล และแก้ไขได้",
+    "url": "/me/submissions/2"
+  },
+  {
+    "file": "37-mobile-home.png",
+    "caption": "มือถือ: หน้าแรก",
+    "url": "/"
+  },
+  {
+    "file": "38-mobile-menu.png",
+    "caption": "มือถือ: เมนู",
+    "url": "/"
+  },
+  {
+    "file": "39-mobile-place.png",
+    "caption": "มือถือ: รายละเอียดสถานที่",
+    "url": "/places/1"
+  },
+  {
+    "file": "40-mobile-map.png",
+    "caption": "มือถือ: แผนที่",
+    "url": "/map"
+  }
+]

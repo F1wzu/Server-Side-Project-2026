@@ -28,6 +28,9 @@
       <% } else { %>
       <a class="button button-outline" href="/login?next=<%= encodeURIComponent('/places/' + place.id) %>"><%- icon('heart', 18) %>บันทึกสถานที่</a>
       <% } %>
+      <% if (currentUser && currentUser.role === 'admin') { %>
+      <a class="button button-outline" href="/admin/places/<%= place.id %>/edit"><%- icon('shield', 18) %>จัดการ<span class="sr-only"> <%= place.name %> ในส่วนผู้ดูแล</span></a>
+      <% } %>
     </div>
   </header>
 
@@ -60,20 +63,41 @@
           <a class="button button-outline" href="/login?next=<%= encodeURIComponent('/places/' + place.id) %>">เข้าสู่ระบบเพื่อรีวิว</a>
         </div>
         <% } else if (ownReview?.status === 'active') { %>
-        <div class="notice"><p>คุณรีวิวสถานที่นี้แล้ว <a class="text-link" href="/me/reviews">แก้ไขหรือลบรีวิวของฉัน</a></p></div>
+        <%# The member's own review sits on top so it can be edited or deleted
+            here; the forms send `next` so the controller returns to this page. %>
+        <div class="panel own-review" id="own-review">
+          <span id="review-<%= ownReview.id %>"></span>
+          <h3>รีวิวของคุณ</h3>
+          <p class="meta">คุณรีวิวสถานที่นี้แล้ว · <a class="text-link" href="/me/reviews">รีวิวทั้งหมดของฉัน</a></p>
+          <p><%- include('partials/stars', { value: ownReview.rating }) %></p>
+          <% if (ownReview.comment) { %><p class="preserve-lines"><%= ownReview.comment %></p><% } %>
+          <details>
+            <summary>แก้ไข</summary>
+            <form class="stack-form" action="/reviews/<%= ownReview.id %>/edit" method="post">
+              <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+              <input type="hidden" name="next" value="/places/<%= place.id %>#reviews">
+              <%- include('partials/star-input', { name: 'rating', value: ownReview.rating, idPrefix: 'own-rating', required: true }) %>
+              <div class="field">
+                <label for="own-comment">รีวิวของคุณ</label>
+                <textarea id="own-comment" name="comment" maxlength="2000" rows="3"><%= ownReview.comment || '' %></textarea>
+              </div>
+              <button class="button button-primary" type="submit">บันทึกการแก้ไข</button>
+            </form>
+          </details>
+          <form class="remove-review" method="post" action="/reviews/<%= ownReview.id %>/delete">
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+            <input type="hidden" name="next" value="/places/<%= place.id %>#reviews">
+            <button class="text-button" type="submit">ลบรีวิวของฉัน</button>
+          </form>
+          <%- include('partials/review-replies', { review: ownReview, place }) %>
+        </div>
         <% } else if (ownReview?.status === 'removed') { %>
         <p class="small-note">รีวิวของคุณถูกผู้ดูแลนำออก ดูเหตุผลได้ที่ <a class="text-link" href="/me/reviews">รีวิวของฉัน</a></p>
         <% } else { %>
         <form class="panel review-form stack-form" action="/places/<%= place.id %>/reviews" method="post">
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
           <h3>แบ่งปันประสบการณ์ของคุณ</h3>
-          <div class="field">
-            <label for="rating">คะแนน</label>
-            <select id="rating" name="rating" required>
-              <option value="">เลือกคะแนน</option>
-              <% [5, 4, 3, 2, 1].forEach((n) => { %><option value="<%= n %>"><%= '★'.repeat(n) %> <%= n %> / 5</option><% }) %>
-            </select>
-          </div>
+          <%- include('partials/star-input', { name: 'rating', value: null, idPrefix: 'rating', required: true }) %>
           <div class="field">
             <label for="comment">รีวิว (ไม่บังคับ)</label>
             <textarea id="comment" name="comment" rows="3" maxlength="2000" placeholder="คุณชอบอะไร มีอะไรที่อยากบอกคนที่จะไปบ้าง"></textarea>
@@ -85,13 +109,14 @@
         <% if (reviews.pagination.total === 0) { %>
         <div class="empty-state compact"><p>สถานที่นี้ยังไม่มีรีวิว เป็นคนแรกที่เล่าให้คนในย่านฟัง</p></div>
         <% } %>
-        <% reviews.data.forEach((review) => { %>
-        <article class="review">
+        <% reviews.data.forEach((review) => { if (ownReview?.status === 'active' && review.id === ownReview.id) return; %>
+        <article class="review" id="review-<%= review.id %>">
           <div class="avatar"><%= review.user.username.slice(0, 1) %></div>
           <div>
             <div class="review-top"><strong><%= review.user.username %></strong><%- include('partials/stars', { value: review.rating }) %></div>
             <time class="meta" datetime="<%= review.createdAt.toISOString() %>"><%= date(review.createdAt) %></time>
             <% if (review.comment) { %><p class="preserve-lines"><%= review.comment %></p><% } %>
+            <%- include('partials/review-replies', { review, place }) %>
           </div>
         </article>
         <% }) %>
@@ -106,7 +131,7 @@
         <h2><%- icon('pin') %>ไปที่นี่</h2>
         <p class="address"><%= place.address %></p>
         <% if (place.latitude !== null) { %>
-        <div class="mini-map" data-map-mini data-lat="<%= place.latitude %>" data-lng="<%= place.longitude %>" data-kind="<%= categoryKind(place.category) %>" role="img" aria-label="แผนที่ตำแหน่งของ <%= place.name %>"></div>
+        <div class="mini-map" data-map-mini data-lat="<%= place.latitude %>" data-lng="<%= place.longitude %>" data-kind="<%= categoryKind(place.category) %>" role="region" aria-label="แผนที่ตำแหน่งของ <%= place.name %>"></div>
         <% } %>
         <a class="button button-primary button-block" href="<%= mapsUrl(place) %>" target="_blank" rel="noopener noreferrer"><%- icon('external', 18) %><%= place.latitude !== null ? 'นำทางด้วย Google Maps' : 'ค้นหาใน Google Maps' %> <span class="sr-only">(หน้าต่างใหม่)</span></a>
         <% if (place.latitude === null) { %>

@@ -8,6 +8,11 @@ const removeReviewSchema = z.object({
   reason: visibleText({ label: 'เหตุผล', max: 500, minMessage: 'กรุณาระบุเหตุผลที่นำรีวิวออก' }),
 });
 
+// Same column size for replies (review_replies.removed_reason).
+const removeReplySchema = z.object({
+  reason: visibleText({ label: 'เหตุผล', max: 500, minMessage: 'กรุณาระบุเหตุผลที่นำความเห็นตอบกลับออก' }),
+});
+
 const closeReportSchema = z.object({
   status: z.enum(['resolved', 'dismissed'], { error: 'กรุณาเลือกผลการตรวจ (resolved หรือ dismissed)' }),
 });
@@ -16,4 +21,4 @@ const categorySchema = z.object({
   name: visibleText({ label: 'ชื่อหมวดหมู่', max: 80 }),
 });
 
-module.exports = { removeReviewSchema, closeReportSchema, categorySchema };
+module.exports = { removeReviewSchema, removeReplySchema, closeReportSchema, categorySchema };

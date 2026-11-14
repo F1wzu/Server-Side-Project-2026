@@ -1,0 +1,58 @@
+<%# Replies under one review, and the form to add one.
+    Params: review (with .replies), place. One level only: replies have no
+    reply button. Every form sends `next` so the member lands back here. %>
+<% const back = '/places/' + place.id + '#review-' + review.id; %>
+<div class="review-replies">
+  <% if (review.replies && review.replies.length) { %>
+  <ul class="reply-list" aria-label="ความเห็นตอบกลับรีวิวของ <%= review.user ? review.user.username : 'คุณ' %>">
+    <% review.replies.forEach((reply) => { const mine = currentUser && reply.user.id === currentUser.id; %>
+    <li class="reply" id="reply-<%= reply.id %>">
+      <div class="reply-top">
+        <strong><%= reply.user.username %></strong>
+        <time class="meta" datetime="<%= reply.createdAt.toISOString() %>"><%= date(reply.createdAt) %></time>
+      </div>
+      <% if (reply.status === 'removed') { %>
+      <p class="small-note">ความเห็นนี้ถูกผู้ดูแลนำออก (เห็นเฉพาะคุณ) เหตุผล: <%= reply.removedReason %></p>
+      <% } else { %>
+      <p class="preserve-lines"><%= reply.body %></p>
+      <% if (mine) { %>
+      <div class="reply-actions">
+        <details>
+          <summary>แก้ไข</summary>
+          <form class="stack-form" action="/replies/<%= reply.id %>/edit" method="post">
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+            <input type="hidden" name="next" value="<%= back %>">
+            <div class="field">
+              <label for="reply-edit-<%= reply.id %>">แก้ไขความเห็นตอบกลับ</label>
+              <textarea id="reply-edit-<%= reply.id %>" name="body" rows="2" maxlength="1000" required><%= reply.body %></textarea>
+            </div>
+            <button class="button button-primary button-small" type="submit">บันทึก</button>
+          </form>
+        </details>
+        <form method="post" action="/replies/<%= reply.id %>/delete">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <input type="hidden" name="next" value="<%= back %>">
+          <button class="text-button" type="submit">ลบ<span class="sr-only">ความเห็นตอบกลับของฉัน</span></button>
+        </form>
+      </div>
+      <% } %>
+      <% } %>
+    </li>
+    <% }) %>
+  </ul>
+  <% } %>
+  <% if (currentUser) { %>
+  <details class="reply-compose">
+    <summary>ตอบกลับ<span class="sr-only">รีวิวของ <%= review.user ? review.user.username : 'คุณ' %></span></summary>
+    <form class="stack-form" action="/reviews/<%= review.id %>/replies" method="post">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <input type="hidden" name="next" value="<%= back %>">
+      <div class="field">
+        <label for="reply-new-<%= review.id %>">ความเห็นตอบกลับ</label>
+        <textarea id="reply-new-<%= review.id %>" name="body" rows="2" maxlength="1000" required></textarea>
+      </div>
+      <button class="button button-primary button-small" type="submit">ส่งความเห็น</button>
+    </form>
+  </details>
+  <% } %>
+</div>

@@ -68,6 +68,8 @@ describe('access control', () => {
   ];
   const pages = [
     ['get', '/admin/reviews'],
+    ['get', '/admin/places/1/reviews'],
+    ['get', '/admin/places/1/reports'],
     ['get', '/admin/reports'],
     ['get', '/admin/categories'],
     ['post', '/admin/reviews/1/remove', { reason: 'x' }],
@@ -267,6 +269,74 @@ describe('admin reviews', () => {
     expect(missing.status).toBe(303);
   });
 
+  test('the API filters by place, together with status; an unknown or malformed place is 404', async () => {
+    const other = await prisma.place.create({
+      data: { categoryId: category.id, name: 'ร้านอื่น', description: 'รายละเอียด', address: 'ลาดกระบัง' },
+    });
+    const a = await review(alice, place.id);
+    const b = await review(bob, place.id);
+    const c = await review(alice, other.id);
+    await admin.post(`/api/v1/admin/reviews/${a.id}/remove`, { reason: 'ผิดกฎ' });
+
+    const here = await admin.get(`/api/v1/admin/reviews?placeId=${place.id}`);
+    expect(here.status).toBe(200);
+    expect(here.body.data.map((r) => r.id)).toEqual([b.id, a.id]);
+    expect(here.body.meta.total).toBe(2);
+    const active = await admin.get(`/api/v1/admin/reviews?placeId=${place.id}&status=active`);
+    expect(active.body.data.map((r) => r.id)).toEqual([b.id]);
+    expect((await admin.get(`/api/v1/admin/reviews?placeId=${other.id}`)).body.data.map((r) => r.id)).toEqual([c.id]);
+    expect((await admin.get('/api/v1/admin/reviews?placeId=')).body.meta.total).toBe(3);
+
+    for (const bad of ['99999', 'abc', '01', '-1']) {
+      const res = await admin.get(`/api/v1/admin/reviews?placeId=${bad}`);
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('NOT_FOUND');
+    }
+  });
+
+  test("a place's reviews tab shows only that place, with status tabs and remove forms", async () => {
+    const other = await prisma.place.create({
+      data: { categoryId: category.id, name: 'ร้านอื่น', description: 'รายละเอียด', address: 'ลาดกระบัง' },
+    });
+    await review(alice, place.id, { rating: 4, comment: 'รีวิวร้านนี้' });
+    await review(bob, other.id, { rating: 2, comment: 'รีวิวร้านอื่น' });
+
+    const res = await admin.get(`/admin/places/${place.id}/reviews`);
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('รีวิวของ ร้านทดสอบ');
+    expect(res.text).toContain('รีวิวร้านนี้');
+    expect(res.text).not.toContain('รีวิวร้านอื่น');
+    expect(res.text).toContain(`href="/admin/places/${place.id}/reviews?status=removed"`);
+    expect(res.text).toContain(`name="placeId" value="${place.id}"`);
+    expect(res.text).toContain(`href="/admin/places/${place.id}/edit"`);
+
+    expect((await admin.get('/admin/places/99999/reviews')).status).toBe(404);
+    expect((await admin.get('/admin/places/abc/reviews')).status).toBe(404);
+  });
+
+  test('removing from a place tab returns to that tab and recalculates the rating', async () => {
+    const a = await review(alice, place.id, { rating: 5 });
+    await review(bob, place.id, { rating: 1 });
+    const res = await admin.postForm(`/admin/reviews/${a.id}/remove`, { reason: 'ไม่เหมาะสม', status: 'active', placeId: String(place.id) });
+    expect(res.status).toBe(303);
+    expect(res.headers.location).toBe(`/admin/places/${place.id}/reviews?status=active`);
+    expect(await placeRow(place.id)).toEqual({ avg: 1, count: 1 });
+    const page = await admin.get(`/admin/places/${place.id}/reviews?status=removed`);
+    expect(page.text).toContain('นำรีวิวออกแล้ว');
+    expect(page.text).toContain('ไม่เหมาะสม');
+
+    // A malformed placeId falls back to the site-wide list.
+    const carol = await member('carol');
+    const b = await review(carol, place.id, { rating: 3 });
+    const fallback = await admin.postForm(`/admin/reviews/${b.id}/remove`, { reason: 'x', placeId: '../x' });
+    expect(fallback.headers.location).toBe('/admin/reviews');
+  });
+
+  test('the places list and the edit form link to the reviews tab', async () => {
+    expect((await admin.get('/admin/places')).text).toContain(`href="/admin/places/${place.id}/reviews"`);
+    expect((await admin.get(`/admin/places/${place.id}/edit`)).text).toContain(`href="/admin/places/${place.id}/reviews"`);
+  });
+
   test('a removed review is hidden from the public place page and API', async () => {
     const a = await review(alice, place.id, { rating: 5, comment: 'ข้อความที่จะถูกนำออก' });
     expect((await createClient(app).get(`/places/${place.id}`)).text).toContain('ข้อความที่จะถูกนำออก');
@@ -331,7 +401,7 @@ describe('admin reports', () => {
 
     const html = await admin.get('/admin/reports');
     expect(html.status).toBe(200);
-    expect(html.text).toContain(`/admin/places/${place.id}/edit`);
+    expect(html.text).toContain(`/admin/places/${place.id}/reports`);
     expect(html.text).toContain('ปิดกิจการ');
     expect(html.text).toContain('อื่น ๆ');
     expect(html.text).toContain('alice');
@@ -386,6 +456,53 @@ describe('admin reports', () => {
 
     expect((await admin.post('/api/v1/admin/reports/99999/resolve', { status: 'resolved' })).status).toBe(404);
     expect((await admin.post('/api/v1/admin/reports/x/resolve', { status: 'resolved' })).status).toBe(404);
+  });
+
+  test('the API filters by place, together with status; an unknown or malformed place is 404', async () => {
+    const other = await prisma.place.create({
+      data: { categoryId: category.id, name: 'ร้านอื่น', description: 'รายละเอียด', address: 'ลาดกระบัง' },
+    });
+    const r1 = await report(alice, place.id);
+    const r2 = await report(bob, place.id);
+    const r3 = await report(alice, other.id);
+    await admin.post(`/api/v1/admin/reports/${r2.id}/resolve`, { status: 'resolved' });
+
+    expect((await admin.get(`/api/v1/admin/reports?placeId=${place.id}`)).body.data.map((r) => r.id)).toEqual([r1.id]);
+    const all = await admin.get(`/api/v1/admin/reports?placeId=${place.id}&status=all`);
+    expect(all.body.data.map((r) => r.id).sort()).toEqual([r1.id, r2.id].sort());
+    expect((await admin.get(`/api/v1/admin/reports?placeId=${other.id}`)).body.data.map((r) => r.id)).toEqual([r3.id]);
+    expect((await admin.get('/api/v1/admin/reports?placeId=')).body.meta.total).toBe(2);
+    for (const bad of ['99999', 'abc', '01']) {
+      const res = await admin.get(`/api/v1/admin/reports?placeId=${bad}`);
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('NOT_FOUND');
+    }
+  });
+
+  test("a place's reports tab shows only that place, and closing returns to it", async () => {
+    const other = await prisma.place.create({
+      data: { categoryId: category.id, name: 'ร้านอื่น', description: 'รายละเอียด', address: 'ลาดกระบัง' },
+    });
+    const r1 = await report(alice, place.id, { reason: 'closed', details: 'แจ้งร้านนี้' });
+    await report(bob, other.id, { reason: 'other', details: 'แจ้งร้านอื่น' });
+
+    const page = await admin.get(`/admin/places/${place.id}/reports`);
+    expect(page.status).toBe(200);
+    expect(page.text).toContain('แจ้งข้อมูลผิดของ ร้านทดสอบ');
+    expect(page.text).toContain('แจ้งร้านนี้');
+    expect(page.text).not.toContain('แจ้งร้านอื่น');
+    expect(page.text).toContain(`name="placeId" value="${place.id}"`);
+    expect(page.text).toContain(`href="/admin/places/${place.id}/edit"`);
+    expect(page.text).toContain(`href="/admin/places/${place.id}/reviews"`);
+
+    const res = await admin.postForm(`/admin/reports/${r1.id}/resolve`, { status: 'resolved', filter: 'open', placeId: String(place.id) });
+    expect(res.status).toBe(303);
+    expect(res.headers.location).toBe(`/admin/places/${place.id}/reports`);
+    expect((await prisma.placeReport.findUnique({ where: { id: r1.id } })).status).toBe('resolved');
+    expect((await admin.get(`/admin/places/${place.id}/reports?status=resolved`)).text).toContain('แจ้งร้านนี้');
+
+    expect((await admin.get('/admin/places/99999/reports')).status).toBe(404);
+    expect((await admin.get('/admin/places/abc/reports')).status).toBe(404);
   });
 
   test('two simultaneous closes: exactly one succeeds', async () => {

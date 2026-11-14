@@ -28,12 +28,16 @@
   <% } %>
 
   <% if (submission.possibleDuplicates.length) { %>
-  <div class="feedback-panel">
-    <strong>อาจมีสถานที่นี้อยู่แล้ว</strong>
-    <p>ชื่อเหมือนกันหรือหมุดอยู่ใกล้กันมาก ตรวจสอบก่อนอนุมัติ</p>
+  <div class="feedback-panel" id="possible-duplicates">
+    <h2>สถานที่ที่อาจซ้ำ</h2>
+    <p>อาจมีสถานที่นี้อยู่แล้ว เพราะชื่อคล้ายกันหรือหมุดอยู่ใกล้กันมาก (ภายใน 150 เมตร) ตรวจสอบก่อนอนุมัติ</p>
     <ul class="plain-list">
       <% submission.possibleDuplicates.forEach((place) => { %>
-      <li><a class="text-link" href="/admin/places/<%= place.id %>/edit"><%= place.name %> (#<%= place.id %><%= place.status === 'unpublished' ? ' · ไม่เผยแพร่' : '' %>)</a></li>
+      <li>
+        <strong><%= place.name %></strong> (#<%= place.id %>)
+        <span class="meta"><%= place.category.name %> · <%= place.status === 'published' ? 'เผยแพร่' : 'ซ่อนอยู่' %><% if (place.distanceMeters !== null) { %> · ห่างประมาณ <%= place.distanceMeters %> ม.<% } %><% if (place.matchedBy.includes('name')) { %> · ชื่อคล้ายกัน<% } %></span>
+        <% if (place.status === 'published') { %><a class="text-link" href="/places/<%= place.id %>">ดูหน้าสถานที่</a> · <% } %><a class="text-link" href="/admin/places/<%= place.id %>/edit">แก้ไขสถานที่</a>
+      </li>
       <% }) %>
     </ul>
   </div>
@@ -81,7 +85,7 @@
           <fieldset class="field-group">
             <legend>ตำแหน่งหมุด</legend>
             <p class="meta">ถ้าหมุดไม่ตรง ลากหมุดหรือแตะบนแผนที่เพื่อแก้ไขก่อนอนุมัติ การย้ายหมุดจะถูกบันทึกในประวัติคำขอ</p>
-            <div class="picker-map" data-map-picker data-bounds="<%= JSON.stringify(bounds) %>" role="application" aria-label="แผนที่สำหรับปรับตำแหน่งหมุด ใช้ช่องละติจูดและลองจิจูดด้านล่างแทนได้"></div>
+            <div class="picker-map" data-map-picker data-bounds="<%= JSON.stringify(bounds) %>" role="region" aria-label="แผนที่สำหรับปรับตำแหน่งหมุด ใช้ช่องละติจูดและลองจิจูดด้านล่างแทนได้"></div>
             <div class="field-pair">
               <div class="field">
                 <label for="latitude">ละติจูด</label>

@@ -92,6 +92,8 @@ model User {
 
   reviews          Review[]          @relation("ReviewAuthor")
   removedReviews   Review[]          @relation("ReviewRemover")
+  replies          ReviewReply[]     @relation("ReplyAuthor")
+  removedReplies   ReviewReply[]     @relation("ReplyRemover")
   favorites        Favorite[]
   submissions      Submission[]
   submissionEvents SubmissionEvent[]
@@ -171,13 +173,35 @@ model Review {
   createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  user      User  @relation("ReviewAuthor", fields: [userId], references: [id], onDelete: Restrict)
-  place     Place @relation(fields: [placeId], references: [id], onDelete: Restrict)
-  removedBy User? @relation("ReviewRemover", fields: [removedById], references: [id], onDelete: Restrict)
+  user      User          @relation("ReviewAuthor", fields: [userId], references: [id], onDelete: Restrict)
+  place     Place         @relation(fields: [placeId], references: [id], onDelete: Restrict)
+  removedBy User?         @relation("ReviewRemover", fields: [removedById], references: [id], onDelete: Restrict)
+  replies   ReviewReply[]
 
   @@unique([userId, placeId])
   @@index([placeId, status])
   @@map("reviews")
+}
+
+// A member's reply under a review: one level only (no replies to replies).
+// Soft-deleted like reviews; an admin may remove one with a reason.
+model ReviewReply {
+  id            Int          @id @default(autoincrement())
+  reviewId      Int          @map("review_id")
+  userId        Int          @map("user_id")
+  body          String       @db.VarChar(1000)
+  status        ReviewStatus @default(active)
+  removedById   Int?         @map("removed_by")
+  removedReason String?      @map("removed_reason") @db.VarChar(500)
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  review    Review @relation(fields: [reviewId], references: [id], onDelete: Restrict)
+  user      User   @relation("ReplyAuthor", fields: [userId], references: [id], onDelete: Restrict)
+  removedBy User?  @relation("ReplyRemover", fields: [removedById], references: [id], onDelete: Restrict)
+
+  @@index([reviewId, status, createdAt])
+  @@map("review_replies")
 }
 
 model Favorite {

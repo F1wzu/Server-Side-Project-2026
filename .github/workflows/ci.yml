@@ -1,0 +1,62 @@
+# Runs the test suite on every push and pull request.
+# The tests need a real PostgreSQL, so GitHub starts one next to the job.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: painaidee
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: painaidee_test
+        ports:
+          - 5432:5432
+        # Wait until the database accepts connections before the steps run.
+        options: >-
+          --health-cmd "pg_isready -U painaidee"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # Throwaway values for this job only; nothing here is a real secret.
+    # DATABASE_URL must differ from TEST_DATABASE_URL (src/config/env.js
+    # refuses to let the tests erase the app database); the tests never use it.
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://painaidee:ci-only-password@localhost:5432/painaidee_dev
+      TEST_DATABASE_URL: postgresql://painaidee:ci-only-password@localhost:5432/painaidee_test
+      SESSION_SECRET: ci-only-session-secret-that-is-at-least-32-characters
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # npm ci also runs `prisma generate` (the postinstall script).
+      - run: npm ci
+
+      # The tests apply the migrations themselves (test/support/globalSetup.js).
+      - run: npm test -- --ci
+
+      # Fails the job on a known high or critical problem in a package the
+      # running app uses (development tools are not deployed, so not checked).
+      - run: npm audit --omit=dev --audit-level=high

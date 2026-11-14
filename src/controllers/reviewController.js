@@ -48,6 +48,15 @@ async function createFromForm(req, res) {
   res.redirect(303, `/places/${placeId}#reviews`);
 }
 
+// The place page sends `next` so the member lands back on the review list
+// there. Only /places/<id> or /places/<id>#reviews is accepted; anything else
+// (other sites, //host, dot segments, leading zeros) means /me/reviews.
+const PLACE_NEXT = /^\/places\/[1-9]\d{0,9}(#reviews)?$/;
+function reviewNext(body) {
+  const next = body?.next;
+  return typeof next === 'string' && PLACE_NEXT.test(next) ? next : '/me/reviews';
+}
+
 // POST /reviews/:id/edit
 async function updateFromForm(req, res) {
   try {
@@ -56,7 +65,7 @@ async function updateFromForm(req, res) {
   } catch (err) {
     flashError(req, err);
   }
-  res.redirect(303, '/me/reviews');
+  res.redirect(303, reviewNext(req.body));
 }
 
 // POST /reviews/:id/delete
@@ -67,7 +76,7 @@ async function deleteFromForm(req, res) {
   } catch (err) {
     flashError(req, err);
   }
-  res.redirect(303, '/me/reviews');
+  res.redirect(303, reviewNext(req.body));
 }
 
 // GET /me/reviews
@@ -101,6 +110,8 @@ async function favoriteFromForm(req, res) {
 // GET /me/favorites
 async function myFavorites(req, res) {
   const result = await placeModel.savedBy(req.user.id, { page: pageFrom(req.query.page) });
+  // No heart on these cards: each already has a clear "นำออกจากรายการ" button,
+  // and two controls doing the same thing would be confusing.
   res.render('my-favorites', { title: 'ที่บันทึกไว้', result, pageLink: (page) => (page > 1 ? `/me/favorites?page=${page}` : '/me/favorites') });
 }
 
@@ -110,7 +121,7 @@ async function myFavorites(req, res) {
 async function apiPlaceReviews(req, res) {
   const placeId = idFrom(req.params.id, 'สถานที่');
   if (!(await placeModel.findPublishedById(placeId))) throw AppError.notFound('ไม่พบสถานที่นี้');
-  const { data, pagination } = await reviewModel.listForPlace(placeId, { page: pageFrom(req.query.page) });
+  const { data, pagination } = await reviewModel.listForPlace(placeId, { page: pageFrom(req.query.page), viewerId: req.user?.id ?? null });
   res.json({ data, meta: { page: pagination.page, pageSize: pagination.pageSize, total: pagination.total } });
 }
 

@@ -8,6 +8,7 @@
     <a href="/admin/places">จัดการสถานที่</a><%- icon('chevron', 16) %>
     <span><%= editing ? 'แก้ไข ' + place.name : 'เพิ่มสถานที่' %></span>
   </nav>
+  <% if (editing) { %><%- include('../partials/admin-place-tabs', { place, current: 'edit' }) %><% } %>
   <div class="page-heading">
     <h1><%= editing ? 'แก้ไขสถานที่' : 'เพิ่มสถานที่โดยตรง' %></h1>
     <p>สถานที่ที่บันทึกจากหน้านี้ไม่ต้องรอการอนุมัติ ปักหมุดไม่บังคับ แต่ถ้าระบุต้องอยู่ในเขตลาดกระบัง</p>

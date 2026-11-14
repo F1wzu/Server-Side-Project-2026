@@ -29,10 +29,12 @@ function listOpenCount() {
 
 const REPORT_STATUSES = ['open', 'resolved', 'dismissed'];
 
-// Reports for the admin list. Open ones come oldest first (the longest
-// waiting is at the top); closed ones newest first.
-async function listAll({ status = 'open', page = 1, pageSize = 20 } = {}) {
+// Reports for the admin list, optionally of one place (its "reports" tab).
+// Open ones come oldest first (the longest waiting is at the top); closed
+// ones newest first.
+async function listAll({ status = 'open', placeId = null, page = 1, pageSize = 20 } = {}) {
   const where = REPORT_STATUSES.includes(status) ? { status } : {};
+  if (placeId !== null) where.placeId = placeId;
   const total = await prisma.placeReport.count({ where });
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const current = Math.min(page, totalPages);

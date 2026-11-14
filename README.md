@@ -16,7 +16,7 @@ tech: Node.js, Express, EJS, PostgreSQL, Prisma
 ## รันบนเครื่อง
 
 ต้องมี [Node.js 24](https://nodejs.org/), [Git](https://git-scm.com/) และฐานข้อมูล
-PostgreSQL 17 ซึ่งเลือกได้ **หนึ่ง** ในสองวิธีในข้อ 4: ติดตั้ง
+PostgreSQL 17 ซึ่งเลือกได้ **หนึ่ง** ในสองวิธีในข้อ 5: ติดตั้ง
 [Docker Desktop](https://www.docker.com/products/docker-desktop/) หรือติดตั้ง
 [PostgreSQL 17](https://www.postgresql.org/download/) ลงเครื่องโดยตรง
 
@@ -45,51 +45,110 @@ PostgreSQL 17 ซึ่งเลือกได้ **หนึ่ง** ในส
    npm install
    ```
 
-3. สร้างไฟล์ค่าตั้ง แล้วเปิด `.env` และกรอกค่า (ใน Command Prompt ใช้ `copy` แทน `cp`)
+3. คิด **รหัสผ่านฐานข้อมูลหนึ่งรหัส** แล้วจดไว้ ใช้ตัวอักษรภาษาอังกฤษและตัวเลขเท่านั้น
+   เพราะอักขระอย่าง `@ : / #` ทำให้ที่อยู่ฐานข้อมูลอ่านผิด รหัสนี้ไม่ใช่รหัสเข้า
+   Windows และไม่ใช่รหัสสมาชิกของเว็บ ต้องใช้ **รหัสเดียวกัน** ในข้อ 4 และข้อ 5
+
+4. สร้างไฟล์ค่าตั้ง `.env` (ใน Command Prompt ใช้ `copy` แทน `cp`)
 
    ```bash
    cp .env.example .env
    ```
 
-   - `DATABASE_URL` และ `TEST_DATABASE_URL`: แทน `YOUR_DB_PASSWORD` ทั้งสองบรรทัด
-     ด้วยรหัสผ่านที่คุณตั้งเองสำหรับฐานข้อมูล **ใช้แค่ตัวอักษรภาษาอังกฤษและตัวเลข**
-     เพราะอักขระอย่าง `@ : / #` ทำให้ที่อยู่ฐานข้อมูลอ่านผิด
-   - `SESSION_SECRET`: รันคำสั่งนี้แล้วคัดลอกผลลัพธ์มาใส่
+   เปิดไฟล์ `.env` แล้วแก้เฉพาะบรรทัดเหล่านี้ ส่วนค่าอื่นปล่อยไว้ตามเดิม:
 
-     ```bash
-     node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"
-     ```
+   | ตัวแปร | ใส่อะไร |
+   |---|---|
+   | `DATABASE_URL` | แทน `YOUR_DB_PASSWORD` ด้วยรหัสผ่านจากข้อ 3 |
+   | `TEST_DATABASE_URL` | แทน `YOUR_DB_PASSWORD` ด้วยรหัสผ่านเดียวกัน |
+   | `POSTGRES_PASSWORD` | รหัสผ่านเดียวกัน (ใช้เฉพาะวิธี A ที่ใช้ Docker; วิธี B ปล่อยว่างได้) |
+   | `SESSION_SECRET` | รันคำสั่งด้านล่าง แล้วคัดลอกผลลัพธ์มาใส่ |
 
-   - ค่าอื่นปล่อยไว้ตามเดิมได้ อย่าส่งไฟล์ `.env` ให้คนอื่น และไม่ต้อง commit
-     (git ไม่เก็บไฟล์นี้อยู่แล้ว)
+   ```bash
+   node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"
+   ```
 
-4. เปิด PostgreSQL
+   อย่าส่งไฟล์ `.env` ให้คนอื่น และไม่ต้อง commit (git ไม่เก็บไฟล์นี้อยู่แล้ว)
 
-   **วิธี A ใช้ Docker** ตั้ง `POSTGRES_PASSWORD` ใน `.env` ให้เป็นรหัสผ่านเดียวกับ
-   ที่ใช้ใน connection string ทั้งสองบรรทัด แล้วรัน:
+5. เปิดฐานข้อมูล PostgreSQL เลือก **วิธีเดียว** (วิธี A ง่ายกว่า) อย่าเปิดทั้งสองวิธี
+   พร้อมกัน เพราะใช้พอร์ต 5432 ร่วมกัน
+
+   **วิธี A ใช้ Docker** เปิดโปรแกรม Docker Desktop ให้ทำงานก่อน แล้วรัน:
 
    ```bash
    docker compose up -d
    ```
 
-   **วิธี B ติดตั้ง PostgreSQL ลงเครื่องโดยตรง** ตัวติดตั้งจะให้ตั้งรหัสผ่านของผู้ใช้
-   `postgres` ไว้ จากนั้นเปิด `psql` (บน Windows ใช้คำสั่งด้านล่างใน PowerShell หรือเปิด
-   "SQL Shell (psql)" จากเมนู Start) แล้วใส่รหัสผ่านของ `postgres`:
+   Docker สร้างผู้ใช้ `painaidee` และฐานข้อมูล `painaidee_dev` กับ `painaidee_test`
+   ให้เอง ไม่ต้องทำอะไรเพิ่ม ตรวจว่าพร้อมแล้วด้วยคำสั่งนี้ สถานะควรขึ้น `healthy`
+   (รอสักครู่ถ้ายังขึ้น `starting`):
 
-   ```powershell
-   & "C:\Program Files\PostgreSQL\17\bin\psql.exe" -U postgres -h 127.0.0.1
+   ```bash
+   docker compose ps
    ```
 
-   แล้ววางคำสั่งนี้ครั้งเดียว โดยแทน `YOUR_DB_PASSWORD` ด้วยรหัสผ่านเดียวกับใน `.env`
-   และพิมพ์ `\q` เพื่อออก:
+   รหัสผ่านถูกตั้งตอนสร้างฐานข้อมูลครั้งแรกเท่านั้น ถ้าต้องการเปลี่ยนรหัสใน `.env`
+   ทีหลัง ให้ลบข้อมูลเดิมแล้วเริ่มใหม่ (ข้อมูลในฐานข้อมูลจะหายหมด):
 
-   ```sql
-   CREATE ROLE painaidee LOGIN CREATEDB PASSWORD 'YOUR_DB_PASSWORD';
-   CREATE DATABASE painaidee_dev OWNER painaidee;
-   CREATE DATABASE painaidee_test OWNER painaidee;
+   ```bash
+   docker compose down -v
    ```
 
-5. สร้างตารางและโหลดข้อมูลตั้งต้น (9 หมวดหมู่ 30 สถานที่)
+   ```bash
+   docker compose up -d
+   ```
+
+   **วิธี B ติดตั้ง PostgreSQL ลงเครื่องโดยตรง** ทำสองขั้น
+
+   1. เปิด `psql` ด้วยคำสั่งนี้ใน PowerShell (หรือเปิด "SQL Shell (psql)" จากเมนู Start)
+      แล้วใส่รหัสผ่านของผู้ใช้ `postgres` ที่ตั้งไว้ตอนติดตั้ง PostgreSQL
+      (เป็นรหัสคนละตัวกับข้อ 3):
+
+      ```powershell
+      & "C:\Program Files\PostgreSQL\17\bin\psql.exe" -U postgres -h 127.0.0.1
+      ```
+
+   2. เมื่อเห็นเครื่องหมาย `postgres=#` ให้วางคำสั่งนี้ทั้งสามบรรทัด โดยแทน
+      `YOUR_DB_PASSWORD` ด้วยรหัสผ่านจากข้อ 3 (เก็บเครื่องหมาย `'` ไว้) แล้วพิมพ์ `\q`
+      เพื่อออก:
+
+      ```sql
+      CREATE ROLE painaidee LOGIN CREATEDB PASSWORD 'YOUR_DB_PASSWORD';
+      CREATE DATABASE painaidee_dev OWNER painaidee;
+      CREATE DATABASE painaidee_test OWNER painaidee;
+      ```
+
+      แต่ละบรรทัดควรตอบ `CREATE ROLE` หรือ `CREATE DATABASE` ถ้าขึ้นว่า `already exists`
+      แสดงว่าเคยสร้างไว้แล้ว ข้ามบรรทัดนั้นได้ ถ้าจำรหัสของ `painaidee` ไม่ได้ ให้ตั้งใหม่ด้วย
+      `ALTER ROLE painaidee PASSWORD 'YOUR_DB_PASSWORD';`
+
+   **ใช้ pgAdmin 4 แทน `psql` (วิธี B)** ตัวติดตั้ง PostgreSQL ติดตั้ง pgAdmin 4 มาให้แล้ว
+   ใช้ทำสิ่งเดียวกับคำสั่ง SQL ด้านบนได้โดยไม่ต้องพิมพ์คำสั่ง:
+
+   1. เปิด pgAdmin 4 จากเมนู Start ครั้งแรกจะให้ตั้ง master password ของ pgAdmin เอง
+      (เป็นรหัสคนละตัวกับข้อ 3 และไม่เกี่ยวกับแอป)
+   2. ที่แถบซ้าย ดับเบิลคลิก **Servers → PostgreSQL 17** แล้วใส่รหัสผ่านของผู้ใช้ `postgres`
+   3. คลิกขวาที่ **Login/Group Roles → Create → Login/Group Role...**
+      - แท็บ **General**: Name = `painaidee`
+      - แท็บ **Definition**: Password = รหัสผ่านจากข้อ 3
+      - แท็บ **Privileges**: เปิด **Can login?** และ **Can create databases?** เป็น Yes
+      - กด **Save**
+   4. คลิกขวาที่ **Databases → Create → Database...** ตั้ง Database = `painaidee_dev`
+      และ Owner = `painaidee` แล้วกด **Save** จากนั้นทำซ้ำอีกครั้งสำหรับ `painaidee_test`
+
+   **ดูข้อมูลในฐานข้อมูลด้วย pgAdmin 4 (ไม่บังคับ ใช้ได้ทั้งวิธี A และ B)** คลิกขวาที่
+   **Servers → Register → Server...**
+   - แท็บ **General**: Name = ตั้งชื่ออะไรก็ได้ เช่น `painaidee`
+   - แท็บ **Connection**: Host = `127.0.0.1`, Port = `5432`,
+     Maintenance database = `painaidee_dev`, Username = `painaidee`,
+     Password = รหัสผ่านจากข้อ 3
+   - กด **Save** แล้วดูตารางที่ **painaidee_dev → Schemas → public → Tables**
+     (ตารางจะมีหลังรันข้อ 6) ถ้าเชื่อมต่อไม่ได้ แปลว่ารหัสผ่านหรือพอร์ตผิด
+     ปัญหาเดียวกับในหัวข้อ "ถ้าเจอปัญหา"
+
+   ถ้าไม่ต้องการติดตั้ง pgAdmin 4 ใช้ `npm run db:studio` (ดูในหัวข้อ "คำสั่ง") ดูข้อมูลแทนได้ หลังทำข้อ 6 แล้ว
+
+6. สร้างตารางและโหลดข้อมูลตั้งต้น (9 หมวดหมู่ 30 สถานที่)
 
    ```bash
    npm run db:migrate
@@ -99,7 +158,7 @@ PostgreSQL 17 ซึ่งเลือกได้ **หนึ่ง** ในส
    npm run db:seed
    ```
 
-6. เริ่มแอปแล้วเปิด <http://localhost:3000>
+7. เริ่มแอปแล้วเปิด <http://localhost:3000>
 
    ```bash
    npm run dev
@@ -109,7 +168,7 @@ PostgreSQL 17 ซึ่งเลือกได้ **หนึ่ง** ในส
    อยู่ในฐานข้อมูลของแต่ละเครื่อง จึงต้องสมัครสมาชิกใหม่บนเครื่องของตัวเอง
    และสร้างบัญชีผู้ดูแลด้วย `npm run admin:create`
 
-7. (ไม่บังคับ) ตรวจว่าทุกอย่างทำงาน: ควรขึ้นว่าผ่านทั้งหมด
+8. (ไม่บังคับ) ตรวจว่าทุกอย่างทำงาน: ควรขึ้นว่าผ่านทั้งหมด
 
    ```bash
    npm test
@@ -135,7 +194,7 @@ npm run db:migrate
 |---|---|
 | `Invalid configuration. Fix these settings in .env` | ข้อความบอกว่าค่าไหนผิด แก้ใน `.env` แล้วรันใหม่ |
 | `Can't reach database server` หรือ `ECONNREFUSED` | PostgreSQL ยังไม่ได้เปิด: วิธี A รัน `docker compose up -d` วิธี B เปิด service ชื่อ `postgresql-x64-17` ใน Services ของ Windows |
-| `password authentication failed` | รหัสผ่านใน `.env` ไม่ตรงกับที่ตั้งไว้ในข้อ 4 |
+| `password authentication failed` หรือ `P1000: Authentication failed ... credentials for painaidee are not valid` (มักเจอตอนรัน `npm run db:migrate` หรือ `npm test`) | รหัสผ่านใน `.env` ไม่ตรงกับที่ตั้งไว้ฝั่งฐานข้อมูล ตรวจตามลำดับ: (1) `DATABASE_URL` **และ** `TEST_DATABASE_URL` ต้องไม่เหลือคำว่า `YOUR_DB_PASSWORD` และใช้รหัสเดียวกัน (2) รหัสผ่านมีเฉพาะตัวอักษรอังกฤษและตัวเลข (3) เคยเปิด Docker ด้วยรหัสเก่า: Docker จำรหัสแรกที่ตั้งไว้ ให้รัน `docker compose down -v` แล้ว `docker compose up -d` ใหม่ (ข้อมูลหาย) (4) เปิด PostgreSQL ที่ติดตั้งในเครื่องค้างอยู่ด้วย ทำให้พอร์ต 5432 ชนกัน ให้ปิดอย่างใดอย่างหนึ่ง (5) วิธี B: รัน `ALTER ROLE painaidee PASSWORD '...';` ใน `psql` ตามข้อ 5 |
 | `Port 3000 is already in use` | เปลี่ยน `PORT` ใน `.env` เป็นเลขอื่น เช่น `3001` แล้วเปิดที่ <http://localhost:3001> |
 | หน้าเว็บไม่มีสถานที่เลย | ยังไม่ได้รัน `npm run db:seed` |
 

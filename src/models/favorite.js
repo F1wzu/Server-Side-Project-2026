@@ -21,4 +21,13 @@ async function isSaved(userId, placeId) {
   return Boolean(await prisma.favorite.findUnique({ where: { userId_placeId: { userId, placeId } }, select: { placeId: true } }));
 }
 
-module.exports = { save, remove, isSaved };
+// Which of these places has this member saved? One query for a whole page of
+// cards, so the heart buttons need no query per card. Returns a Set of ids.
+async function savedPlaceIds(userId, placeIds) {
+  const ids = [...new Set(placeIds)].filter((id) => Number.isInteger(id));
+  if (!userId || ids.length === 0) return new Set();
+  const rows = await prisma.favorite.findMany({ where: { userId, placeId: { in: ids } }, select: { placeId: true } });
+  return new Set(rows.map((row) => row.placeId));
+}
+
+module.exports = { save, remove, isSaved, savedPlaceIds };

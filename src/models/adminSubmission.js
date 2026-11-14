@@ -10,6 +10,7 @@ const AppError = require('../utils/AppError');
 const { paginate } = require('../utils/pagination');
 const { toPlaceHoursRows } = require('../utils/hours');
 const { snapshotOf } = require('./submission');
+const { findPossibleDuplicates } = require('./duplicates');
 
 const STATUSES = ['pending', 'changes_requested', 'approved', 'rejected'];
 const number = (decimal) => (decimal === null || decimal === undefined ? null : Number(decimal));
@@ -45,25 +46,6 @@ function pendingCount() {
   return prisma.submission.count({ where: { status: 'pending' } });
 }
 
-// Places that may already be this one: the same name (ignoring case), or a
-// pin within roughly 50 metres. Shown to the admin before approving.
-function possibleDuplicates(submission) {
-  const near = 0.0005; // about 55 m of latitude
-  const lat = number(submission.latitude);
-  const lng = number(submission.longitude);
-  return prisma.place.findMany({
-    where: {
-      OR: [
-        { name: { equals: submission.name, mode: 'insensitive' } },
-        ...(lat === null ? [] : [{ latitude: { gte: lat - near, lte: lat + near }, longitude: { gte: lng - near, lte: lng + near } }]),
-      ],
-    },
-    orderBy: { id: 'asc' },
-    take: 5,
-    select: { id: true, name: true, status: true },
-  });
-}
-
 // One submission in full, with its history, its author and possible duplicates.
 async function find(id) {
   const submission = await prisma.submission.findUnique({
@@ -75,7 +57,8 @@ async function find(id) {
     },
   });
   if (!submission) throw AppError.notFound('ไม่พบคำขอนี้');
-  const duplicates = submission.status === 'pending' ? await possibleDuplicates(submission) : [];
+  // Empty for approved / rejected submissions: nothing left to decide.
+  const duplicates = await findPossibleDuplicates(submission);
   return { ...present(submission), possibleDuplicates: duplicates };
 }
 

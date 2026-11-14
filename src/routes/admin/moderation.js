@@ -9,8 +9,11 @@ const web = express.Router();
 const api = express.Router();
 
 web.get('/reviews', moderation.reviewsPage);
+web.get('/places/:id/reviews', moderation.placeReviewsPage);
 web.post('/reviews/:id/remove', moderation.removeReviewFromForm);
+web.post('/replies/:id/remove', moderation.removeReplyFromForm);
 web.get('/reports', moderation.reportsPage);
+web.get('/places/:id/reports', moderation.placeReportsPage);
 web.post('/reports/:id/resolve', moderation.closeReportFromForm);
 web.get('/categories', categories.list);
 web.post('/categories', categories.createFromForm);
@@ -19,6 +22,7 @@ web.post('/categories/:id', categories.renameFromForm);
 
 api.get('/reviews', moderation.apiReviews);
 api.post('/reviews/:id/remove', moderation.apiRemoveReview);
+api.post('/replies/:id/remove', moderation.apiRemoveReply);
 api.get('/reports', moderation.apiReports);
 api.post('/reports/:id/resolve', moderation.apiCloseReport);
 api.post('/categories', categories.apiCreate);

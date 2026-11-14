@@ -169,9 +169,17 @@ ol {
   padding: 0;
 }
 :focus-visible {
-  outline: 3px solid var(--marigold);
+  /* Dark teal: marigold on the cream page is only about 1.7:1, too faint to see. */
+  outline: 3px solid var(--klong-deep);
   outline-offset: 3px;
   border-radius: 6px;
+}
+/* On the dark teal bars the light colour is the one that shows. */
+.site-footer :focus-visible,
+.map-teaser :focus-visible,
+.admin-nav :focus-visible,
+.skip-link:focus-visible {
+  outline-color: var(--marigold);
 }
 .container {
   width: min(1180px, calc(100% - 40px));
@@ -573,6 +581,9 @@ ol {
 }
 .hero-search:focus-within {
   border-color: var(--klong);
+  /* The inner input has no outline of its own, so the whole pill shows the focus. */
+  outline: 3px solid var(--klong-deep);
+  outline-offset: 3px;
 }
 .hero-search input:not([type='checkbox']):not([type='radio']) {
   flex: 1;
@@ -807,7 +818,7 @@ ol {
   color: var(--ink);
 }
 .star {
-  color: #c98a12;
+  color: var(--marigold-deep);
 }
 .card-distance {
   display: inline-flex;
@@ -902,8 +913,8 @@ input:not([type='checkbox']):focus,
 select:focus,
 textarea:focus {
   border-color: var(--klong);
-  outline: 3px solid rgb(14 90 82 / 18%);
-  outline-offset: 0;
+  outline: 3px solid var(--klong-deep);
+  outline-offset: 2px;
 }
 input[aria-invalid='true'],
 select[aria-invalid='true'],
@@ -1065,6 +1076,11 @@ input[type='checkbox'] {
 }
 .detail-heading h1 {
   margin-top: 10px;
+}
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 .detail-meta {
   display: flex;
@@ -1238,7 +1254,7 @@ input[type='checkbox'] {
   gap: 4px 12px;
 }
 .review-stars {
-  color: #c98a12;
+  color: var(--marigold-deep);
   letter-spacing: 2px;
 }
 .star-empty {
@@ -1287,7 +1303,7 @@ input[type='checkbox'] {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 6px 14px;
   background: var(--card);
   border: 1.5px solid var(--line-strong);
@@ -1708,7 +1724,7 @@ details .stack-form {
 }
 .snapshot summary {
   font-size: 0.9rem;
-  min-height: 36px;
+  min-height: 44px;
   padding: 6px 0;
 }
 .form-layout {
@@ -1842,6 +1858,9 @@ details .stack-form {
     position: static;
   }
   .map-canvas {
+    /* Leaflet turns a static map container into position: relative, which
+       would apply the desktop "top: 96px" and push the map over the list. */
+    top: auto;
     height: 52vh;
     min-height: 320px;
   }
@@ -2070,4 +2089,170 @@ details .stack-form {
 .inline-form {
   display: inline;
   margin-left: 8px;
+}
+
+/* ---------- Star rating input (partials/star-input.ejs) ---------- */
+.star-input {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.star-input legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.star-input-row {
+  display: inline-flex;
+  gap: 2px;
+}
+.star-input label {
+  position: relative;
+  padding: 2px 6px;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--line-strong);
+  cursor: pointer;
+  border-radius: var(--radius-small);
+}
+/* The chosen star and every star before it. */
+.star-input input:checked + label,
+.star-input label:has(~ input:checked),
+.star-input label:hover,
+.star-input label:has(~ label:hover) {
+  color: var(--marigold-deep);
+}
+.star-input input:focus-visible + label {
+  outline: 3px solid var(--klong);
+  outline-offset: 2px;
+}
+
+/* ---------- Own review on the place page ---------- */
+.own-review {
+  margin-bottom: 16px;
+}
+.own-review > h3 {
+  margin: 0 0 8px;
+}
+.own-review details {
+  margin-top: 12px;
+}
+.own-review summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--klong);
+}
+.own-review .remove-review {
+  margin-top: 8px;
+}
+
+/* ---------- Heart button on place cards (qol-b) ---------- */
+/* The card becomes the positioning parent; the form is a sibling of the media link. */
+.place-card {
+  position: relative;
+}
+.card-save {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  margin: 0;
+}
+.card-save-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  color: var(--ink-soft);
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgb(31 42 39 / 18%);
+  cursor: pointer;
+}
+.card-save-button:hover {
+  color: var(--brick);
+  border-color: var(--brick);
+}
+.card-save-button[aria-pressed='true'] {
+  color: var(--brick);
+  background: var(--brick-tint);
+  border-color: var(--brick);
+}
+/* The card clips overflow, so the focus ring is drawn inside the button's edge. */
+.card-save-button:focus-visible {
+  outline: 3px solid var(--klong-deep);
+  outline-offset: -4px;
+}
+.card-save-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+/* A saved heart is filled; the SVG uses stroke, so fill it with the current colour. */
+.card-save-button[aria-pressed='true'] svg {
+  fill: currentColor;
+}
+
+/* ---------- Replies under a review ---------- */
+/* Indented with a rule on the left so a reply reads as part of the review
+   above it, not as a review of its own. */
+.review-replies {
+  margin-top: 10px;
+}
+.reply-list {
+  margin: 0;
+  padding: 0 0 0 14px;
+  list-style: none;
+  border-left: 3px solid var(--line-strong);
+}
+.reply {
+  padding: 8px 0;
+}
+.reply + .reply {
+  border-top: 1px dashed var(--line);
+}
+.reply-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.reply p {
+  margin: 4px 0 0;
+}
+.reply-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px 16px;
+  margin-top: 4px;
+}
+.reply-actions form {
+  margin: 0;
+}
+/* Same 44px row as the "แก้ไข" summary, so the two controls line up. */
+.reply-actions .text-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.reply-actions details {
+  margin: 0;
+}
+/* An open edit form takes the whole row; "ลบ" moves below it. */
+.reply-actions details[open] {
+  flex-basis: 100%;
+}
+.review-replies summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--klong);
+}
+.review-replies details[open] > form {
+  margin-top: 6px;
 }

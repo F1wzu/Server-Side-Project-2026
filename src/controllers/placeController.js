@@ -50,7 +50,8 @@ async function list(req, res) {
     const query = params.toString();
     return query ? `/places?${query}` : '/places';
   };
-  res.render('places', { title: 'สำรวจสถานที่', filters, result, categories, pageLink });
+  const savedIds = req.user ? await favoriteModel.savedPlaceIds(req.user.id, result.data.map((place) => place.id)) : null;
+  res.render('places', { title: 'สำรวจสถานที่', filters, result, categories, pageLink, savedIds, cardNext: req.originalUrl });
 }
 
 // GET /places/random — "สุ่มให้หน่อย"
@@ -65,10 +66,12 @@ async function show(req, res) {
   const reviewsPage = Number.isInteger(Number(req.query.reviewsPage)) && Number(req.query.reviewsPage) >= 1 ? Number(req.query.reviewsPage) : 1;
   const [related, reviews, ownReview, saved] = await Promise.all([
     placeModel.related(place),
-    reviewModel.listForPlace(place.id, { page: Math.min(reviewsPage, 100000) }),
+    reviewModel.listForPlace(place.id, { page: Math.min(reviewsPage, 100000), viewerId: req.user?.id ?? null }),
     req.user ? reviewModel.findOwnForPlace(req.user.id, place.id) : null,
     req.user ? favoriteModel.isSaved(req.user.id, place.id) : false,
   ]);
+  const relatedIds = [...related.nearby, ...related.sameCategory].map((item) => item.id);
+  const savedIds = req.user ? await favoriteModel.savedPlaceIds(req.user.id, relatedIds) : null;
   const reviewsPageLink = (page) => (page > 1 ? `/places/${place.id}?reviewsPage=${page}#reviews` : `/places/${place.id}#reviews`);
   res.render('place', {
     title: place.name,
@@ -77,6 +80,8 @@ async function show(req, res) {
     reviews,
     ownReview,
     saved,
+    savedIds,
+    cardNext: req.originalUrl,
     reviewsPageLink,
     todayWeekday: bangkokNow().weekday,
     withMap: place.latitude !== null,
