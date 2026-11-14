@@ -54,7 +54,13 @@
         <div><dt>ตำแหน่ง</dt><dd><%= submission.latitude %>, <%= submission.longitude %> · <a class="text-link" href="https://www.google.com/maps/search/?api=1&amp;query=<%= submission.latitude %>,<%= submission.longitude %>" target="_blank" rel="noopener noreferrer">ตรวจบน Google Maps <span class="sr-only">(หน้าต่างใหม่)</span></a></dd></div>
         <% if (submission.phone) { %><div><dt>เบอร์โทร</dt><dd><%= submission.phone %></dd></div><% } %>
         <% if (submission.websiteUrl) { %><div><dt>ลิงก์</dt><dd><a class="text-link" href="<%= submission.websiteUrl %>" target="_blank" rel="noopener noreferrer nofollow"><%= submission.websiteUrl %></a></dd></div><% } %>
-        <% if (submission.imagePath) { %><div><dt>รูปภาพ</dt><dd><img class="current-photo" src="<%= submission.imagePath %>" alt="รูปที่แนบมากับคำขอ" width="320"></dd></div><% } %>
+        <% if (submission.imagePath) { %><div><dt>รูปภาพ</dt><dd>
+          <ul class="photo-grid" aria-label="รูปที่แนบมากับคำขอ">
+            <% [submission.imagePath, ...(submission.extraImagePaths || [])].filter(Boolean).forEach((src, index) => { %>
+            <li><a href="<%= src %>" target="_blank" rel="noopener noreferrer"><img src="<%= src %>" alt="<%= index === 0 ? 'รูปหลักที่แนบมากับคำขอ' : 'รูปที่ ' + (index + 1) + ' ที่แนบมากับคำขอ' %>" width="160" height="120" loading="lazy"></a></li>
+            <% }) %>
+          </ul>
+        </dd></div><% } %>
         <div>
           <dt>เวลาเปิดบริการ</dt>
           <dd>
@@ -144,6 +150,13 @@
               <p><strong><%= event.snapshot.name %></strong> · <%= event.snapshot.categoryName %></p>
               <p class="preserve-lines"><%= event.snapshot.description %></p>
               <p><%= event.snapshot.address %></p>
+              <% if (event.snapshot.imagePath) { %>
+              <ul class="photo-grid photo-grid-small" aria-label="รูปในฉบับนี้">
+                <% [event.snapshot.imagePath, ...(event.snapshot.extraImagePaths || [])].forEach((src, index) => { %>
+                <li><img src="<%= src %>" alt="<%= 'รูปที่ ' + (index + 1) + ' ในฉบับนี้' %>" width="64" height="48" loading="lazy"></li>
+                <% }) %>
+              </ul>
+              <% } %>
             </details>
           </li>
           <% }) %>

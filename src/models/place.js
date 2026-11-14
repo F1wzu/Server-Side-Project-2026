@@ -142,10 +142,17 @@ async function highlyRated(limit = 4, now = new Date()) {
   return rows.map((row) => present(row, now));
 }
 
-// One published place with its week of opening hours, or null.
+// One published place with its week of opening hours and its gallery, or
+// null. `gallery` lists every photo, cover first, then the admin's order.
 async function findPublishedById(id, now = new Date()) {
-  const row = await prisma.place.findFirst({ where: { id, ...published }, select: publicFields });
-  return row && present(row, now, { withHours: true });
+  const row = await prisma.place.findFirst({
+    where: { id, ...published },
+    select: { ...publicFields, photos: { orderBy: [{ position: 'asc' }, { id: 'asc' }], select: { imagePath: true } } },
+  });
+  if (!row) return null;
+  const { photos, ...place } = row;
+  const gallery = [place.imagePath, ...photos.map((photo) => photo.imagePath)].filter(Boolean);
+  return { ...present(place, now, { withHours: true }), gallery };
 }
 
 // Distance between two points on the earth, in kilometres (haversine formula).

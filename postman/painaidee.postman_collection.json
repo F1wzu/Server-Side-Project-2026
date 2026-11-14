@@ -1220,7 +1220,7 @@
       "description": "สมาชิกเสนอสถานที่ใหม่ (สร้างคำขอ 3 รายการเพื่อให้ผู้ดูแลอนุมัติ ส่งกลับ และปฏิเสธ)",
       "item": [
         {
-          "name": "ส่งคำขอ A (multipart + รูป)",
+          "name": "ส่งคำขอ A (multipart + 2 รูป)",
           "event": [
             {
               "listen": "test",
@@ -1228,6 +1228,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 201', () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+                  "pm.test('2 photos', () => pm.expect(pm.response.json().data.extraImagePaths).to.have.lengthOf(1));",
                   "if (pm.response.code < 300) {",
                   "const json = pm.response.json();",
                   "pm.collectionVariables.set('submissionId', String(json.data.id));",
@@ -1394,10 +1395,16 @@
                   "type": "text"
                 },
                 {
-                  "key": "photo",
+                  "key": "photos",
                   "type": "file",
-                  "src": [],
-                  "description": "รูปภาพ (jpg/png/webp ไม่เกิน 5 MB) เว้นว่างได้"
+                  "src": "postman/sample-photo.jpg",
+                  "description": "รูปที่ 1 (รูปหลัก) แนบได้สูงสุด 5 รูปในช่อง photos"
+                },
+                {
+                  "key": "photos",
+                  "type": "file",
+                  "src": "postman/sample-photo.jpg",
+                  "description": "รูปที่ 2 (เข้าแกลเลอรีเมื่ออนุมัติ)"
                 }
               ]
             }
@@ -2303,6 +2310,233 @@
                 }
               ]
             }
+          }
+        },
+        {
+          "name": "เพิ่มรูปให้สถานที่ (3 รูป)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.expect(pm.response.code).to.eql(201));",
+                  "const g = pm.response.json().data;",
+                  "pm.test('cover + 2 more', () => { pm.expect(g.cover).to.be.a('string'); pm.expect(g.photos).to.have.lengthOf(2); });",
+                  "pm.collectionVariables.set('photoId', String(g.photos[0].id));",
+                  "pm.collectionVariables.set('photoId2', String(g.photos[1].id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/places/{{adminPlaceId}}/photos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "places",
+                "{{adminPlaceId}}",
+                "photos"
+              ]
+            },
+            "description": "เพิ่มได้ครั้งละไม่เกิน 9 รูป รวมไม่เกิน 10 รูปต่อสถานที่ ถ้ายังไม่มีรูปหลัก รูปแรกจะเป็นรูปหลัก",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "photos",
+                  "type": "file",
+                  "src": "postman/sample-photo.jpg",
+                  "description": "รูปที่ 1"
+                },
+                {
+                  "key": "photos",
+                  "type": "file",
+                  "src": "postman/sample-photo.jpg",
+                  "description": "รูปที่ 2"
+                },
+                {
+                  "key": "photos",
+                  "type": "file",
+                  "src": "postman/sample-photo.jpg",
+                  "description": "รูปที่ 3"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "เลื่อนรูปลง",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('moved', () => pm.expect(pm.response.json().data.photos[1].id).to.eql(Number(pm.collectionVariables.get('photoId'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/places/{{adminPlaceId}}/photos/{{photoId}}/move",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "places",
+                "{{adminPlaceId}}",
+                "photos",
+                "{{photoId}}",
+                "move"
+              ]
+            },
+            "description": "direction เป็น up หรือ down",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"direction\": \"down\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "ตั้งเป็นรูปหลัก",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/places/{{adminPlaceId}}/photos/{{photoId2}}/cover",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "places",
+                "{{adminPlaceId}}",
+                "photos",
+                "{{photoId2}}",
+                "cover"
+              ]
+            },
+            "description": "สลับกับรูปหลักเดิม"
+          }
+        },
+        {
+          "name": "ลบรูป",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', () => pm.expect(pm.response.code).to.eql(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/places/{{adminPlaceId}}/photos/{{photoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "places",
+                "{{adminPlaceId}}",
+                "photos",
+                "{{photoId}}"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "ลบรูปหลัก",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('a photo took its place', () => pm.expect(pm.response.json().data.cover).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/places/{{adminPlaceId}}/cover",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "places",
+                "{{adminPlaceId}}",
+                "cover"
+              ]
+            },
+            "description": "รูปแรกในแกลเลอรีขึ้นเป็นรูปหลักแทน"
           }
         },
         {
@@ -3421,6 +3655,14 @@
     },
     {
       "key": "replyId2",
+      "value": ""
+    },
+    {
+      "key": "photoId",
+      "value": ""
+    },
+    {
+      "key": "photoId2",
       "value": ""
     }
   ]

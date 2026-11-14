@@ -2256,3 +2256,115 @@ details .stack-form {
 .review-replies details[open] > form {
   margin-top: 6px;
 }
+
+/* ---------- Place photo gallery ---------- */
+/* A row of full-width slides that snap into place when swiped. */
+.gallery-strip {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  border-radius: 24px;
+  scrollbar-width: none;
+}
+.gallery-strip::-webkit-scrollbar {
+  display: none;
+}
+.gallery-strip:focus-visible {
+  outline: 3px solid var(--klong-deep);
+  outline-offset: 3px;
+}
+.gallery-slide {
+  flex: 0 0 100%;
+  margin: 0;
+  scroll-snap-align: start;
+  border-radius: 0;
+}
+.gallery-thumbs {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0 0 4px;
+  overflow-x: auto;
+  list-style: none;
+}
+.gallery-thumbs a {
+  display: block;
+  width: 72px;
+  height: 52px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  opacity: 0.7;
+}
+.gallery-thumbs a[aria-current] {
+  border-color: var(--klong);
+  opacity: 1;
+}
+.gallery-thumbs a:focus-visible {
+  outline: 3px solid var(--klong-deep);
+  outline-offset: 2px;
+}
+.gallery-thumbs img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Admin photo gallery page (src/views/admin/place-photos.ejs). */
+.photo-admin-cover img,
+.photo-admin-item img {
+  display: block;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+.photo-admin-cover { margin: 0 0 12px; }
+.photo-admin-cover img { max-height: 360px; }
+.photo-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.photo-admin-item img { aspect-ratio: 4 / 3; }
+.photo-admin-actions {
+  display: grid;
+  gap: 8px;
+}
+.photo-admin-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+.photo-admin-row:not(:has(form)) {
+  display: none;
+}
+.photo-admin-actions form { margin: 0; }
+.photo-admin-delete {
+  color: var(--brick);
+}
+
+/* Photos of a submission: a small grid, cover first. */
+.photo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+.photo-grid img {
+  display: block;
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+}
+.photo-grid-small img {
+  width: 64px;
+  height: 48px;
+}

@@ -36,6 +36,26 @@
 
   <div class="detail-grid">
     <div class="detail-main">
+      <% if (place.gallery && place.gallery.length > 1) { %>
+      <%# Several photos: a swipeable strip (CSS scroll-snap, works without
+          JavaScript) and thumbnails that jump to a photo. site.js only adds
+          smooth scrolling and marks the current thumbnail. %>
+      <div class="detail-gallery" data-gallery>
+        <div class="gallery-strip" data-gallery-strip tabindex="0" role="region" aria-label="รูปของ <%= place.name %> <%= place.gallery.length %> รูป เลื่อนซ้ายขวาเพื่อดู">
+          <% place.gallery.forEach((path, index) => { %>
+          <figure class="detail-image gallery-slide tone-<%= categoryKind(place.category) %>" id="photo-<%= index + 1 %>">
+            <img src="<%= path %>" alt="<%= isIllustration(path) ? 'ภาพประกอบหมวด' + place.category.name : place.name + ' รูปที่ ' + (index + 1) %>"<%- index ? ' loading="lazy"' : '' %>>
+            <span class="image-note" aria-hidden="true"><%= index + 1 %> / <%= place.gallery.length %></span>
+          </figure>
+          <% }) %>
+        </div>
+        <ol class="gallery-thumbs" aria-label="เลือกรูป">
+          <% place.gallery.forEach((path, index) => { %>
+          <li><a href="#photo-<%= index + 1 %>" data-gallery-thumb<%- index ? '' : ' aria-current="true"' %>><img src="<%= path %>" alt="" loading="lazy"><span class="sr-only">รูปที่ <%= index + 1 %> จาก <%= place.gallery.length %></span></a></li>
+          <% }) %>
+        </ol>
+      </div>
+      <% } else { %>
       <div class="detail-image tone-<%= categoryKind(place.category) %>">
         <% if (place.imagePath && isIllustration(place.imagePath)) { %>
         <img src="<%= place.imagePath %>" alt="ภาพประกอบหมวด<%= place.category.name %> ไม่ใช่ภาพถ่ายของสถานที่จริง">
@@ -46,6 +66,7 @@
         <span class="image-placeholder"><%- icon(categoryIcon(place.category), 48) %></span>
         <% } %>
       </div>
+      <% } %>
 
       <section class="detail-section">
         <h2>เกี่ยวกับสถานที่</h2>

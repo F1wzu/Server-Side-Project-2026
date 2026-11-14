@@ -6,7 +6,7 @@ const categoryModel = require('../models/category');
 const { readSubmission, versionSchema, LAT_KRABANG } = require('../validation/submission');
 const { parseId } = require('../utils/ids');
 const { validate, errorsByField } = require('../utils/validate');
-const { storePhoto } = require('../utils/photo');
+const { storePhotos } = require('../utils/photo');
 const storage = require('../storage');
 const { setFlash } = require('../middleware/flash');
 const AppError = require('../utils/AppError');
@@ -43,17 +43,21 @@ function validContent(body) {
   return data;
 }
 
-// Stores the photo only after the rest of the form passed, and deletes it
-// again if the database step fails, so no orphan files are left behind.
-async function withStoredPhoto(file, work) {
-  const imagePath = await storePhoto(file);
+// Stores the photos only after the rest of the form passed (all or nothing),
+// and deletes them again if the database step fails, so no orphan files are
+// left behind.
+async function withStoredPhotos(files, work) {
+  const imagePaths = await storePhotos(files);
   try {
-    return await work(imagePath);
+    return await work(imagePaths);
   } catch (err) {
-    if (imagePath) await storage.remove(imagePath).catch(() => {});
+    await Promise.all(imagePaths.map((path) => storage.remove(path).catch(() => {})));
     throw err;
   }
 }
+
+// Replaced files nothing uses any more; deleted only after the update committed.
+const removeFiles = (paths) => Promise.all(paths.map((path) => storage.remove(path).catch(() => {})));
 
 // Form values to show again after an error (strings, as typed).
 function formValues(body, submission) {
@@ -68,7 +72,7 @@ function formValues(body, submission) {
     closesAt: body[`closes${weekday}`] || '',
     closesNextDay: body[`next${weekday}`] === 'on',
   }));
-  return { ...body, hours, imagePath: submission?.imagePath };
+  return { ...body, hours, imagePath: submission?.imagePath, extraImagePaths: submission?.extraImagePaths ?? [] };
 }
 
 async function renderForm(res, { status = 200, submission = null, body = null, errors = {}, formError = null }) {
@@ -100,7 +104,7 @@ async function newForm(req, res) {
 async function create(req, res) {
   try {
     const data = validContent(req.body);
-    const submission = await withStoredPhoto(req.file, (imagePath) => submissionModel.create(req.user.id, data, imagePath));
+    const submission = await withStoredPhotos(req.photoFiles, (imagePaths) => submissionModel.create(req.user.id, data, imagePaths));
     setFlash(req, 'success', 'ส่งคำขอแล้ว ผู้ดูแลจะตรวจสอบก่อนเผยแพร่');
     return res.redirect(303, `/me/submissions/${submission.id}`);
   } catch (err) {
@@ -153,8 +157,8 @@ async function update(req, res) {
     await ensureEditable(req.user.id, id);
     const data = validContent(req.body);
     const { version } = validate(versionSchema, req.body);
-    const { replacedImagePath } = await withStoredPhoto(req.file, (imagePath) => submissionModel.updateOwn(req.user.id, id, version, data, imagePath));
-    if (replacedImagePath) await storage.remove(replacedImagePath).catch(() => {});
+    const { replacedImagePaths } = await withStoredPhotos(req.photoFiles, (imagePaths) => submissionModel.updateOwn(req.user.id, id, version, data, imagePaths));
+    await removeFiles(replacedImagePaths);
     setFlash(req, 'success', 'บันทึกการแก้ไขแล้ว กด "ส่งตรวจสอบอีกครั้ง" เมื่อพร้อม');
     return res.redirect(303, `/me/submissions/${id}`);
   } catch (err) {
@@ -187,7 +191,7 @@ async function resubmit(req, res) {
 // POST /api/v1/submissions (multipart or JSON)
 async function apiCreate(req, res) {
   const data = validContent(req.body);
-  const submission = await withStoredPhoto(req.file, (imagePath) => submissionModel.create(req.user.id, data, imagePath));
+  const submission = await withStoredPhotos(req.photoFiles, (imagePaths) => submissionModel.create(req.user.id, data, imagePaths));
   res.status(201).json({ data: submission });
 }
 
@@ -208,8 +212,8 @@ async function apiUpdate(req, res) {
   await ensureEditable(req.user.id, id);
   const data = validContent(req.body);
   const { version } = validate(versionSchema, req.body);
-  const { submission, replacedImagePath } = await withStoredPhoto(req.file, (imagePath) => submissionModel.updateOwn(req.user.id, id, version, data, imagePath));
-  if (replacedImagePath) await storage.remove(replacedImagePath).catch(() => {});
+  const { submission, replacedImagePaths } = await withStoredPhotos(req.photoFiles, (imagePaths) => submissionModel.updateOwn(req.user.id, id, version, data, imagePaths));
+  await removeFiles(replacedImagePaths);
   res.json({ data: submission });
 }
 

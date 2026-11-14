@@ -6,6 +6,7 @@ const AppError = require('../utils/AppError');
 const { paginate } = require('../utils/pagination');
 const { toPlaceHoursRows } = require('../utils/hours');
 const { toClock } = require('../utils/openingHours');
+const { isUploadUnused } = require('./photoUsage');
 
 const number = (decimal) => (decimal === null || decimal === undefined ? null : Number(decimal));
 
@@ -43,6 +44,8 @@ const detailSelect = {
   updatedAt: true,
   category: { select: { id: true, name: true } },
   hours: { orderBy: { weekday: 'asc' } },
+  // The other gallery photos; `imagePath` above is the cover.
+  photos: { orderBy: { position: 'asc' }, select: { id: true, imagePath: true, position: true } },
 };
 
 function presentHours(hours) {
@@ -143,18 +146,6 @@ async function create(adminId, data, imagePath, { status = 'published', featured
   return findById(id);
 }
 
-// Is the old file one that nothing else uses? Seed illustrations (/images/...)
-// belong to the project and are never deleted; an approved submission shares
-// its photo with the place it created.
-async function isOrphanedUpload(tx, imagePath, placeId) {
-  if (!imagePath || !imagePath.startsWith('/uploads/')) return false;
-  const [submissions, places] = await Promise.all([
-    tx.submission.count({ where: { imagePath } }),
-    tx.place.count({ where: { imagePath, id: { not: placeId } } }),
-  ]);
-  return submissions === 0 && places === 0;
-}
-
 // Edits a place. `data` is the full content (or null to change only the
 // publication fields); `publication` holds status / featuredOrder when given.
 // Hours are replaced together with the place. Returns the place and, when a
@@ -178,7 +169,8 @@ async function update(id, data, publication, imagePath) {
       await tx.placeHours.createMany({ data: toPlaceHoursRows(data.hours).map((row) => ({ ...row, placeId: id })) });
     }
     const replaced = imagePath && current.imagePath && current.imagePath !== imagePath;
-    const orphaned = replaced ? await isOrphanedUpload(tx, current.imagePath, id) : false;
+    // Asked after the update, so this place no longer counts as a user.
+    const orphaned = replaced ? await isUploadUnused(tx, current.imagePath) : false;
     return { orphanedImagePath: orphaned ? current.imagePath : null };
   });
   return { place: await findById(id), orphanedImagePath };

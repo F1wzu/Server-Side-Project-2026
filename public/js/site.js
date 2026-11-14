@@ -117,3 +117,35 @@ document.querySelectorAll('form[data-favorite]').forEach((form) => {
     }
   });
 });
+
+// Place photo gallery. Without JavaScript the strip still swipes and the
+// thumbnails are plain #photo-n links; here a thumbnail scrolls only the
+// strip (not the whole page) and the thumbnail of the photo in view is marked.
+document.querySelectorAll('[data-gallery]').forEach((gallery) => {
+  const strip = gallery.querySelector('[data-gallery-strip]');
+  const thumbs = [...gallery.querySelectorAll('[data-gallery-thumb]')];
+  const mark = (index) => thumbs.forEach((thumb, i) => (i === index ? thumb.setAttribute('aria-current', 'true') : thumb.removeAttribute('aria-current')));
+  thumbs.forEach((thumb, index) => {
+    thumb.addEventListener('click', (event) => {
+      event.preventDefault();
+      strip.scrollTo({ left: strip.clientWidth * index, behavior: 'smooth' });
+      mark(index);
+    });
+  });
+  let timer;
+  strip.addEventListener('scroll', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => mark(Math.round(strip.scrollLeft / strip.clientWidth)), 80);
+  });
+});
+
+// A file input that takes several photos warns as soon as too many are
+// picked, instead of after a slow upload. The server still enforces the
+// limit; this only saves the member a wasted upload.
+document.querySelectorAll('input[type="file"][data-max-files]').forEach((input) => {
+  input.addEventListener('change', () => {
+    const max = Number(input.dataset.maxFiles);
+    input.setCustomValidity(input.files.length > max ? `แนบรูปได้ไม่เกิน ${max} รูป` : '');
+    input.reportValidity();
+  });
+});

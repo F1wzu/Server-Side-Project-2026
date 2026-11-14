@@ -30,7 +30,7 @@
       <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
       <% if (editing) { %><input type="hidden" name="version" value="<%= submission.version %>"><% } %>
 
-      <%- include('partials/place-fields', { values, errors, categories, bounds }) %>
+      <%- include('partials/place-fields', { values, errors, categories, bounds, multiPhoto: true }) %>
 
 
       <div class="form-actions">

@@ -56,4 +56,33 @@ function photoUpload(req, res, next) {
   });
 }
 
-module.exports = { photoUpload, MAX_FILE_SIZE };
+// Several photos in one form: the files of a `photos` input (multiple) and,
+// for older clients, a single `photo` field. They end up in req.photoFiles,
+// `photo` first, empty parts dropped. At most `max` files in total; each
+// is still at most 5 MB and is processed before anything is stored.
+function photosUpload(max) {
+  const many = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: MAX_FILE_SIZE, files: max, fields: 40, fieldSize: 20 * 1024, parts: 40 + max },
+  }).fields([
+    { name: 'photo', maxCount: 1 },
+    { name: 'photos', maxCount: max },
+  ]);
+  const tooMany = `แนบรูปได้ไม่เกิน ${max} รูป`;
+  return function photosUploadMiddleware(req, res, next) {
+    many(req, res, (err) => {
+      if (err) {
+        if (err instanceof AppError) return next(err);
+        const mapped = toAppError(err);
+        if (['LIMIT_UNEXPECTED_FILE', 'LIMIT_FILE_COUNT'].includes(err.code)) mapped.message = tooMany;
+        return next(mapped);
+      }
+      const files = [...(req.files?.photo ?? []), ...(req.files?.photos ?? [])].filter((file) => !(file.size === 0 && !file.originalname));
+      if (files.length > max) return next(new AppError(400, 'VALIDATION_ERROR', tooMany));
+      req.photoFiles = files;
+      return next();
+    });
+  };
+}
+
+module.exports = { photoUpload, photosUpload, MAX_FILE_SIZE };

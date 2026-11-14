@@ -9,6 +9,7 @@
 const prisma = require('../config/db');
 const AppError = require('../utils/AppError');
 const { paginate } = require('../utils/pagination');
+const { unusedUploads } = require('./photoUsage');
 
 const number = (decimal) => (decimal === null || decimal === undefined ? null : Number(decimal));
 
@@ -25,6 +26,7 @@ function snapshotOf(submission, categoryName) {
     phone: submission.phone,
     websiteUrl: submission.websiteUrl,
     imagePath: submission.imagePath,
+    extraImagePaths: submission.extraImagePaths ?? [],
     hours: submission.hours,
   };
 }
@@ -71,10 +73,13 @@ const detailInclude = {
 };
 
 // A new submission starts as pending at version 1, with a "submitted" event.
-async function create(userId, data, imagePath) {
+// The first photo is the cover (image_path), the others are kept in order in
+// extra_image_paths.
+async function create(userId, data, imagePaths = []) {
+  const [imagePath = null, ...extraImagePaths] = imagePaths;
   const submission = await prisma.$transaction(async (tx) => {
     const name = await categoryName(tx, data.categoryId);
-    const created = await tx.submission.create({ data: { ...contentData(data), imagePath, userId } });
+    const created = await tx.submission.create({ data: { ...contentData(data), imagePath, extraImagePaths, userId } });
     await tx.submissionEvent.create({ data: { submissionId: created.id, actorId: userId, action: 'submitted', snapshot: snapshotOf(created, name) } });
     return created;
   });
@@ -115,21 +120,27 @@ async function explainNoMatch(tx, userId, id) {
   return new AppError(409, 'STALE_VERSION', 'คำขอนี้ถูกเปลี่ยนแปลงไปแล้ว กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง');
 }
 
-// Edits a returned submission. Returns the submission and the photo it
-// replaced (if any), so the caller can delete that file once this succeeded.
-async function updateOwn(userId, id, version, data, newImagePath) {
+// Edits a returned submission. New photos replace ALL the current ones (cover
+// and extras); with no new photos the current ones stay. Returns the
+// submission and the replaced files that nothing uses any more, so the caller
+// can delete them once this transaction has committed.
+async function updateOwn(userId, id, version, data, newImagePaths = []) {
   return prisma.$transaction(async (tx) => {
     const name = await categoryName(tx, data.categoryId);
-    const before = await tx.submission.findUnique({ where: { id }, select: { imagePath: true } });
+    const replacing = newImagePaths.length > 0;
+    const before = await tx.submission.findUnique({ where: { id }, select: { imagePath: true, extraImagePaths: true } });
     const { count } = await tx.submission.updateMany({
       where: { id, userId, status: 'changes_requested', version },
-      data: { ...contentData(data), ...(newImagePath && { imagePath: newImagePath }), version: { increment: 1 } },
+      data: { ...contentData(data), ...(replacing && { imagePath: newImagePaths[0], extraImagePaths: newImagePaths.slice(1) }), version: { increment: 1 } },
     });
     if (count === 0) throw await explainNoMatch(tx, userId, id);
 
     const updated = await tx.submission.findUnique({ where: { id } });
     await tx.submissionEvent.create({ data: { submissionId: id, actorId: userId, action: 'edited', snapshot: snapshotOf(updated, name) } });
-    return { submission: present(updated), replacedImagePath: newImagePath ? before.imagePath : null };
+    // Asked after the change, inside the transaction: a replaced file may still
+    // be used elsewhere (e.g. the photo sits in an earlier approved place).
+    const old = replacing ? [before.imagePath, ...before.extraImagePaths].filter(Boolean) : [];
+    return { submission: present(updated), replacedImagePaths: await unusedUploads(tx, old) };
   });
 }
 

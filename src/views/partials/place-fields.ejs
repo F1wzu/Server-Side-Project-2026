@@ -1,9 +1,13 @@
 <%# The fields that describe a place: used by the member's submission form
     and by the admin's place form. Expects: values, errors, categories, bounds,
-    and optionally pinRequired (default true). Field names match
+    and optionally pinRequired (default true) and multiPhoto (default false:
+    the submission form sets it to take up to 5 photos; the admin form keeps
+    its single photo). Field names match
     src/validation/submission.js. %>
 <%
   const pinRequired = locals.pinRequired !== false;
+  const multiPhoto = locals.multiPhoto === true;
+  const currentPhotos = [values.imagePath, ...(values.extraImagePaths || [])].filter(Boolean);
   const fieldError = (name) => errors[name];
   const invalid = (name) => (errors[name] ? 'aria-invalid="true" aria-describedby="' + name + '-error"' : '');
   const hoursError = Object.keys(errors).find((key) => key.startsWith('hours'));
@@ -69,14 +73,25 @@
 </div>
 
 <div class="field">
-  <label for="photo">รูปภาพ (ถ้ามี)</label>
-  <% if (values.imagePath) { %>
+  <label for="photo"><%= multiPhoto ? 'รูปภาพ (ถ้ามี สูงสุด 5 รูป)' : 'รูปภาพ (ถ้ามี)' %></label>
+  <% if (multiPhoto && currentPhotos.length) { %>
+  <ul class="photo-grid" aria-label="รูปที่แนบไว้ในคำขอนี้">
+    <% currentPhotos.forEach((src, index) => { %>
+    <li><img src="<%= src %>" alt="<%= index === 0 ? 'รูปหลักที่แนบไว้' : 'รูปที่ ' + (index + 1) + ' ที่แนบไว้' %>" width="120" height="90" loading="lazy"></li>
+    <% }) %>
+  </ul>
+  <small>ถ้าเลือกรูปใหม่ รูปเดิมทั้งหมดจะถูกแทนที่</small>
+  <% } else if (values.imagePath) { %>
   <img class="current-photo" src="<%= values.imagePath %>" alt="รูปที่แนบไว้ในคำขอนี้" width="320">
   <small>เลือกรูปใหม่เพื่อแทนที่รูปเดิม หรือเว้นว่างเพื่อใช้รูปเดิม</small>
   <% } %>
-  <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="photo-hint<%= fieldError('photo') ? ' photo-error' : '' %>" <%- fieldError('photo') ? 'aria-invalid="true"' : '' %>>
+  <input id="photo" name="<%= multiPhoto ? 'photos' : 'photo' %>" type="file"<%- multiPhoto ? ' multiple data-max-files="5"' : '' %> accept="image/jpeg,image/png,image/webp" aria-describedby="photo-hint<%= fieldError('photo') ? ' photo-error' : '' %>" <%- fieldError('photo') ? 'aria-invalid="true"' : '' %>>
   <% if (fieldError('photo')) { %><p class="field-error" id="photo-error"><%= fieldError('photo') %></p><% } %>
+  <% if (multiPhoto) { %>
+  <small id="photo-hint">แนบได้สูงสุด 5 รูป รูปแรกจะเป็นรูปหลัก JPEG PNG หรือ WebP ไม่เกิน 5 MB ต่อรูป ระบบจะลบข้อมูลตำแหน่ง GPS ในรูปออกให้</small>
+  <% } else { %>
   <small id="photo-hint">JPEG, PNG หรือ WebP ไม่เกิน 5 MB ระบบจะลบข้อมูลตำแหน่ง GPS ในรูปออกให้</small>
+  <% } %>
 </div>
 
 <fieldset class="field-group">

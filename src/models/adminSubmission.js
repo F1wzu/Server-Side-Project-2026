@@ -106,6 +106,14 @@ async function approve(adminId, id, version, pin = null) {
       select: { id: true },
     });
 
+    // Photos 2..5 become the gallery, in the member's order. The files are
+    // shared with the submission, which keeps pointing at them.
+    if (submission.extraImagePaths.length > 0) {
+      await tx.placePhoto.createMany({
+        data: submission.extraImagePaths.map((imagePath, position) => ({ placeId: place.id, imagePath, position })),
+      });
+    }
+
     const updated = await tx.submission.update({
       where: { id },
       data: { status: 'approved', placeId: place.id, version: { increment: 1 }, latitude: position.latitude, longitude: position.longitude },

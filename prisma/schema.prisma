@@ -137,6 +137,7 @@ model Place {
   category   Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   createdBy  User?         @relation(fields: [createdById], references: [id], onDelete: Restrict)
   hours      PlaceHours[]
+  photos     PlacePhoto[]
   reviews    Review[]
   favorites  Favorite[]
   submission Submission?
@@ -204,6 +205,23 @@ model ReviewReply {
   @@map("review_replies")
 }
 
+// Gallery photos of a place besides its cover (places.image_path), in the
+// order an admin chose. At most 9, so a place has at most 10 photos.
+model PlacePhoto {
+  id        Int      @id @default(autoincrement())
+  placeId   Int      @map("place_id")
+  imagePath String   @map("image_path") @db.VarChar(500)
+  position  Int      @db.SmallInt
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  // No two photos share a position. Swapping two photos goes through a
+  // temporary position (see models/placePhoto.js).
+  @@unique([placeId, position])
+  @@map("place_photos")
+}
+
 model Favorite {
   userId    Int      @map("user_id")
   placeId   Int      @map("place_id")
@@ -218,24 +236,26 @@ model Favorite {
 }
 
 model Submission {
-  id          Int              @id @default(autoincrement())
-  userId      Int              @map("user_id")
-  categoryId  Int              @map("category_id")
-  name        String           @db.VarChar(200)
-  description String
-  address     String           @db.VarChar(500)
-  latitude    Decimal?         @db.Decimal(9, 6)
-  longitude   Decimal?         @db.Decimal(9, 6)
-  imagePath   String?          @map("image_path") @db.VarChar(500)
-  phone       String?          @db.VarChar(30)
-  websiteUrl  String?          @map("website_url") @db.VarChar(500)
-  hours       Json
-  status      SubmissionStatus @default(pending)
-  version     Int              @default(1)
-  reviewNote  String?          @map("review_note") @db.VarChar(1000)
-  placeId     Int?             @unique @map("place_id")
-  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id              Int              @id @default(autoincrement())
+  userId          Int              @map("user_id")
+  categoryId      Int              @map("category_id")
+  name            String           @db.VarChar(200)
+  description     String
+  address         String           @db.VarChar(500)
+  latitude        Decimal?         @db.Decimal(9, 6)
+  longitude       Decimal?         @db.Decimal(9, 6)
+  imagePath       String?          @map("image_path") @db.VarChar(500)
+  // Photos 2 to 5 of the submission; image_path is the first (the cover).
+  extraImagePaths String[]         @default([]) @map("extra_image_paths") @db.VarChar(500)
+  phone           String?          @db.VarChar(30)
+  websiteUrl      String?          @map("website_url") @db.VarChar(500)
+  hours           Json
+  status          SubmissionStatus @default(pending)
+  version         Int              @default(1)
+  reviewNote      String?          @map("review_note") @db.VarChar(1000)
+  placeId         Int?             @unique @map("place_id")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   user     User              @relation(fields: [userId], references: [id], onDelete: Restrict)
   category Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)

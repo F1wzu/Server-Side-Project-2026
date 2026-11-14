@@ -9,12 +9,13 @@ const reviewController = require('../controllers/reviewController');
 const replyController = require('../controllers/replyController');
 const reportController = require('../controllers/reportController');
 const submissionController = require('../controllers/submissionController');
-const { photoUpload } = require('../middleware/upload');
+const { photosUpload } = require('../middleware/upload');
 const { csrfAfterUpload } = require('../middleware/csrf');
 const { stripNul } = require('../middleware/sanitize');
 
 // Parse the photo form, then check its CSRF token (see middleware/csrf.js).
-const withPhoto = [photoUpload, stripNul, csrfAfterUpload];
+// Up to 5 photos per submission (the first is the cover).
+const withPhotos = [photosUpload(5), stripNul, csrfAfterUpload];
 const { requireLogin, requireAdmin, redirectIfLoggedIn } = require('../middleware/auth');
 const { loginLimiter, passwordChangeLimiter, registerLimiter, memberWriteLimiter } = require('../middleware/rateLimit');
 
@@ -46,11 +47,11 @@ router.post('/places/:id/reports', requireLogin, memberWriteLimiter, reportContr
 
 // Submissions (members). Login is checked before the upload is read.
 router.get('/submissions/new', requireLogin, submissionController.newForm);
-router.post('/submissions', requireLogin, memberWriteLimiter, withPhoto, submissionController.create);
+router.post('/submissions', requireLogin, memberWriteLimiter, withPhotos, submissionController.create);
 router.get('/me/submissions', requireLogin, submissionController.mine);
 router.get('/me/submissions/:id', requireLogin, submissionController.show);
 router.get('/me/submissions/:id/edit', requireLogin, submissionController.editForm);
-router.post('/me/submissions/:id', requireLogin, memberWriteLimiter, withPhoto, submissionController.update);
+router.post('/me/submissions/:id', requireLogin, memberWriteLimiter, withPhotos, submissionController.update);
 router.post('/me/submissions/:id/resubmit', requireLogin, memberWriteLimiter, submissionController.resubmit);
 
 // Accounts
@@ -67,7 +68,7 @@ router.post('/me/password', requireLogin, passwordChangeLimiter, authController.
 router.get('/admin', requireLogin, requireAdmin, adminController.dashboard);
 
 // Admin areas. Everything under /admin needs a logged-in admin.
-for (const area of ['submissions', 'places', 'moderation']) {
+for (const area of ['submissions', 'places', 'photos', 'moderation']) {
   router.use('/admin', requireLogin, requireAdmin, require(`./admin/${area}`).web);
 }
 

@@ -52,4 +52,25 @@ async function storePhoto(file) {
   return storage.save(webp);
 }
 
-module.exports = { detectImageType, processPhoto, storePhoto, MAX_SIDE, MAX_INPUT_PIXELS };
+// Processes and stores several photos, in order. All or nothing: if one is
+// refused, the ones already stored are deleted again and the error says
+// which photo it was ("รูปที่ 2: ..."). Returns their public paths.
+async function storePhotos(files = []) {
+  const stored = [];
+  try {
+    for (const [index, file] of files.entries()) {
+      try {
+        stored.push(await storePhoto(file));
+      } catch (err) {
+        if (err instanceof AppError && files.length > 1) err.message = `รูปที่ ${index + 1}: ${err.message}`;
+        throw err;
+      }
+    }
+    return stored;
+  } catch (err) {
+    await Promise.all(stored.map((path) => storage.remove(path).catch(() => {})));
+    throw err;
+  }
+}
+
+module.exports = { detectImageType, processPhoto, storePhoto, storePhotos, MAX_SIDE, MAX_INPUT_PIXELS };

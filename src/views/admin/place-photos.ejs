@@ -1,0 +1,98 @@
+<%- include('../partials/head') %>
+<%
+  const others = place.photos;
+  const label = (n) => 'รูปที่ ' + n + ' ของ ' + place.name;
+%>
+<div class="container narrow page-content">
+  <%- include('../partials/admin-nav') %>
+  <nav class="breadcrumb" aria-label="ตำแหน่งหน้า">
+    <a href="/admin/places">จัดการสถานที่</a><%- icon('chevron', 16) %>
+    <span><%= place.name %></span>
+  </nav>
+  <%- include('../partials/admin-place-tabs', { place, current: 'photos' }) %>
+  <div class="page-heading">
+    <h1>รูปภาพของ <%= place.name %></h1>
+    <p>รูปหลักแสดงเป็นรูปแรกของสถานที่และในรายการ รูปอื่นเรียงตามลำดับด้านล่าง</p>
+    <p class="meta"><%= count %> / <%= max %> รูป</p>
+  </div>
+
+  <section class="panel" aria-labelledby="cover-heading">
+    <h2 id="cover-heading">รูปหลัก</h2>
+    <% if (place.imagePath) { %>
+    <figure class="photo-admin-cover">
+      <img src="<%= place.imagePath %>" alt="รูปหลักของ <%= place.name %>">
+      <figcaption class="meta">รูปหลัก</figcaption>
+    </figure>
+    <form method="post" action="/admin/places/<%= place.id %>/cover/delete" class="photo-admin-actions">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <button class="button button-small button-danger" type="submit">ลบรูปหลัก</button>
+    </form>
+    <% } else { %>
+    <p class="meta">ยังไม่มีรูปหลัก รูปแรกที่เพิ่มจะเป็นรูปหลัก</p>
+    <% } %>
+  </section>
+
+  <section class="panel" aria-labelledby="others-heading">
+    <h2 id="others-heading">รูปอื่น</h2>
+    <% if (others.length === 0) { %>
+    <p class="meta">ยังไม่มีรูปอื่น</p>
+    <% } else { %>
+    <ul class="photo-admin-grid">
+      <% others.forEach((photo, index) => { %>
+      <li class="photo-admin-item">
+        <img src="<%= photo.imagePath %>" alt="<%= label(index + 2) %>" loading="lazy">
+        <p class="meta">รูปที่ <%= index + 2 %></p>
+        <%# Two rows: the order (earlier / later in the gallery), then what to
+            do with the photo. In a grid "up / down" would be ambiguous. %>
+        <div class="photo-admin-actions">
+          <div class="photo-admin-row">
+            <% if (index > 0) { %>
+            <form method="post" action="/admin/places/<%= place.id %>/photos/<%= photo.id %>/move">
+              <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+              <input type="hidden" name="direction" value="up">
+              <button class="button button-small button-outline" type="submit" aria-label="ย้ายรูปที่ <%= index + 2 %> ไปก่อนหน้า">← ก่อนหน้า</button>
+            </form>
+            <% } %>
+            <% if (index < others.length - 1) { %>
+            <form method="post" action="/admin/places/<%= place.id %>/photos/<%= photo.id %>/move">
+              <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+              <input type="hidden" name="direction" value="down">
+              <button class="button button-small button-outline" type="submit" aria-label="ย้ายรูปที่ <%= index + 2 %> ไปถัดไป">ถัดไป →</button>
+            </form>
+            <% } %>
+          </div>
+          <div class="photo-admin-row">
+            <form method="post" action="/admin/places/<%= place.id %>/photos/<%= photo.id %>/cover">
+              <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+              <button class="button button-small button-outline" type="submit" aria-label="ตั้งรูปที่ <%= index + 2 %> เป็นรูปหลัก">ตั้งเป็นรูปหลัก</button>
+            </form>
+            <form method="post" action="/admin/places/<%= place.id %>/photos/<%= photo.id %>/delete">
+              <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+              <button class="text-button photo-admin-delete" type="submit" aria-label="ลบรูปที่ <%= index + 2 %>">ลบ</button>
+            </form>
+          </div>
+        </div>
+      </li>
+      <% }) %>
+    </ul>
+    <% } %>
+  </section>
+
+  <% if (count < max) { %>
+  <section class="panel" aria-labelledby="upload-heading">
+    <h2 id="upload-heading">เพิ่มรูป</h2>
+    <form method="post" action="/admin/places/<%= place.id %>/photos" enctype="multipart/form-data" class="stack-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <div class="field">
+        <label for="photos">เลือกรูป (เพิ่มได้อีก <%= max - count %> รูป)</label>
+        <input id="photos" type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple required data-max-files="<%= Math.min(max - count, 9) %>">
+        <small>JPEG, PNG หรือ WebP ไม่เกิน 5 MB ต่อรูป เลือกได้หลายรูปพร้อมกัน</small>
+      </div>
+      <button class="button button-primary" type="submit">อัปโหลดรูป</button>
+    </form>
+  </section>
+  <% } else { %>
+  <p class="meta">มีรูปครบ <%= max %> รูปแล้ว ลบรูปก่อนจึงจะเพิ่มรูปใหม่ได้</p>
+  <% } %>
+</div>
+<%- include('../partials/foot') %>
