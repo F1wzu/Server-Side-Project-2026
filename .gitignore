@@ -13,3 +13,8 @@ storage/uploads/
 # Logs and editor files
 *.log
 .DS_Store
+
+# Claude Code files (local only)
+CLAUDE.md
+.claude/
+prompt-doctor/
