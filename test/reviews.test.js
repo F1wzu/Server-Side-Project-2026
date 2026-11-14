@@ -257,6 +257,11 @@ describe('saved places', () => {
   });
 
   test('saving the same place twice at the same moment creates one row and no error', async () => {
+    // Create the session's CSRF token first. Otherwise the two requests can
+    // each create a different token at the same moment, the later save of the
+    // session wins, and one request is refused with 403 (seen on slow CI
+    // machines). The race this test is about is the database one below.
+    await alice.csrfToken();
     const results = await Promise.all([put(alice, place.id), put(alice, place.id)]);
     expect(results.map((res) => res.status).sort()).toEqual([200, 201]);
     expect(await prisma.favorite.count()).toBe(1);
