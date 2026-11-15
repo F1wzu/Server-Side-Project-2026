@@ -42,11 +42,19 @@ const schema = z
       (value) => (value === '' ? undefined : value),
       z.enum(['local', 'cloud'], { error: 'must be local or cloud' }).default('local')
     ),
+    // The Cloudinary account, exactly as its dashboard shows it under
+    // "API environment variable". Needed only when STORAGE_DRIVER=cloud.
+    CLOUDINARY_URL: optional(
+      z.string().regex(/^cloudinary:\/\/[^:\s]+:[^@\s]+@[a-z0-9_-]+$/i, 'must look like cloudinary://API_KEY:API_SECRET@CLOUD_NAME (copy it from the Cloudinary dashboard)')
+    ),
     LOG_LEVEL: optional(z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])),
   })
   .superRefine((value, ctx) => {
     if (value.NODE_ENV === 'production' && !value.PUBLIC_ORIGIN?.startsWith('https://')) {
       ctx.addIssue({ code: 'custom', path: ['PUBLIC_ORIGIN'], message: 'is required in production and must start with https://' });
+    }
+    if (value.STORAGE_DRIVER === 'cloud' && !value.CLOUDINARY_URL) {
+      ctx.addIssue({ code: 'custom', path: ['CLOUDINARY_URL'], message: 'is required when STORAGE_DRIVER=cloud' });
     }
     if (value.NODE_ENV === 'test') {
       if (!value.TEST_DATABASE_URL) {
@@ -68,6 +76,10 @@ function parseEnv(source) {
     ...value,
     // Tests always run against the separate test database.
     DATABASE_URL: value.NODE_ENV === 'test' ? value.TEST_DATABASE_URL : value.DATABASE_URL,
+    // Tests always keep photos in a temp folder on this computer, whatever
+    // .env says: a test run must never upload to (or delete from) the team's
+    // real Cloudinary account.
+    STORAGE_DRIVER: value.NODE_ENV === 'test' ? 'local' : value.STORAGE_DRIVER,
     LOG_LEVEL: value.LOG_LEVEL ?? (value.NODE_ENV === 'test' ? 'silent' : 'info'),
     isProduction: value.NODE_ENV === 'production',
     isTest: value.NODE_ENV === 'test',

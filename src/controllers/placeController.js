@@ -3,6 +3,7 @@
 const placeModel = require('../models/place');
 const categoryModel = require('../models/category');
 const reviewModel = require('../models/review');
+const { isUpload } = require('../storage/paths');
 const favoriteModel = require('../models/favorite');
 const AppError = require('../utils/AppError');
 const { bangkokNow } = require('../utils/openingHours');
@@ -64,27 +65,39 @@ async function random(req, res) {
 async function show(req, res) {
   const place = await findPlace(req);
   const reviewsPage = Number.isInteger(Number(req.query.reviewsPage)) && Number(req.query.reviewsPage) >= 1 ? Number(req.query.reviewsPage) : 1;
+  // Order and star filter of the review list. The names carry a "review"
+  // prefix because the page's own query string belongs to the place.
+  const reviewFilter = reviewModel.placeReviewFilter({ sort: req.query.reviewSort, rating: req.query.reviewRating });
   const [related, reviews, ownReview, saved] = await Promise.all([
     placeModel.related(place),
-    reviewModel.listForPlace(place.id, { page: Math.min(reviewsPage, 100000), viewerId: req.user?.id ?? null }),
+    reviewModel.listForPlace(place.id, { page: Math.min(reviewsPage, 100000), viewerId: req.user?.id ?? null, ...reviewFilter }),
     req.user ? reviewModel.findOwnForPlace(req.user.id, place.id) : null,
     req.user ? favoriteModel.isSaved(req.user.id, place.id) : false,
   ]);
   const relatedIds = [...related.nearby, ...related.sameCategory].map((item) => item.id);
   const savedIds = req.user ? await favoriteModel.savedPlaceIds(req.user.id, relatedIds) : null;
-  const reviewsPageLink = (page) => (page > 1 ? `/places/${place.id}?reviewsPage=${page}#reviews` : `/places/${place.id}#reviews`);
+  // Paging keeps the chosen order and star filter.
+  const reviewsPageLink = (page) => {
+    const query = new URLSearchParams();
+    if (reviewFilter.sort !== 'newest') query.set('reviewSort', reviewFilter.sort);
+    if (reviewFilter.rating !== null) query.set('reviewRating', reviewFilter.rating);
+    if (page > 1) query.set('reviewsPage', page);
+    const text = query.toString();
+    return `/places/${place.id}${text ? '?' + text : ''}#reviews`;
+  };
   res.render('place', {
     title: place.name,
     // Link preview on LINE / Facebook: the place's own words and real photo
     // (the category illustrations are SVG, which previews do not show).
     meta: {
       description: place.description.replace(/\s+/g, ' ').trim().slice(0, 160),
-      image: place.imagePath?.startsWith('/uploads/') ? place.imagePath : null,
+      image: isUpload(place.imagePath) ? place.imagePath : null,
       type: 'article',
     },
     place,
     related,
     reviews,
+    reviewFilter,
     ownReview,
     saved,
     savedIds,

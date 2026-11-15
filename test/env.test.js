@@ -54,3 +54,31 @@ describe('configuration', () => {
     expect(() => parseEnv({ ...valid, NODE_ENV: 'test', TEST_DATABASE_URL: valid.DATABASE_URL })).toThrow(/different database/);
   });
 });
+
+describe('cloud photo storage settings', () => {
+  test('STORAGE_DRIVER=cloud needs the Cloudinary account', () => {
+    expect(() => parseEnv({ ...valid, STORAGE_DRIVER: 'cloud' })).toThrow(/CLOUDINARY_URL is required when STORAGE_DRIVER=cloud/);
+    expect(parseEnv({ ...valid, STORAGE_DRIVER: 'cloud', CLOUDINARY_URL: 'cloudinary://123:abc_DEF-9@my-cloud' }).STORAGE_DRIVER).toBe('cloud');
+  });
+
+  test('a malformed CLOUDINARY_URL is refused, an empty one means not set', () => {
+    expect(() => parseEnv({ ...valid, CLOUDINARY_URL: 'https://cloudinary.com/console' })).toThrow(/CLOUDINARY_URL must look like/);
+    expect(parseEnv({ ...valid, CLOUDINARY_URL: '' }).CLOUDINARY_URL).toBeUndefined();
+  });
+});
+
+describe('the local photo store next to cloud photos', () => {
+  test('is not asked to delete a photo kept on Cloudinary', async () => {
+    const local = require('../src/storage/local');
+    await expect(local.remove('https://res.cloudinary.com/demo/image/upload/v1/painaidee/00000000-0000-4000-8000-000000000000.webp')).resolves.toBeUndefined();
+    await expect(local.remove('/uploads/../package.json')).rejects.toThrow(/Refusing to delete/);
+  });
+});
+
+describe('photo storage during tests', () => {
+  test('a test run uses local storage even when .env says cloud', () => {
+    const test = { ...valid, NODE_ENV: 'test', TEST_DATABASE_URL: 'postgresql://user:password@127.0.0.1:5432/app_test' };
+    expect(parseEnv({ ...test, STORAGE_DRIVER: 'cloud', CLOUDINARY_URL: 'cloudinary://123:abc@my-cloud' }).STORAGE_DRIVER).toBe('local');
+    expect(require('../src/storage').driver).toBe('local');
+  });
+});

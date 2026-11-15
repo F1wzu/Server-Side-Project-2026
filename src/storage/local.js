@@ -6,6 +6,7 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const env = require('../config/env');
+const { LOCAL_PATH: PUBLIC_PATH, CLOUD_URL } = require('./paths');
 
 // Tests write to the system temp folder so a test run never leaves photos
 // inside the project.
@@ -13,9 +14,9 @@ const UPLOAD_DIR = env.isTest
   ? path.join(os.tmpdir(), 'painaidee-test-uploads')
   : path.join(__dirname, '..', '..', 'storage', 'uploads');
 
-// The only shape save() ever produces. remove() accepts nothing else, so a
-// path such as "/uploads/../package.json" can never reach the file system.
-const PUBLIC_PATH = /^\/uploads\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.webp)$/;
+// LOCAL_PATH is the only shape save() ever produces. remove() accepts nothing
+// else, so a path such as "/uploads/../package.json" can never reach the
+// file system.
 
 // Saves an already processed WebP photo and returns its public path.
 async function save(buffer) {
@@ -32,6 +33,9 @@ async function save(buffer) {
 // ("the photo is gone") is already reached.
 async function remove(publicPath) {
   if (publicPath == null) return;
+  // A photo kept on Cloudinary (the shared database can hold both kinds) is
+  // not this driver's to delete.
+  if (typeof publicPath === 'string' && CLOUD_URL.test(publicPath)) return;
   const match = typeof publicPath === 'string' ? PUBLIC_PATH.exec(publicPath) : null;
   if (!match) throw new Error(`Refusing to delete an unexpected upload path: ${JSON.stringify(publicPath)}`);
   try {

@@ -117,11 +117,15 @@ async function myFavorites(req, res) {
 
 // ---------- API ----------
 
-// GET /api/v1/places/:id/reviews (public)
+// GET /api/v1/places/:id/reviews (public). ?sort= and ?rating= as on the page.
 async function apiPlaceReviews(req, res) {
   const placeId = idFrom(req.params.id, 'สถานที่');
   if (!(await placeModel.findPublishedById(placeId))) throw AppError.notFound('ไม่พบสถานที่นี้');
-  const { data, pagination } = await reviewModel.listForPlace(placeId, { page: pageFrom(req.query.page), viewerId: req.user?.id ?? null });
+  const { data, pagination } = await reviewModel.listForPlace(placeId, {
+    page: pageFrom(req.query.page),
+    viewerId: req.user?.id ?? null,
+    ...reviewModel.placeReviewFilter(req.query),
+  });
   res.json({ data, meta: { page: pagination.page, pageSize: pagination.pageSize, total: pagination.total } });
 }
 

@@ -230,3 +230,67 @@ document.querySelectorAll('form[data-collapsible]').forEach((panel, index) => {
   panel.before(button);
   set(panel.hasAttribute('data-active'));
 });
+
+// Review order and star filter on a place page: choosing an option applies it
+// at once. Without JavaScript the "แสดง" button does the same.
+document.querySelectorAll('form.review-filter select').forEach((select) =>
+  select.addEventListener('change', () => select.form.requestSubmit())
+);
+
+// A textarea with a length limit shows how much room is left, so a long
+// review is not cut off by surprise. The count is announced to screen
+// readers only near the limit; announcing every keystroke would be noise.
+document.querySelectorAll('textarea[maxlength]').forEach((area) => {
+  const max = Number(area.getAttribute('maxlength'));
+  if (!max) return;
+  const counter = document.createElement('small');
+  counter.className = 'char-count';
+  const update = () => {
+    const used = area.value.length;
+    counter.textContent = `${used.toLocaleString('th-TH')} / ${max.toLocaleString('th-TH')} ตัวอักษร`;
+    const near = max - used <= Math.max(20, max * 0.05);
+    counter.classList.toggle('is-near', near);
+    if (near) counter.setAttribute('aria-live', 'polite');
+    else counter.removeAttribute('aria-live');
+  };
+  area.addEventListener('input', update);
+  area.after(counter);
+  update();
+});
+
+// Photos picked for upload are shown as thumbnails before the form is sent,
+// so a member can see what they chose (and which one comes first and becomes
+// the cover) without waiting for the upload. Read as data: URLs, which the
+// page's image policy already allows; nothing leaves the browser here.
+document.querySelectorAll('input[type="file"][accept*="image"]').forEach((input) => {
+  const list = document.createElement('ul');
+  list.className = 'photo-preview';
+  list.hidden = true;
+  list.setAttribute('aria-label', 'รูปที่เลือกไว้ ยังไม่ได้อัปโหลด');
+  input.after(list);
+  input.addEventListener('change', () => {
+    list.replaceChildren();
+    const files = [...input.files].filter((file) => file.type.startsWith('image/'));
+    list.hidden = files.length === 0;
+    files.forEach((file, index) => {
+      const item = document.createElement('li');
+      const img = document.createElement('img');
+      img.alt = `รูปที่เลือก ${index + 1}: ${file.name}`;
+      const reader = new FileReader();
+      reader.addEventListener('load', () => (img.src = reader.result));
+      reader.readAsDataURL(file);
+      item.append(img);
+      // Same 5 MB limit the server enforces: say so now, not after the upload.
+      const tooBig = file.size > 5 * 1024 * 1024;
+      // data-cover-first: on this form the first photo becomes the cover.
+      if ((input.hasAttribute('data-cover-first') && index === 0) || tooBig) {
+        const tag = document.createElement('span');
+        tag.className = tooBig ? 'photo-preview-tag is-error' : 'photo-preview-tag';
+        tag.textContent = tooBig ? 'เกิน 5 MB' : 'รูปหลัก';
+        item.append(tag);
+      }
+      list.append(item);
+    });
+    announce(files.length ? `เลือกรูปไว้ ${files.length} รูป` : '');
+  });
+});

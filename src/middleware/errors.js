@@ -68,6 +68,9 @@ function errorHandler(err, req, res, next) {
 
   // Unexpected errors are logged in full; the user only sees a generic message.
   if (!known) (req.log ?? console).error({ err }, 'unhandled error');
+  // A known error that hides a deeper reason (the photo store refused or
+  // could not be reached): the member gets the short message, the log gets why.
+  else if (known.status >= 500 && err.cause) (req.log ?? console).error({ err: err.cause, code }, 'request failed');
 
   if (res.headersSent) return res.destroy();
 

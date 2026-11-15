@@ -71,3 +71,67 @@ describe('phone layout hooks', () => {
     expect((await alice.get('/')).text).toContain('<form class="nav-logout" action="/logout" method="post">');
   });
 });
+
+describe('ordering and filtering the reviews of a place', () => {
+  // Three members review the place with 5, 1 and 3 stars, in that order.
+  async function threeReviews() {
+    for (const [name, rating] of [['ann', 5], ['ben', 1], ['cat', 3]]) {
+      const client = await member(name);
+      const res = await client.post(`/api/v1/places/${place.id}/reviews`, { rating, comment: `รีวิวของ ${name}` });
+      expect(res.status).toBe(201);
+    }
+  }
+  const ratingsOf = async (query = '') => (await createClient(app).get(`/api/v1/places/${place.id}/reviews${query}`)).body.data.map((review) => review.rating);
+
+  test('the API sorts by rating or age and filters by exact stars', async () => {
+    await threeReviews();
+    expect(await ratingsOf()).toEqual([3, 1, 5]); // newest first
+    expect(await ratingsOf('?sort=oldest')).toEqual([5, 1, 3]);
+    expect(await ratingsOf('?sort=highest')).toEqual([5, 3, 1]);
+    expect(await ratingsOf('?sort=lowest')).toEqual([1, 3, 5]);
+    expect(await ratingsOf('?rating=1')).toEqual([1]);
+    const res = await createClient(app).get(`/api/v1/places/${place.id}/reviews?rating=4`);
+    expect(res.body.data).toEqual([]);
+    expect(res.body.meta.total).toBe(0);
+  });
+
+  test('a nonsense order or star value falls back to the default instead of failing', async () => {
+    await threeReviews();
+    expect(await ratingsOf('?sort=drop%20table&rating=9')).toEqual([3, 1, 5]);
+    expect(await ratingsOf('?rating=abc')).toEqual([3, 1, 5]);
+  });
+
+  test('the page shows the controls, applies them and keeps them when paging', async () => {
+    await threeReviews();
+    const client = createClient(app);
+    const plain = await client.get(`/places/${place.id}`);
+    expect(plain.text).toContain('<form class="review-filter"');
+    expect(plain.text).not.toContain('ล้างตัวกรอง');
+
+    const lowest = await client.get(`/places/${place.id}?reviewSort=lowest`);
+    expect(lowest.text.indexOf('รีวิวของ ben')).toBeLessThan(lowest.text.indexOf('รีวิวของ ann'));
+    expect(lowest.text).toContain('<option value="lowest" selected>');
+    expect(lowest.text).toContain('ล้างตัวกรอง');
+
+    const oneStar = await client.get(`/places/${place.id}?reviewRating=1`);
+    expect(oneStar.text).toContain('รีวิวของ ben');
+    expect(oneStar.text).not.toContain('รีวิวของ ann');
+
+    const none = await client.get(`/places/${place.id}?reviewRating=4`);
+    expect(none.text).toContain('ไม่มีรีวิว 4 ดาวของสถานที่นี้');
+  });
+
+  test('a place with one review or none has no controls to clutter the page', async () => {
+    expect((await createClient(app).get(`/places/${place.id}`)).text).not.toContain('class="review-filter"');
+  });
+});
+
+describe('hooks for the photo preview and the character counter', () => {
+  test('the submission form marks its photo input, and review text has a limit to count against', async () => {
+    const alice = await member();
+    const form = await alice.get('/submissions/new');
+    expect(form.text).toMatch(/<input id="photo" name="photos" type="file" multiple data-max-files="5" data-cover-first/);
+    const page = await alice.get(`/places/${place.id}`);
+    expect(page.text).toMatch(/<textarea id="comment" name="comment" rows="3" maxlength="2000"/);
+  });
+});

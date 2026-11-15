@@ -85,7 +85,7 @@
   <img class="current-photo" src="<%= values.imagePath %>" alt="รูปที่แนบไว้ในคำขอนี้" width="320">
   <small>เลือกรูปใหม่เพื่อแทนที่รูปเดิม หรือเว้นว่างเพื่อใช้รูปเดิม</small>
   <% } %>
-  <input id="photo" name="<%= multiPhoto ? 'photos' : 'photo' %>" type="file"<%- multiPhoto ? ' multiple data-max-files="5"' : '' %> accept="image/jpeg,image/png,image/webp" aria-describedby="photo-hint<%= fieldError('photo') ? ' photo-error' : '' %>" <%- fieldError('photo') ? 'aria-invalid="true"' : '' %>>
+  <input id="photo" name="<%= multiPhoto ? 'photos' : 'photo' %>" type="file"<%- multiPhoto ? ' multiple data-max-files="5" data-cover-first' : '' %> accept="image/jpeg,image/png,image/webp" aria-describedby="photo-hint<%= fieldError('photo') ? ' photo-error' : '' %>" <%- fieldError('photo') ? 'aria-invalid="true"' : '' %>>
   <% if (fieldError('photo')) { %><p class="field-error" id="photo-error"><%= fieldError('photo') %></p><% } %>
   <% if (multiPhoto) { %>
   <small id="photo-hint">แนบได้สูงสุด 5 รูป รูปแรกจะเป็นรูปหลัก JPEG PNG หรือ WebP ไม่เกิน 5 MB ต่อรูป ระบบจะลบข้อมูลตำแหน่ง GPS ในรูปออกให้</small>

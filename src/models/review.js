@@ -137,15 +137,28 @@ async function remove(userId, reviewId) {
   });
 }
 
-// Active reviews of a published place, newest first, each with its replies
-// (what `viewerId` may see: see replyModel.includeFor).
-async function listForPlace(placeId, { page = 1, pageSize = 10, viewerId = null } = {}) {
+// What a visitor may ask of a place's review list: an order (a key of
+// REVIEW_SORTS, anything else means newest) and exact stars (1-5, anything
+// else means all). Shared by the page and the API so both read the same way.
+function placeReviewFilter(source = {}) {
+  const rating = Number(source.rating);
+  return {
+    sort: Object.hasOwn(REVIEW_SORTS, source.sort) ? source.sort : 'newest',
+    rating: Number.isInteger(rating) && rating >= 1 && rating <= 5 ? rating : null,
+  };
+}
+
+// Active reviews of a published place, each with its replies (what
+// `viewerId` may see: see replyModel.includeFor). Newest first unless `sort`
+// says otherwise; `rating` keeps only reviews with exactly that many stars.
+async function listForPlace(placeId, { page = 1, pageSize = 10, viewerId = null, sort = 'newest', rating = null } = {}) {
   const where = { placeId, status: 'active', place: { status: 'published' } };
+  if (rating !== null) where.rating = rating;
   const total = await prisma.review.count({ where });
   const pagination = pageWithin(total, page, pageSize);
   const rows = await prisma.review.findMany({
     where,
-    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    orderBy: REVIEW_SORTS[sort] ?? REVIEW_SORTS.newest,
     skip: (pagination.page - 1) * pageSize,
     take: pageSize,
     include: { user: authorFields, replies: replyModel.includeFor(viewerId) },
@@ -190,7 +203,8 @@ const REVIEW_LIST_FILTERS = [...REVIEW_STATUSES, 'reported'];
 const escapeLike = (text) => text.replace(/[\\%_]/g, '\\$&');
 const containing = (text) => ({ contains: escapeLike(text), mode: 'insensitive' });
 
-// Orders for the admin list; the id breaks ties so pages never overlap.
+// Orders for the admin list and a place's review list; the id breaks ties so
+// pages never overlap.
 const REVIEW_SORTS = {
   newest: [{ createdAt: 'desc' }, { id: 'desc' }],
   oldest: [{ createdAt: 'asc' }, { id: 'asc' }],
@@ -257,4 +271,4 @@ async function adminRemove(adminId, reviewId, reason) {
   });
 }
 
-module.exports = { create, update, remove, listForPlace, findOwnForPlace, listOwn, recalculateRating, listAll, adminRemove, REVIEW_STATUSES, REVIEW_LIST_FILTERS, REVIEW_SORTS };
+module.exports = { create, update, remove, listForPlace, placeReviewFilter, findOwnForPlace, listOwn, recalculateRating, listAll, adminRemove, REVIEW_STATUSES, REVIEW_LIST_FILTERS, REVIEW_SORTS };

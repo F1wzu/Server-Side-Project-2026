@@ -17,6 +17,7 @@ const webRoutes = require('./routes/webRoutes');
 const apiRoutes = require('./routes/apiRoutes');
 const viewHelpers = require('./views/helpers');
 const { UPLOAD_DIR } = require('./storage');
+const { CLOUD_HOST } = require('./storage/paths');
 
 // A folder inside an installed package (the fonts are served from node_modules).
 const packageFolder = (name, folder) => path.join(path.dirname(require.resolve(`${name}/package.json`)), folder);
@@ -46,11 +47,12 @@ function createApp() {
   app.locals.districtBoundaryJson = JSON.stringify(require('./utils/district').BOUNDARY);
 
   app.use(requestLogger); // 1. request ID + log line
-  // 2. security headers. The map loads its picture tiles from OpenStreetMap;
-  //    every other kind of content may only come from this site.
+  // 2. security headers. The map loads its picture tiles from OpenStreetMap
+  //    and uploaded photos may live on Cloudinary (storage/cloud.js); every
+  //    other kind of content may only come from this site.
   app.use(
     helmet({
-      contentSecurityPolicy: { directives: { 'img-src': ["'self'", 'data:', 'https://tile.openstreetmap.org'] } },
+      contentSecurityPolicy: { directives: { 'img-src': ["'self'", 'data:', 'https://tile.openstreetmap.org', CLOUD_HOST] } },
     })
   );
   app.use(compression()); // 3. smaller responses

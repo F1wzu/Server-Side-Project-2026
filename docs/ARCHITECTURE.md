@@ -92,7 +92,7 @@ src/
   models/        user, place, review, favorite, report, submission, category
   validation/    หนึ่งไฟล์ schema ต่อหนึ่งฟีเจอร์
   middleware/    session, auth, csrf, rateLimit, upload, errors
-  storage/       index.js, local.js, cloud.js (cloud.js ยังเป็นโครง จะเติมในขั้นที่ 8)
+  storage/       index.js, local.js, cloud.js (cloud.js เก็บรูปบน Cloudinary เมื่อ `STORAGE_DRIVER=cloud`, paths.js รูปแบบที่อยู่รูปของทั้งสองแบบ)
   utils/         AppError.js, validate.js, safeRedirect.js, pagination.js, openingHours.js, logger.js
   views/         หน้าเว็บ + partials/ และ helpers.js (ไอคอน ป้ายกำกับ การจัดรูปแบบ ที่ทุกเทมเพลตใช้)
 public/          css/site.css, js/site.js, favicon และรูป (ไฟล์ของเว็บเท่านั้น)
@@ -236,7 +236,7 @@ flowchart LR
 | `PUBLIC_ORIGIN` | ที่อยู่ HTTPS สาธารณะ จำเป็นบนระบบจริง |
 | `TRUST_PROXY` | ตั้งเมื่อแอปอยู่หลัง proxy ของโฮสต์ |
 | `STORAGE_DRIVER` | `local` หรือ `cloud` |
-| key ของที่เก็บบนคลาวด์ | เฉพาะเมื่อ `STORAGE_DRIVER=cloud` |
+| `CLOUDINARY_URL` | บัญชี Cloudinary (`cloudinary://KEY:SECRET@CLOUD`) จำเป็นเมื่อ `STORAGE_DRIVER=cloud` |
 | `TEST_DATABASE_URL` | ฐานข้อมูลแยกที่ Jest ใช้ |
 
 | สภาพแวดล้อม | ฐานข้อมูล | รูป | หมายเหตุ |

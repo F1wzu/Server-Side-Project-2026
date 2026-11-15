@@ -296,10 +296,10 @@ describe('map page', () => {
     }
   });
 
-  test('only OpenStreetMap is allowed as an outside image source', async () => {
+  test('only OpenStreetMap tiles and Cloudinary photos are allowed as outside image sources', async () => {
     const res = await request(app).get('/map');
     const policy = res.headers['content-security-policy'];
-    expect(policy).toMatch(/img-src 'self' data: https:\/\/tile\.openstreetmap\.org(;|$)/);
+    expect(policy).toMatch(/img-src 'self' data: https:\/\/tile\.openstreetmap\.org https:\/\/res\.cloudinary\.com(;|$)/);
     expect(policy).toMatch(/script-src 'self'(;|$)/);
   });
 });

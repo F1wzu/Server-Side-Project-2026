@@ -115,3 +115,16 @@ describe('privacy policy consent at sign-up', () => {
     await expect(prisma.user.update({ where: { id: user.id }, data: { policyVersion: '1' } })).rejects.toThrow();
   });
 });
+
+describe('a photo kept on Cloudinary', () => {
+  const stored = 'https://res.cloudinary.com/demo/image/upload/v1731600000/painaidee/00000000-0000-4000-8000-000000000000.webp';
+
+  test('is shown from Cloudinary, allowed by the image policy, and shared with its full address', async () => {
+    const onCloud = await place({ imagePath: stored });
+    const res = await createClient(app).get(`/places/${onCloud.id}`);
+    expect(res.text).toContain(`<img src="${stored}"`);
+    expect(res.headers['content-security-policy']).toMatch(/img-src[^;]*https:\/\/res\.cloudinary\.com/);
+    // Not prefixed with this site's address, unlike a local /uploads/ photo.
+    expect(res.text).toContain(`<meta property="og:image" content="${stored}">`);
+  });
+});

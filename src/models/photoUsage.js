@@ -4,8 +4,10 @@
 // inside their transaction, after their own change, and delete the file only
 // once that transaction has committed.
 
-// Seed illustrations (/images/...) belong to the project and are never deleted.
-const isUpload = (path) => typeof path === 'string' && path.startsWith('/uploads/');
+// Seed illustrations (/images/...) belong to the project and are never
+// deleted; isUpload is true only for a photo someone uploaded, on this
+// computer or on Cloudinary.
+const { isUpload } = require('../storage/paths');
 
 async function isUploadUnused(tx, path) {
   if (!isUpload(path)) return false;
