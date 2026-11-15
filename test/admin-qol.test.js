@@ -166,7 +166,8 @@ describe('possible duplicates when reviewing a submission', () => {
   test('name matching ignores case, spaces and punctuation, and needs a real overlap', async () => {
     await makePlace({ name: 'Coffee  Corner!' });
     await makePlace({ name: 'ก' });
-    const submission = await submit({ name: 'coffee-corner', latitude: 13.8, longitude: 100.9 });
+    // Far from the other test places (no pin match), but inside the district.
+    const submission = await submit({ name: 'coffee-corner', latitude: 13.75, longitude: 100.85 });
     const body = await detail(submission.id);
     expect(body.possibleDuplicates.map((place) => place.name)).toEqual(['Coffee  Corner!']);
   });

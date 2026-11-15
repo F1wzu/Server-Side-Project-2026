@@ -38,17 +38,72 @@
     const lngInput = form.elements.namedItem('longitude');
     const bounds = JSON.parse(element.dataset.bounds);
     const area = L.latLngBounds([bounds.minLat, bounds.minLng], [bounds.maxLat, bounds.maxLng]);
-    const map = L.map(element, { maxBounds: area.pad(0.2) }).setView([13.7245, 100.765], 13);
+    // Half-step zoom so the district can fill the picker snugly.
+    const map = L.map(element, { maxBounds: area.pad(0.3), zoomSnap: 0.5 });
     tiles().addTo(map);
-    // The allowed area, so a member sees where a pin is accepted.
-    L.rectangle(area, { color: '#0e5a52', weight: 1, fill: false, dashArray: '4 6', interactive: false }).addTo(map);
+    // The district's real border, so a member sees where a pin is accepted
+    // (the server checks the same shape). Falls back to the rectangle.
+    const boundary = element.dataset.boundary ? JSON.parse(element.dataset.boundary) : null;
+    const outline = boundary
+      ? L.polygon(boundary, { color: '#f97316', weight: 4, opacity: 0.9, fillColor: '#f97316', fillOpacity: 0.05, interactive: false })
+      : L.rectangle(area, { color: '#f97316', weight: 4, opacity: 0.9, fill: false, interactive: false });
+    outline.addTo(map);
+    // Start with the whole district in view, at any picker width. The fit
+    // waits a frame and re-measures the map, which can be sized before the
+    // page has finished its layout (that made it start far too zoomed out).
+    const fitDistrict = () => {
+      map.invalidateSize({ animate: false });
+      map.fitBounds(outline.getBounds(), { padding: [8, 8], animate: false });
+    };
+    map.setView(outline.getBounds().getCenter(), 12);
+    let touched = false;
+    map.on('dragstart', () => {
+      touched = true;
+    });
+    requestAnimationFrame(() => {
+      if (!marker) fitDistrict();
+    });
+    // The picker can change size after load (fonts, phone layout); keep the
+    // district fitted until the member pins or moves the map themself.
+    if ('ResizeObserver' in window) {
+      new ResizeObserver(() => {
+        if (!marker && !touched) fitDistrict();
+      }).observe(element);
+    }
+    // Tell the member straight away when a tap lands outside the border;
+    // the server refuses such a pin anyway.
+    const inside = (latlng) => {
+      if (!boundary) return area.contains(latlng);
+      let result = false;
+      for (let i = 0, j = boundary.length - 1; i < boundary.length; j = i, i += 1) {
+        const [latI, lngI] = boundary[i];
+        const [latJ, lngJ] = boundary[j];
+        if (latI > latlng.lat !== latJ > latlng.lat && latlng.lng < ((lngJ - lngI) * (latlng.lat - latI)) / (latJ - latI) + lngI) result = !result;
+      }
+      return result;
+    };
+    const warning = document.createElement('p');
+    warning.className = 'field-error';
+    warning.setAttribute('role', 'status');
+    warning.hidden = true;
+    const OUTSIDE_TEXT = 'ตำแหน่งนี้อยู่นอกเขตลาดกระบัง กรุณาปักหมุดภายในเส้นสีส้ม';
+    warning.textContent = OUTSIDE_TEXT;
+    element.after(warning);
+    const check = (latlng) => {
+      warning.hidden = inside(latlng);
+      warning.textContent = OUTSIDE_TEXT;
+      if (warning.hidden) element.classList.remove('is-invalid');
+    };
 
     let marker = null;
     const fix = (value) => Number(value).toFixed(6);
     function place(latlng, { pan = false } = {}) {
       if (!marker) {
         marker = L.marker(latlng, { icon: pin(element.dataset.kind || 'other', true), draggable: true, keyboard: false }).addTo(map);
-        marker.on('dragend', () => write(marker.getLatLng()));
+        marker.on('dragend', () => {
+          write(marker.getLatLng());
+          check(marker.getLatLng());
+        });
       } else marker.setLatLng(latlng);
       if (pan) map.setView(latlng, Math.max(map.getZoom(), 16));
     }
@@ -68,13 +123,33 @@
     map.on('click', (event) => {
       place(event.latlng);
       write(event.latlng);
+      check(event.latlng);
     });
     [latInput, lngInput].forEach((input) =>
       input.addEventListener('input', () => {
         const latlng = read();
-        if (latlng) place(latlng, { pan: true });
+        if (latlng) {
+          place(latlng, { pan: true });
+          check(latlng);
+        }
       })
     );
+    // Stop the form before it is sent when the pin is outside the border:
+    // the member keeps everything they typed and sees why at once, instead
+    // of a round trip that only says so after the upload. An empty pin is
+    // left to the server (an admin may save a place without one).
+    form.addEventListener('submit', (event) => {
+      const latlng = read();
+      if (!latlng || inside(latlng)) return;
+      event.preventDefault();
+      warning.hidden = false;
+      warning.textContent = 'ยังส่งไม่ได้: หมุดอยู่นอกเขตลาดกระบัง กรุณาย้ายหมุดให้อยู่ภายในเส้นสีส้มก่อนส่ง';
+      element.classList.add('is-invalid');
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Show the pin and the whole border together, so it is clear which way to move it.
+      map.fitBounds(outline.getBounds().extend(latlng), { padding: [16, 16], animate: false });
+      latInput.focus({ preventScroll: true });
+    });
   });
 
   // District map: markers come from the JSON API, the list beside it is server-rendered.

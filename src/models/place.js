@@ -122,7 +122,10 @@ async function list({ q, categoryId, openNow, sort = 'name', page = 1, pageSize 
 }
 
 // Places an admin picked for the home page, in the order the admin set.
-async function featured(limit = 6, now = new Date()) {
+// The home page's "ทีมงานชวนไป": one large card and four small ones fill the
+// grid exactly, so five places (a sixth would sit alone on its own row).
+const FEATURED_LIMIT = 5;
+async function featured(limit = FEATURED_LIMIT, now = new Date()) {
   const rows = await prisma.place.findMany({
     where: { ...published, featuredOrder: { not: null } },
     orderBy: [{ featuredOrder: 'asc' }, { name: 'asc' }],

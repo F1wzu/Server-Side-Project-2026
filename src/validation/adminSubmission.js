@@ -1,7 +1,7 @@
 // Input rules for an admin's decision on a submission.
 const { z } = require('zod');
 const { visibleText } = require('./text');
-const { LAT_KRABANG } = require('./submission');
+const { LAT_KRABANG, insideDistrict } = require('./submission');
 
 // The version of the submission the admin was looking at (a hidden field).
 const version = z
@@ -31,7 +31,9 @@ const approveSchema = z
   .refine((value) => (value.latitude === undefined) === (value.longitude === undefined), {
     path: ['latitude'],
     message: 'ต้องระบุทั้งละติจูดและลองจิจูดของหมุด',
-  });
+  })
+  // A moved pin must stay inside the district's real border too.
+  .superRefine(insideDistrict);
 
 // Returning or rejecting always needs a reason the member can read.
 const reasonSchema = z.object({

@@ -43,8 +43,8 @@
 
 <fieldset class="field-group">
   <legend>ปักหมุดตำแหน่ง<% if (pinRequired) { %> <span class="required">*</span><% } %></legend>
-  <p class="meta">แตะบนแผนที่หรือลากหมุดไปยังตำแหน่งของสถานที่ ต้องอยู่ในกรอบเส้นประ (เขตลาดกระบัง)</p>
-  <div class="picker-map" data-map-picker data-bounds="<%= JSON.stringify(bounds) %>" role="application" aria-label="แผนที่สำหรับปักหมุดตำแหน่ง ใช้ช่องละติจูดและลองจิจูดด้านล่างแทนได้"></div>
+  <p class="meta">แตะบนแผนที่หรือลากหมุดไปยังตำแหน่งของสถานที่ ต้องอยู่ภายในเส้นสีส้มซึ่งเป็นเส้นเขตลาดกระบังจริง</p>
+  <div class="picker-map" data-map-picker data-bounds="<%= JSON.stringify(bounds) %>" data-boundary="<%= districtBoundaryJson %>" role="application" aria-label="แผนที่สำหรับปักหมุดตำแหน่ง ใช้ช่องละติจูดและลองจิจูดด้านล่างแทนได้"></div>
   <div class="field-pair">
     <div class="field">
       <label for="latitude">ละติจูด</label>

@@ -91,7 +91,7 @@
           <fieldset class="field-group">
             <legend>ตำแหน่งหมุด</legend>
             <p class="meta">ถ้าหมุดไม่ตรง ลากหมุดหรือแตะบนแผนที่เพื่อแก้ไขก่อนอนุมัติ การย้ายหมุดจะถูกบันทึกในประวัติคำขอ</p>
-            <div class="picker-map" data-map-picker data-bounds="<%= JSON.stringify(bounds) %>" role="region" aria-label="แผนที่สำหรับปรับตำแหน่งหมุด ใช้ช่องละติจูดและลองจิจูดด้านล่างแทนได้"></div>
+            <div class="picker-map" data-map-picker data-bounds="<%= JSON.stringify(bounds) %>" data-boundary="<%= districtBoundaryJson %>" role="region" aria-label="แผนที่สำหรับปรับตำแหน่งหมุด ใช้ช่องละติจูดและลองจิจูดด้านล่างแทนได้"></div>
             <div class="field-pair">
               <div class="field">
                 <label for="latitude">ละติจูด</label>

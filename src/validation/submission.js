@@ -6,9 +6,21 @@
 // are turned into the same shape before checking.
 const { z } = require('zod');
 
-// A rectangle around Lat Krabang district. A pin outside it is almost always
-// a mis-tap, so it is refused before an admin ever sees it.
-const LAT_KRABANG = { minLat: 13.66, maxLat: 13.84, minLng: 100.68, maxLng: 100.92 };
+// A pin must lie inside Lat Krabang district: first the rectangle around it
+// (per coordinate, a clear message for a typo), then the district's real
+// border (src/utils/district.js). A pin outside is almost always a mis-tap,
+// so it is refused before an admin ever sees it.
+const { LAT_KRABANG, isInsideDistrict } = require('../utils/district');
+
+const OUTSIDE_DISTRICT = 'ตำแหน่งนี้อยู่นอกเขตลาดกระบัง กรุณาปักหมุดภายในเส้นเขตบนแผนที่';
+
+// Adds the border check to an object schema with latitude/longitude. Skipped
+// when either coordinate is missing or already failed its own check.
+function insideDistrict(value, ctx) {
+  const { latitude, longitude } = value;
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') return;
+  if (!isInsideDistrict(latitude, longitude)) ctx.addIssue({ code: 'custom', path: ['latitude'], message: OUTSIDE_DISTRICT });
+}
 
 const blank = (value) => value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
 const blankAsMissing = (schema) => z.preprocess((value) => (blank(value) ? undefined : value), schema);
@@ -109,7 +121,7 @@ const submissionSchema = z.object({
 // A pin is required: a missing coordinate fails the number check above.
 function readSubmission(body) {
   const input = { ...body, hours: hoursFromForm(body) };
-  const result = submissionSchema.safeParse(input);
+  const result = submissionSchema.superRefine(insideDistrict).safeParse(input);
   const issues = result.success ? [] : [...result.error.issues];
   // A missing pin is one problem, not two: say it once, under latitude.
   const latitudeIssue = issues.find((issue) => issue.path[0] === 'latitude');
@@ -149,7 +161,9 @@ const placeSchema = submissionSchema
         path: [value.latitude === null ? 'latitude' : 'longitude'],
         message: 'กรุณาระบุทั้งละติจูดและลองจิจูด หรือเว้นว่างทั้งสองช่อง',
       });
+      return;
     }
+    insideDistrict(value, ctx);
   });
 
 // The same content as a submission, for a place an admin adds or edits.
@@ -160,4 +174,4 @@ function readPlaceContent(body, { pinRequired = true } = {}) {
   return result.success ? { data: result.data, issues: [] } : { data: null, issues: [...result.error.issues] };
 }
 
-module.exports = { readSubmission, readPlaceContent, hoursFromForm, versionSchema, LAT_KRABANG };
+module.exports = { readSubmission, readPlaceContent, hoursFromForm, versionSchema, LAT_KRABANG, insideDistrict };

@@ -40,6 +40,8 @@ function createApp() {
   app.locals.csrfToken = () => '';
   app.locals.takeFlash = () => null;
   Object.assign(app.locals, viewHelpers); // icon(), rating(), date() ...
+  // The district border as JSON, for the map pickers to draw (see utils/district.js).
+  app.locals.districtBoundaryJson = JSON.stringify(require('./utils/district').BOUNDARY);
 
   app.use(requestLogger); // 1. request ID + log line
   // 2. security headers. The map loads its picture tiles from OpenStreetMap;

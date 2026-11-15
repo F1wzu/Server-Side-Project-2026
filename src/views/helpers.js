@@ -3,7 +3,8 @@ const paths = {
   pin: '<path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
   search: '<circle cx="10.8" cy="10.8" r="7.3"/><path d="m16 16 5 5"/>',
   heart: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0l-1 1-1-1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',
-  coffee: '<path d="M3 8h13v6a6.5 6.5 0 0 1-13 0V8Zm13 1h2a3 3 0 0 1 0 6h-2M2 22h18M6 2v2m4-2v2m4-2v2"/>',
+  // A mug with a handle and steam, centred in the 24px box like the other icons.
+  coffee: '<path d="M4 9h12v7a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V9Zm12 2h1.5a2.5 2.5 0 0 1 0 5H16M8 3v3m4-3v3"/>',
   utensils: '<path d="M4 2v7a3 3 0 0 0 6 0V2M7 2v20M20 2c-4 3-5 7-5 11h5M20 2v20"/>',
   bed: '<path d="M3 18v3m18-3v3M3 10h18v8H3V5m18 5V5H3M7 10V7h4v3m2 0V7h4v3"/>',
   bell: '<path d="M3 19h18M5 19a7 7 0 0 1 14 0M12 12V9M9.5 9h5"/>',

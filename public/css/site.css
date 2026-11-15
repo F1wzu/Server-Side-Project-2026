@@ -542,6 +542,7 @@ ol {
 
 /* ---------- Hero ---------- */
 .hero {
+  --scene-height: max(230px, 19vw);
   position: relative;
   overflow: hidden;
   background: linear-gradient(180deg, #f6ecd6 0%, var(--paper) 72%);
@@ -549,7 +550,7 @@ ol {
 .hero-inner {
   position: relative;
   z-index: 1;
-  padding: 56px 0 250px;
+  padding: 56px 0 calc(var(--scene-height) + 20px);
   max-width: 1180px;
 }
 .hero h1 {
@@ -603,7 +604,11 @@ ol {
   position: absolute;
   inset: auto 0 0;
   width: 100%;
-  height: 230px;
+  /* The drawing (1440 x 300) is scaled to fill the width and cropped from the
+     top. A fixed height cut the roofs, sun and plane off on wide screens, so
+     the height grows with the width: about 19% of it keeps only a strip of
+     empty sky cropped at any width. */
+  height: var(--scene-height);
 }
 
 /* ---------- Home sections ---------- */
@@ -1162,6 +1167,9 @@ input[type='checkbox'] {
   margin-bottom: 14px;
 }
 .mini-map {
+  /* Keep Leaflet's layers (z-index 400+) below the sticky header. */
+  position: relative;
+  z-index: 0;
   height: 190px;
   margin-bottom: 14px;
   overflow: hidden;
@@ -1270,6 +1278,8 @@ input[type='checkbox'] {
 }
 .map-canvas {
   position: sticky;
+  /* Keep Leaflet's layers (z-index 400+) below the sticky header. */
+  z-index: 0;
   top: 96px;
   height: min(70vh, 640px);
   min-height: 420px;
@@ -2063,7 +2073,17 @@ details .stack-form {
 }
 
 /* Submissions: the pin picker, the attached photo, and the rejected status. */
+/* A pin outside the district when the member tries to send the form. */
+.picker-map.is-invalid {
+  border-color: var(--danger, #b42318);
+  box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.2);
+}
+
 .picker-map {
+  /* Leaflet gives its layers z-index 400+. A stacking context of its own
+     keeps them inside the map, below the sticky site header. */
+  position: relative;
+  z-index: 0;
   height: 320px;
   margin: 0.5rem 0 1rem;
   border: 1px solid var(--line);
