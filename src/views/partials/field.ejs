@@ -1,7 +1,13 @@
 <%# One labelled form field with its hint and error.
-    Expects: name, label, type, and optionally value, error, hint, autocomplete. %>
+    Expects: name, label, type, and optionally value, error, hint, autocomplete.
+    A password field also gets a show/hide button (an eye that is closed while
+    the password is hidden and opens when it is shown; CSS picks the icon
+    from aria-pressed). It is rendered `hidden`
+    and public/js/password.js un-hides it, so without JavaScript there is no
+    dead button on the page. %>
 <div class="field">
   <label for="<%= name %>"><%= label %></label>
+  <% if (type === 'password') { %><div class="password-wrap"><% } %>
   <input
     id="<%= name %>"
     name="<%= name %>"
@@ -11,6 +17,10 @@
     <% if (locals.error) { %>aria-invalid="true"<% } %>
     aria-describedby="<%= locals.hint ? name + '-hint ' : '' %><%= locals.error ? name + '-error' : '' %>"
     required>
+  <% if (type === 'password') { %>
+    <button type="button" class="password-toggle" data-password-toggle aria-controls="<%= name %>" aria-pressed="false" aria-label="แสดงรหัสผ่าน" hidden><span class="eye-closed"><%- icon('eyeClosed', 22) %></span><span class="eye-open"><%- icon('eye', 22) %></span></button>
+  </div>
+  <% } %>
   <% if (locals.error) { %>
   <p class="field-error" id="<%= name %>-error"><%= error %></p>
   <% } %>

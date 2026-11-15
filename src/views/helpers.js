@@ -28,6 +28,11 @@ const paths = {
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   chevron: '<path d="m9 5 7 7-7 7"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v.1"/>',
+  // The password show/hide button: an open eye while the password is readable,
+  // a closed eye (lid and lashes) while it is hidden. Both are drawn around
+  // the middle of the 24px box (y = 12), so the icon does not jump on a toggle.
+  eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+  eyeClosed: '<path d="M2 8c2.2 3.2 5.6 5 10 5s7.8-1.8 10-5M12 13v3.5M6.5 11.7 5 14.5M17.5 11.7 19 14.5"/>',
 };
 
 // An inline SVG icon. The markup is fixed here, never built from user input.

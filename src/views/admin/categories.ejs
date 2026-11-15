@@ -27,7 +27,7 @@
         <button class="button button-outline" type="submit">บันทึกชื่อ</button>
       </form>
       <% if (!inUse) { %>
-      <form method="post" action="/admin/categories/<%= category.id %>/delete">
+      <form method="post" action="/admin/categories/<%= category.id %>/delete" data-confirm="ลบหมวดหมู่ <%= category.name %> ใช่ไหม">
         <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
         <button class="text-button" type="submit" aria-label="ลบหมวดหมู่ <%= category.name %>">ลบหมวดหมู่</button>
       </form>

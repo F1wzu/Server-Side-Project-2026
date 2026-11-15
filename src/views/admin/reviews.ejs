@@ -36,7 +36,7 @@
     const sortOptions = [['newest', 'ใหม่สุดก่อน'], ['oldest', 'เก่าสุดก่อน'], ['lowest', 'คะแนนน้อยสุดก่อน'], ['highest', 'คะแนนมากสุดก่อน']];
     const searching = search.q || search.user || search.place || search.rating !== null || search.sort !== 'newest';
   %>
-  <form class="filter-panel review-search" method="get" action="<%= listBase %>" role="search" aria-label="ค้นหารีวิว">
+  <form class="filter-panel review-search" method="get" action="<%= listBase %>" role="search" aria-label="ค้นหารีวิว" data-collapsible="ค้นหารีวิว"<%- searching ? ' data-active' : '' %>>
     <% if (status !== 'all') { %><input type="hidden" name="status" value="<%= status %>"><% } %>
     <div class="field search-field">
       <label for="review-q">คำในรีวิว</label>

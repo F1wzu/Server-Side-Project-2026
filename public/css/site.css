@@ -2082,6 +2082,104 @@ details .stack-form {
     content: attr(data-label);
   }
 }
+/* ---------- UX fixes: jump targets, phone order, tap targets ---------- */
+/* A jump target (#reviews after posting a review, a form error) stops below
+   the sticky header instead of underneath it. */
+html {
+  scroll-padding-top: 96px;
+}
+@media (max-width: 1020px) {
+  /* One column: someone on a phone wants the address, map and opening hours
+     before the reviews, so the side panels move up between the description
+     and the reviews. display: contents lets the grid order the children of
+     .detail-main and the aside together. */
+  .detail-main {
+    display: contents;
+  }
+  .detail-main > * {
+    min-width: 0;
+  }
+  .detail-main > .detail-section {
+    margin-top: 0;
+  }
+  .detail-aside {
+    order: 1;
+  }
+  .detail-main > .detail-section ~ .detail-section {
+    order: 2;
+  }
+}
+@media (max-width: 860px) {
+  /* The form is why people open the login and sign-up pages; the pitch for
+     joining comes after it instead of pushing the fields off the screen. */
+  .auth-layout .auth-panel {
+    order: -1;
+  }
+}
+@media (pointer: coarse), (max-width: 640px) {
+  /* Links that stand alone get a finger-sized height. Links inside a
+     sentence keep the line height of the text around them. */
+  .text-link:not(p .text-link, li .text-link, dd .text-link),
+  .breadcrumb a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .card-body h3 a {
+    display: block;
+    padding-block: 7px;
+  }
+  .row-links .text-link {
+    padding-inline: 6px;
+  }
+  .leaflet-container.leaflet-touch .leaflet-bar a {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+  }
+}
+/* A long search form folds away on a phone (site.js adds the button). */
+.filter-toggle {
+  display: none;
+}
+@media (max-width: 640px) {
+  .filter-toggle {
+    display: inline-flex;
+    width: 100%;
+    margin-bottom: 12px;
+  }
+  .filter-panel.is-collapsed {
+    display: none;
+  }
+}
+/* A form that is being sent: its buttons wait instead of sending twice. */
+form[aria-busy='true'] button[type='submit'],
+form[aria-busy='true'] button:not([type]) {
+  opacity: 0.6;
+  cursor: progress;
+}
+.map-touch-hint {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+.opening-hours-unknown {
+  margin: 0 0 12px;
+  color: var(--ink-soft);
+}
+/* Logout inside the phone menu only; on a wide screen it lives on the
+   account page, one click away behind the avatar. */
+.nav-logout {
+  display: none;
+}
+@media (max-width: 860px) {
+  .nav-logout {
+    display: block;
+  }
+  .nav-logout .button {
+    width: 100%;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -2471,3 +2569,46 @@ details .stack-form {
 .review-report fieldset { border: 0; padding: 0; margin: 0 0 0.5rem; }
 .review-report .radio-row { display: block; margin: 0.25rem 0; }
 .review-reports ul { margin: 0.5rem 0; padding-left: 1rem; }
+
+/* Password show/hide button */
+/* The eye sits inside the password box, at its right edge, so the two read
+   as one control. The input keeps room on the right so typed text never runs
+   under the eye. */
+.password-wrap {
+  position: relative;
+}
+.field .password-wrap input {
+  width: 100%;
+  padding-right: 52px;
+}
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  color: var(--ink-soft);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-small);
+  cursor: pointer;
+}
+.password-toggle:hover,
+.password-toggle[aria-pressed='true'] {
+  color: var(--klong);
+}
+/* One eye at a time: closed while the password is hidden, open once shown. */
+.password-toggle span {
+  display: grid;
+}
+.password-toggle .eye-open,
+.password-toggle[aria-pressed='true'] .eye-closed {
+  display: none;
+}
+.password-toggle[aria-pressed='true'] .eye-open {
+  display: grid;
+}

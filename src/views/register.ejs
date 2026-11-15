@@ -14,6 +14,7 @@
       <%- include('partials/field', { name: 'username', label: 'ชื่อที่แสดง', type: 'text', value: values.username, error: errors.username, hint: 'ชื่อที่จะแสดงคู่กับรีวิวของคุณ (3–50 ตัวอักษร)', autocomplete: 'nickname' }) %>
       <%- include('partials/field', { name: 'email', label: 'อีเมล', type: 'email', value: values.email, error: errors.email, autocomplete: 'email' }) %>
       <%- include('partials/field', { name: 'password', label: 'รหัสผ่าน', type: 'password', error: errors.password, hint: 'อย่างน้อย 8 ตัวอักษร', autocomplete: 'new-password' }) %>
+      <%- include('partials/field', { name: 'confirmPassword', label: 'ยืนยันรหัสผ่าน', type: 'password', error: errors.confirmPassword, autocomplete: 'new-password' }) %>
       <div class="field consent-field">
         <label class="checkbox-label" for="acceptPolicy">
           <input type="checkbox" id="acceptPolicy" name="acceptPolicy" value="on"<%- values.acceptPolicy ? ' checked' : '' %><%- errors.acceptPolicy ? ' aria-invalid="true" aria-describedby="acceptPolicy-error"' : '' %>>

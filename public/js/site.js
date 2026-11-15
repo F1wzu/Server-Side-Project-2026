@@ -178,3 +178,55 @@ document.querySelectorAll('input[type="file"][data-max-files]').forEach((input) 
     input.reportValidity();
   });
 });
+
+// Two guards on every ordinary form.
+// 1. A form marked data-confirm deletes something for good, so it asks first.
+//    (Without JavaScript the button still works; it just does not ask.)
+// 2. A form that is already on its way is not sent a second time by a double
+//    tap, which matters most on a slow connection.
+// This runs after the page's other submit handlers (the map's pin check, the
+// heart button), so a submit they cancelled is left alone.
+document.addEventListener('submit', (event) => {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement) || event.defaultPrevented) return;
+  if (form.method.toLowerCase() !== 'post') return;
+  if (form.getAttribute('aria-busy') === 'true') {
+    event.preventDefault();
+    return;
+  }
+  if (form.dataset.confirm && !window.confirm(form.dataset.confirm)) {
+    event.preventDefault();
+    return;
+  }
+  // Marked, not disabled: a disabled submit button would drop its own
+  // name=value from the request the browser is about to send.
+  form.setAttribute('aria-busy', 'true');
+  // If the request never leaves the page (the connection dropped), let the
+  // member try again instead of leaving the form stuck.
+  setTimeout(() => form.removeAttribute('aria-busy'), 10000);
+});
+// Coming back with the Back button restores the page from memory with the
+// mark still on it; clear it so the form can be sent again.
+window.addEventListener('pageshow', () => {
+  document.querySelectorAll('form[aria-busy="true"]').forEach((form) => form.removeAttribute('aria-busy'));
+});
+
+// On a phone a long search form would fill the first screen and hide the
+// results, so it folds behind a button. It starts open when a search is in
+// use (so the member sees what is filtering the list) and on wider screens
+// the button is hidden by CSS and the form always shows.
+document.querySelectorAll('form[data-collapsible]').forEach((panel, index) => {
+  if (!panel.id) panel.id = 'filter-panel-' + index;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'button button-outline filter-toggle';
+  button.setAttribute('aria-controls', panel.id);
+  const set = (open) => {
+    panel.classList.toggle('is-collapsed', !open);
+    button.setAttribute('aria-expanded', String(open));
+    button.textContent = open ? 'ซ่อนตัวกรอง' : panel.dataset.collapsible || 'ค้นหาและกรอง';
+  };
+  button.addEventListener('click', () => set(button.getAttribute('aria-expanded') !== 'true'));
+  panel.before(button);
+  set(panel.hasAttribute('data-active'));
+});

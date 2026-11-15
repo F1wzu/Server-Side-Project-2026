@@ -14,7 +14,7 @@
     <a class="button button-primary" href="/admin/places/new"><%- icon('plus', 18) %>เพิ่มสถานที่</a>
   </div>
 
-  <form class="filter-panel" method="get" action="/admin/places">
+  <form class="filter-panel" method="get" action="/admin/places" data-collapsible="ค้นหาและกรองสถานที่"<%- filters.q || filters.missing || filters.status !== 'all' ? ' data-active' : '' %>>
     <div class="field search-field">
       <label for="q">ค้นหาจากชื่อสถานที่</label>
       <input id="q" name="q" type="search" value="<%= filters.q %>" maxlength="200">

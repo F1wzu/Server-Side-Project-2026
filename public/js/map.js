@@ -12,6 +12,19 @@
       // The site sends no referrer to other origins; the tile server asks for one.
       referrerPolicy: 'strict-origin-when-cross-origin',
     });
+  // On a phone a finger resting on a map would move the map instead of
+  // scrolling the page, trapping the reader on it. So there one finger scrolls
+  // the page and two fingers move and zoom the map (taps and dragging a pin
+  // still work), and a short line under the map says so.
+  const touch = L.Browser.mobile;
+  const touchOptions = touch ? { dragging: false } : {};
+  const touchHint = (element) => {
+    if (!touch) return;
+    const hint = document.createElement('p');
+    hint.className = 'map-touch-hint';
+    hint.textContent = 'ใช้สองนิ้วเพื่อเลื่อนและซูมแผนที่';
+    element.after(hint);
+  };
   const pin = (kind, active = false) =>
     L.divIcon({
       className: '',
@@ -24,7 +37,8 @@
   // Place page: one fixed marker.
   document.querySelectorAll('[data-map-mini]').forEach((element) => {
     const position = [Number(element.dataset.lat), Number(element.dataset.lng)];
-    const map = L.map(element, { zoomControl: false, scrollWheelZoom: false }).setView(position, 16);
+    const map = L.map(element, { zoomControl: false, scrollWheelZoom: false, ...touchOptions }).setView(position, 16);
+    touchHint(element);
     tiles().addTo(map);
     L.marker(position, { icon: pin(element.dataset.kind), keyboard: false }).addTo(map);
   });
@@ -39,7 +53,8 @@
     const bounds = JSON.parse(element.dataset.bounds);
     const area = L.latLngBounds([bounds.minLat, bounds.minLng], [bounds.maxLat, bounds.maxLng]);
     // Half-step zoom so the district can fill the picker snugly.
-    const map = L.map(element, { maxBounds: area.pad(0.3), zoomSnap: 0.5 });
+    const map = L.map(element, { maxBounds: area.pad(0.3), zoomSnap: 0.5, ...touchOptions });
+    touchHint(element);
     tiles().addTo(map);
     // The district's real border, so a member sees where a pin is accepted
     // (the server checks the same shape). Falls back to the rectangle.
@@ -160,7 +175,9 @@
   const items = new Map(
     [...page.querySelectorAll('[data-map-item]')].map((item) => [item.dataset.mapItem, item])
   );
-  const map = L.map(page.querySelector('[data-map-canvas]')).setView([13.7245, 100.765], 13);
+  const canvas = page.querySelector('[data-map-canvas]');
+  const map = L.map(canvas, touchOptions).setView([13.7245, 100.765], 13);
+  touchHint(canvas);
   tiles().addTo(map);
   const markers = new Map();
   let activeId = null;
@@ -232,12 +249,16 @@
         marker.on('click', () => activate(id));
         markers.set(id, { marker, place });
       }
-      if (data.length)
+      if (data.length) {
+        // Re-measure first: the map can be created before the page has its
+        // final width, and a fit against the old size left pins cut off at
+        // the edge. The top padding is larger because a pin stands above its point.
+        map.invalidateSize({ animate: false });
         map.fitBounds(
           data.map((place) => [place.latitude, place.longitude]),
-          { padding: [40, 40], maxZoom: 15 }
+          { paddingTopLeft: [28, 48], paddingBottomRight: [28, 20], maxZoom: 15, animate: false }
         );
-      else {
+      } else {
         status.hidden = false;
         status.textContent = 'ยังไม่มีสถานที่ที่มีพิกัดยืนยันแล้ว';
       }

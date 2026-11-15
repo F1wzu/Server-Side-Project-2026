@@ -32,7 +32,23 @@ const acceptPolicy = z.preprocess(
   z.literal(true, { error: 'กรุณายอมรับนโยบายความเป็นส่วนตัวก่อนสมัครสมาชิก' })
 );
 
-const registerSchema = z.object({ username, email, password: newPassword, acceptPolicy });
+// Typing the password twice catches a typo; there is no password reset, so a
+// typo at sign-up would lock the member out. The field is optional here so
+// existing API clients keep working: the page forms always send it (the
+// controller fills in '' when it is missing), and whenever it is sent it
+// must match. `field` is the confirm field, `source` the one it repeats.
+const confirmation = z.string({ error: 'กรุณายืนยันรหัสผ่านอีกครั้ง' }).optional();
+const checkConfirmation = (field, source) => (value, ctx) => {
+  if (value[field] === undefined) return;
+  if (value[field] === '') ctx.addIssue({ code: 'custom', path: [field], message: 'กรุณายืนยันรหัสผ่านอีกครั้ง' });
+  else if (value[field] !== value[source]) ctx.addIssue({ code: 'custom', path: [field], message: 'รหัสผ่านทั้งสองช่องไม่ตรงกัน' });
+};
+
+// The confirm field is dropped after the check, so it never reaches the model.
+const registerSchema = z
+  .object({ username, email, password: newPassword, acceptPolicy, confirmPassword: confirmation })
+  .superRefine(checkConfirmation('confirmPassword', 'password'))
+  .transform(({ confirmPassword, ...account }) => account);
 
 const updateProfileSchema = z.object({ username });
 
@@ -40,11 +56,14 @@ const changePasswordSchema = z
   .object({
     currentPassword: z.string({ error: 'กรุณากรอกรหัสผ่านเดิม' }).min(1, 'กรุณากรอกรหัสผ่านเดิม').max(1000, 'รหัสผ่านเดิมไม่ถูกต้อง'),
     newPassword,
+    confirmNewPassword: confirmation,
   })
   .refine((value) => value.newPassword !== value.currentPassword, {
     path: ['newPassword'],
     message: 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม',
-  });
+  })
+  .superRefine(checkConfirmation('confirmNewPassword', 'newPassword'))
+  .transform(({ confirmNewPassword, ...passwords }) => passwords);
 
 // Login does not repeat the password rules: any wrong value gets the same answer.
 const loginSchema = z.object({

@@ -14,6 +14,11 @@ const { generateToken } = require('../middleware/csrf');
 // form again; anything else goes to the error handler.
 const isFormError = (err) => ['VALIDATION_ERROR', 'EMAIL_TAKEN', 'INVALID_CREDENTIALS'].includes(err.code);
 
+// The page forms must repeat the password; the API may leave the field out
+// (validation/auth.js). A form post without the field is treated as an empty
+// one, so the schema reports it on that field like any other mistake.
+const withConfirm = (body, field) => ({ ...body, [field]: typeof body?.[field] === 'string' ? body[field] : '' });
+
 // ---------- pages ----------
 
 function showRegister(req, res) {
@@ -23,12 +28,12 @@ function showRegister(req, res) {
 async function register(req, res) {
   const next = safeRedirect(req.body?.next, '');
   try {
-    const user = await userModel.register(validate(registerSchema, req.body));
+    const user = await userModel.register(validate(registerSchema, withConfirm(req.body, 'confirmPassword')));
     await startSession(req, user.id, { type: 'success', text: `ยินดีต้อนรับ ${user.username} สมัครสมาชิกเรียบร้อยแล้ว` });
     return res.redirect(303, next || '/me');
   } catch (err) {
     if (!isFormError(err)) throw err;
-    // Show the form again with what was typed. The password is never sent back.
+    // Show the form again with what was typed. The passwords are never sent back.
     return res.status(err.status).render('register', {
       title: 'สมัครสมาชิก',
       values: { username: req.body?.username, email: req.body?.email, acceptPolicy: req.body?.acceptPolicy === 'on' },
@@ -127,10 +132,11 @@ async function updateProfile(req, res) {
 // Changes the password, gives this browser a new session ID and logs the
 // account out everywhere else. A wrong current password is marked on the
 // response, so the throttle counts only those guesses, not typos in the new
-// password (see middleware/rateLimit.js).
-async function changeOwnPassword(req, res, flash) {
+// password (see middleware/rateLimit.js). `body` lets the page handler pass
+// the form with the confirm field made mandatory.
+async function changeOwnPassword(req, res, flash, body = req.body) {
   const userId = req.user.id;
-  const input = validate(changePasswordSchema, req.body);
+  const input = validate(changePasswordSchema, body);
   try {
     await userModel.changePassword(userId, input);
   } catch (err) {
@@ -143,7 +149,7 @@ async function changeOwnPassword(req, res, flash) {
 
 async function changePassword(req, res) {
   try {
-    await changeOwnPassword(req, res, { type: 'success', text: 'เปลี่ยนรหัสผ่านแล้ว อุปกรณ์อื่นที่เข้าสู่ระบบไว้ถูกออกจากระบบ' });
+    await changeOwnPassword(req, res, { type: 'success', text: 'เปลี่ยนรหัสผ่านแล้ว อุปกรณ์อื่นที่เข้าสู่ระบบไว้ถูกออกจากระบบ' }, withConfirm(req.body, 'confirmNewPassword'));
     return res.redirect(303, '/me');
   } catch (err) {
     if (!isFormError(err)) throw err;

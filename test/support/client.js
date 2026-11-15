@@ -27,12 +27,18 @@ function createClient(app) {
       return agent.put(path).set('X-CSRF-Token', token).send(body);
     },
     // HTML form post, with the hidden CSRF field.
+    // Like a person filling in the page, the two "type it again" fields
+    // repeat the password unless a test sets them itself (pass
+    // `confirmPassword: undefined` to leave the field out).
     async postForm(path, fields = {}) {
       const token = await csrfToken();
+      const repeated = {};
+      if (path === '/register' && 'password' in fields) repeated.confirmPassword = fields.password;
+      if (path === '/me/password' && 'newPassword' in fields) repeated.confirmNewPassword = fields.newPassword;
       return agent
         .post(path)
         .type('form')
-        .send({ _csrf: token, ...fields });
+        .send({ _csrf: token, ...repeated, ...fields });
     },
     register(overrides = {}) {
       return this.post('/api/v1/auth/register', { username: 'สมชาย', email: 'somchai@example.com', password: 'password123', acceptPolicy: true, ...overrides });

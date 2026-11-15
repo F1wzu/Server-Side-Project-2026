@@ -105,7 +105,7 @@
               <button class="button button-primary" type="submit">บันทึกการแก้ไข</button>
             </form>
           </details>
-          <form class="remove-review" method="post" action="/reviews/<%= ownReview.id %>/delete">
+          <form class="remove-review" method="post" action="/reviews/<%= ownReview.id %>/delete" data-confirm="ลบรีวิวของคุณใช่ไหม">
             <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
             <input type="hidden" name="next" value="/places/<%= place.id %>#reviews">
             <button class="text-button" type="submit">ลบรีวิวของฉัน</button>
@@ -173,6 +173,11 @@
 
       <section class="side-panel">
         <h2><%- icon('clock') %>เวลาเปิดบริการ</h2>
+        <%# Seven rows of "not specified" say nothing, so a place with no known
+            hours gets one line and a way to tell an admin. %>
+        <% if (!place.hours.some((day) => day.state !== 'unknown')) { %>
+        <p class="opening-hours-unknown">ยังไม่ระบุเวลาเปิดบริการของสถานที่นี้ ถ้าคุณทราบ <a class="text-link" href="#report">แจ้งผู้ดูแลได้</a></p>
+        <% } else { %>
         <dl class="opening-hours">
           <% place.hours.forEach((day) => { %>
           <div class="<%= day.weekday === todayWeekday ? 'is-today' : '' %>">
@@ -181,6 +186,7 @@
           </div>
           <% }) %>
         </dl>
+        <% } %>
         <p class="side-note"><%- icon('info', 18) %><span>เวลาประเทศไทย เวลาเปิดอาจเปลี่ยนแปลง ควรตรวจสอบกับสถานที่ก่อนเดินทาง</span></p>
       </section>
     </aside>

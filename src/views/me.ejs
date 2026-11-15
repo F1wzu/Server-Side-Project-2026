@@ -51,6 +51,7 @@
         <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
         <%- include('partials/field', { name: 'currentPassword', label: 'รหัสผ่านเดิม', type: 'password', error: passwordErrors.currentPassword, autocomplete: 'current-password' }) %>
         <%- include('partials/field', { name: 'newPassword', label: 'รหัสผ่านใหม่', type: 'password', error: passwordErrors.newPassword, hint: 'อย่างน้อย 8 ตัวอักษร', autocomplete: 'new-password' }) %>
+        <%- include('partials/field', { name: 'confirmNewPassword', label: 'ยืนยันรหัสผ่านใหม่', type: 'password', error: passwordErrors.confirmNewPassword, autocomplete: 'new-password' }) %>
         <button type="submit" class="button button-primary">เปลี่ยนรหัสผ่าน</button>
       </form>
     </section>
