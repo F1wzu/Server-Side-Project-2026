@@ -495,6 +495,14 @@ ol {
 .notice p {
   margin: 0;
 }
+/* A success message fading out (public/js/site.js). */
+.notice[data-flash] {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.notice.is-leaving {
+  opacity: 0;
+  transform: translateY(-6px);
+}
 .panel {
   padding: 24px;
   background: var(--card);
@@ -1009,6 +1017,20 @@ input[type='checkbox'] {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+}
+/* Review search on the admin reviews page: more fields than the place
+   filter, in a narrow column, so they wrap into as many columns as fit. */
+.filter-panel.review-search {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin-bottom: 14px;
+}
+.review-search .search-field {
+  grid-column: 1 / -1;
+}
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 .input-with-icon {
   position: relative;

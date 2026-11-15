@@ -2,6 +2,8 @@
 <%
   const statusLabels = { active: 'แสดงอยู่', deleted: 'ผู้เขียนลบแล้ว', removed: 'นำออกแล้ว' };
   const filters = [['all', 'ทั้งหมด'], ['active', 'แสดงอยู่'], ['removed', 'นำออกแล้ว'], ['deleted', 'ผู้เขียนลบแล้ว']];
+  // Sent with each remove form, so the admin returns to the same search.
+  const searchFields = Object.entries(search).filter(([key, value]) => value !== '' && value !== null && !(key === 'sort' && value === 'newest'));
 %>
 <div class="container narrow page-content">
   <%- include('../partials/admin-nav') %>
@@ -25,15 +27,58 @@
 
   <nav class="tabs" aria-label="กรองตามสถานะ">
     <% filters.forEach(([key, label]) => { %>
-    <a href="<%= listBase %><%= key === 'all' ? '' : '?status=' + key %>"<%- status === key ? ' aria-current="true"' : '' %>><%= label %></a>
+    <a href="<%= statusLink(key) %>"<%- status === key ? ' aria-current="true"' : '' %>><%= label %></a>
     <% }) %>
   </nav>
-  <p class="meta list-count"><%= result.pagination.total %> รีวิว</p>
+
+  <%
+    const sortOptions = [['newest', 'ใหม่สุดก่อน'], ['oldest', 'เก่าสุดก่อน'], ['lowest', 'คะแนนน้อยสุดก่อน'], ['highest', 'คะแนนมากสุดก่อน']];
+    const searching = search.q || search.user || search.place || search.rating !== null || search.sort !== 'newest';
+  %>
+  <form class="filter-panel review-search" method="get" action="<%= listBase %>" role="search" aria-label="ค้นหารีวิว">
+    <% if (status !== 'all') { %><input type="hidden" name="status" value="<%= status %>"><% } %>
+    <div class="field search-field">
+      <label for="review-q">คำในรีวิว</label>
+      <input id="review-q" name="q" type="search" value="<%= search.q %>" maxlength="200">
+    </div>
+    <div class="field">
+      <label for="review-user">ชื่อผู้รีวิว</label>
+      <input id="review-user" name="user" type="search" value="<%= search.user %>" maxlength="200">
+    </div>
+    <% if (!place) { %>
+    <div class="field">
+      <label for="review-place">ชื่อสถานที่</label>
+      <input id="review-place" name="place" type="search" value="<%= search.place %>" maxlength="200">
+    </div>
+    <% } %>
+    <div class="field">
+      <label for="review-rating">คะแนน</label>
+      <select id="review-rating" name="rating">
+        <option value="">ทุกคะแนน</option>
+        <% [5, 4, 3, 2, 1].forEach((stars) => { %>
+        <option value="<%= stars %>" <%= search.rating === stars ? 'selected' : '' %>><%= stars %> ดาว</option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label for="review-sort">เรียงตาม</label>
+      <select id="review-sort" name="sort">
+        <% sortOptions.forEach(([value, label]) => { %>
+        <option value="<%= value %>" <%= search.sort === value ? 'selected' : '' %>><%= label %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="filter-actions">
+      <button class="button button-primary" type="submit"><%- icon('search', 18) %>ค้นหา</button>
+      <% if (searching) { %><a class="text-link" href="<%= listBase %><%= status === 'all' ? '' : '?status=' + status %>">ล้างการค้นหา</a><% } %>
+    </div>
+  </form>
+  <p class="meta list-count"><%= result.pagination.total %> รีวิว<%= searching ? ' ที่ตรงกับการค้นหา' : '' %></p>
 
   <% if (result.pagination.total === 0) { %>
   <div class="empty-state">
     <%- icon('star', 28) %>
-    <h2>ไม่มีรีวิวในหมวดนี้</h2>
+    <h2><%= searching ? 'ไม่พบรีวิวที่ตรงกับการค้นหา' : 'ไม่มีรีวิวในหมวดนี้' %></h2>
   </div>
   <% } %>
 
@@ -78,7 +123,8 @@
               <form class="stack-form" action="/admin/replies/<%= reply.id %>/remove" method="post">
                 <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
                 <input type="hidden" name="status" value="<%= status %>">
-<input type="hidden" name="page" value="<%= result.pagination.page %>">
+                <input type="hidden" name="page" value="<%= result.pagination.page %>">
+                <% searchFields.forEach(([key, value]) => { %><input type="hidden" name="<%= key %>" value="<%= value %>"><% }) %>
                 <% if (place) { %><input type="hidden" name="placeId" value="<%= place.id %>"><% } %>
                 <div class="field">
                   <label for="reply-reason-<%= reply.id %>">เหตุผล (ผู้เขียนจะเห็นข้อความนี้)</label>
@@ -100,7 +146,8 @@
         <form class="stack-form" action="/admin/reviews/<%= review.id %>/remove" method="post">
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
           <input type="hidden" name="status" value="<%= status %>">
-<input type="hidden" name="page" value="<%= result.pagination.page %>">
+          <input type="hidden" name="page" value="<%= result.pagination.page %>">
+          <% searchFields.forEach(([key, value]) => { %><input type="hidden" name="<%= key %>" value="<%= value %>"><% }) %>
           <% if (place) { %><input type="hidden" name="placeId" value="<%= place.id %>"><% } %>
           <div class="field">
             <label for="reason-<%= review.id %>">เหตุผล (ผู้เขียนจะเห็นข้อความนี้)</label>

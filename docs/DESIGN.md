@@ -452,7 +452,7 @@ Index: `(status, created_at)` สมาชิกหนึ่งคนมีร�
 | POST | `/admin/places/:id/photos/:photoId/move` | เลื่อนรูป `{ direction: "up" \| "down" }` สุดทางแล้วไม่เปลี่ยนอะไร | 200 |
 | DELETE | `/admin/places/:id/photos/:photoId` | ลบรูป (ไฟล์ถูกลบเมื่อไม่มีที่ใช้แล้ว) | 204 |
 | DELETE | `/admin/places/:id/cover` | ลบรูปหลัก รูปแรกในแกลเลอรีขึ้นเป็นรูปหลักแทน | 200 |
-| GET | `/admin/reviews` | รีวิวทั้งหมด แต่ละรีวิวมี `replies` ทุกสถานะ กรองด้วย `status` และ `placeId` (สถานที่ที่ไม่มีอยู่ตอบ 404) | 200 |
+| GET | `/admin/reviews` | รีวิวทั้งหมด แต่ละรีวิวมี `replies` ทุกสถานะ กรองด้วย `status` และ `placeId` (สถานที่ที่ไม่มีอยู่ตอบ 404) ค้นหาด้วย `q` (คำในรีวิว) `user` (ส่วนหนึ่งของชื่อผู้รีวิว) `place` (ส่วนหนึ่งของชื่อสถานที่) ไม่สนตัวพิมพ์เล็กใหญ่ และ `rating` (1–5) เรียงด้วย `sort` = `newest` (ค่าเริ่มต้น) `oldest` `lowest` `highest` ค่าที่ไม่รู้จักถูกละไว้ | 200 |
 | POST | `/admin/reviews/:id/remove` | ลบรีวิวพร้อมเหตุผล | 200 |
 | POST | `/admin/replies/:id/remove` | นำความเห็นตอบกลับออกพร้อมเหตุผล (ซ้ำตอบ 409) | 200 |
 | POST | `/admin/categories` | เพิ่มหมวดหมู่ | 201 |

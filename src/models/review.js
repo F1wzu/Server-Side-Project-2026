@@ -183,16 +183,34 @@ async function listOwn(userId, { page = 1, pageSize = 20 } = {}) {
 
 const REVIEW_STATUSES = ['active', 'deleted', 'removed'];
 
-// All reviews for the admin list, newest first, optionally of one status
-// and/or one place (the "reviews" tab of a place in the admin area).
-async function listAll({ status, placeId = null, page = 1, pageSize = 20 } = {}) {
+// In a LIKE pattern % and _ are wildcards: escape them so "%" is not "everything".
+const escapeLike = (text) => text.replace(/[\\%_]/g, '\\$&');
+const containing = (text) => ({ contains: escapeLike(text), mode: 'insensitive' });
+
+// Orders for the admin list; the id breaks ties so pages never overlap.
+const REVIEW_SORTS = {
+  newest: [{ createdAt: 'desc' }, { id: 'desc' }],
+  oldest: [{ createdAt: 'asc' }, { id: 'asc' }],
+  lowest: [{ rating: 'asc' }, { createdAt: 'desc' }, { id: 'desc' }],
+  highest: [{ rating: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
+};
+
+// All reviews for the admin list, optionally of one status and/or one place
+// (the "reviews" tab of a place in the admin area), and narrowed by search:
+// `q` words in the comment, `user` part of the reviewer's username, `place`
+// part of the place's name, `rating` exact stars. Text matches ignore case.
+async function listAll({ status, placeId = null, q = '', user = '', place = '', rating = null, sort = 'newest', page = 1, pageSize = 20 } = {}) {
   const where = REVIEW_STATUSES.includes(status) ? { status } : {};
   if (placeId !== null) where.placeId = placeId;
+  if (q) where.comment = containing(q);
+  if (user) where.user = { username: containing(user) };
+  if (place) where.place = { name: containing(place) };
+  if (rating !== null) where.rating = rating;
   const total = await prisma.review.count({ where });
   const pagination = pageWithin(total, page, pageSize);
   const rows = await prisma.review.findMany({
     where,
-    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    orderBy: REVIEW_SORTS[sort] ?? REVIEW_SORTS.newest,
     skip: (pagination.page - 1) * pageSize,
     take: pageSize,
     include: {
@@ -226,4 +244,4 @@ async function adminRemove(adminId, reviewId, reason) {
   });
 }
 
-module.exports = { create, update, remove, listForPlace, findOwnForPlace, listOwn, recalculateRating, listAll, adminRemove, REVIEW_STATUSES };
+module.exports = { create, update, remove, listForPlace, findOwnForPlace, listOwn, recalculateRating, listAll, adminRemove, REVIEW_STATUSES, REVIEW_SORTS };

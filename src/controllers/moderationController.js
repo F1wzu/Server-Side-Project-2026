@@ -37,15 +37,37 @@ function flashError(req, err) {
 
 const meta = ({ page, pageSize, total }) => ({ page, pageSize, total });
 
-function listUrl(base, defaultStatus, status, page) {
+// `extra` carries the review search (see reviewSearchFrom) so paging and the
+// return trip after removing a review keep the admin's search.
+function listUrl(base, defaultStatus, status, page, extra = {}) {
   const query = new URLSearchParams();
   if (status !== defaultStatus) query.set('status', status);
+  for (const [key, value] of Object.entries(extra)) {
+    if (value !== '' && value !== null && value !== undefined && !(key === 'sort' && value === 'newest')) query.set(key, value);
+  }
   if (page > 1) query.set('page', page);
   const text = query.toString();
   return text ? `${base}?${text}` : base;
 }
 
 // ---------- reviews ----------
+
+// The review search from a query string or a form body. Free text is
+// trimmed, cut to 200 characters and stripped of control characters (it is
+// only ever a search pattern, escaped in the model); anything unknown in
+// rating or sort means "no such filter".
+const CONTROL_ALL = /[\u0000-\u001F\u007F]/g;
+const searchText = (value) => (typeof value === 'string' ? value.replace(CONTROL_ALL, '').trim().slice(0, 200) : '');
+function reviewSearchFrom(source = {}) {
+  const rating = Number(source.rating);
+  return {
+    q: searchText(source.q),
+    user: searchText(source.user),
+    place: searchText(source.place),
+    rating: Number.isInteger(rating) && rating >= 1 && rating <= 5 ? rating : null,
+    sort: Object.hasOwn(reviewModel.REVIEW_SORTS, source.sort) ? source.sort : 'newest',
+  };
+}
 
 // The place a review list is scoped to, from a URL or form value. Unknown or
 // malformed ids answer 404 (via findById), so a typo never shows every review.
@@ -67,14 +89,17 @@ async function placeIdFromQuery(value) {
 // GET /admin/reviews  (every place)
 async function reviewsPage(req, res) {
   const status = filterFrom(req.query.status, REVIEW_FILTERS, 'all');
-  const result = await reviewModel.listAll({ status, page: pageFrom(req.query.page) });
+  const search = reviewSearchFrom(req.query);
+  const result = await reviewModel.listAll({ status, ...search, page: pageFrom(req.query.page) });
   res.render('admin/reviews', {
     title: 'ดูแลรีวิว',
     result,
     status,
+    search,
     place: null,
     listBase: '/admin/reviews',
-    pageLink: (page) => listUrl('/admin/reviews', 'all', status, page),
+    statusLink: (key) => listUrl('/admin/reviews', 'all', key, 1, search),
+    pageLink: (page) => listUrl('/admin/reviews', 'all', status, page, search),
   });
 }
 
@@ -82,15 +107,19 @@ async function reviewsPage(req, res) {
 async function placeReviewsPage(req, res) {
   const place = await scopedPlace(req.params.id);
   const status = filterFrom(req.query.status, REVIEW_FILTERS, 'all');
-  const result = await reviewModel.listAll({ status, placeId: place.id, page: pageFrom(req.query.page) });
+  // The tab is already one place, so a place-name search does not apply.
+  const search = { ...reviewSearchFrom(req.query), place: '' };
+  const result = await reviewModel.listAll({ status, placeId: place.id, ...search, page: pageFrom(req.query.page) });
   const base = placeReviewsBase(place.id);
   res.render('admin/reviews', {
     title: `รีวิวของ ${place.name}`,
     result,
     status,
+    search,
     place,
     listBase: base,
-    pageLink: (page) => listUrl(base, 'all', status, page),
+    statusLink: (key) => listUrl(base, 'all', key, 1, search),
+    pageLink: (page) => listUrl(base, 'all', status, page, search),
   });
 }
 
@@ -109,7 +138,7 @@ async function removeReviewFromForm(req, res) {
     flashError(req, err);
   }
   const base = backPlaceId === null ? '/admin/reviews' : placeReviewsBase(backPlaceId);
-  res.redirect(303, listUrl(base, 'all', status, page));
+  res.redirect(303, listUrl(base, 'all', status, page, reviewSearchFrom(req.body)));
 }
 
 // POST /admin/replies/:id/remove  (from a review card on either reviews page;
@@ -126,7 +155,7 @@ async function removeReplyFromForm(req, res) {
     flashError(req, err);
   }
   const base = backPlaceId === null ? '/admin/reviews' : placeReviewsBase(backPlaceId);
-  res.redirect(303, listUrl(base, 'all', status, page));
+  res.redirect(303, listUrl(base, 'all', status, page, reviewSearchFrom(req.body)));
 }
 
 // POST /api/v1/admin/replies/:id/remove
@@ -135,11 +164,12 @@ async function apiRemoveReply(req, res) {
   res.json({ data: await replyModel.adminRemove(req.user.id, id, validate(removeReplySchema, req.body).reason) });
 }
 
-// GET /api/v1/admin/reviews  (?status=…&placeId=…&page=…)
+// GET /api/v1/admin/reviews  (?status=…&placeId=…&q=…&user=…&place=…&rating=…&sort=…&page=…)
 async function apiReviews(req, res) {
   const status = filterFrom(req.query.status, REVIEW_FILTERS, 'all');
   const placeId = await placeIdFromQuery(req.query.placeId);
-  const { data, pagination } = await reviewModel.listAll({ status, placeId, page: pageFrom(req.query.page) });
+  const search = reviewSearchFrom(req.query);
+  const { data, pagination } = await reviewModel.listAll({ status, placeId, ...search, page: pageFrom(req.query.page) });
   res.json({ data, meta: meta(pagination) });
 }
 

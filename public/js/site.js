@@ -66,6 +66,25 @@ const flash = document.querySelector('[data-flash]');
 if (flash) {
   flash.removeAttribute('role');
   setTimeout(() => announce(flash.textContent.trim()), 250);
+  // A success message ("เข้าสู่ระบบแล้ว") has done its job once read, so it
+  // fades away after a few seconds. Errors stay until the member leaves the
+  // page, since they may need them to fix something. The timer waits while
+  // the pointer rests on the message, so a slow reader keeps it.
+  if (!flash.classList.contains('notice-error')) {
+    const box = flash.parentElement; // the .container wrapper around the message
+    let timer;
+    const start = () => {
+      timer = setTimeout(() => {
+        flash.classList.add('is-leaving');
+        // Removed on a timer matching the 0.4s fade, not on transitionend,
+        // which never fires in a background tab or with reduced motion.
+        setTimeout(() => box.remove(), matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 450);
+      }, 5000);
+    };
+    flash.addEventListener('mouseenter', () => clearTimeout(timer));
+    flash.addEventListener('mouseleave', start);
+    start();
+  }
 }
 
 // Send focus to a server-rendered form error and tie it to the field that failed.
