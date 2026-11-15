@@ -78,7 +78,7 @@ describe('registering', () => {
         .post('/api/v1/auth/register')
         .set('X-CSRF-Token', token)
         .set('x-test-real-limits', '1')
-        .send({ username: `user${i}`, email: 'same@example.com', password: 'password123' });
+        .send({ username: `user${i}`, email: 'same@example.com', password: 'password123', acceptPolicy: true });
       statuses.push(res.status);
     }
     expect(statuses[0]).toBe(201);

@@ -2,15 +2,17 @@
 const adminSubmissionModel = require('../models/adminSubmission');
 const reportModel = require('../models/report');
 const placeModel = require('../models/place');
+const reviewReportModel = require('../models/reviewReport');
 
 // GET /admin
 async function dashboard(req, res) {
-  const [pendingSubmissions, openReports, publishedPlaces] = await Promise.all([
+  const [pendingSubmissions, openReports, reportedReviews, publishedPlaces] = await Promise.all([
     adminSubmissionModel.pendingCount(),
     reportModel.listOpenCount(),
+    reviewReportModel.countReviewsWithOpen(),
     placeModel.countPublished(),
   ]);
-  res.render('admin/index', { title: 'ผู้ดูแลระบบ', pendingSubmissions, openReports, publishedPlaces });
+  res.render('admin/index', { title: 'ผู้ดูแลระบบ', pendingSubmissions, openReports, reportedReviews, publishedPlaces });
 }
 
 module.exports = { dashboard };

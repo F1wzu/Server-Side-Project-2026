@@ -38,7 +38,7 @@ describe('register', () => {
     expect(res.body.data.role).toBe('member');
     expect(await prisma.user.count({ where: { role: 'admin' } })).toBe(0);
 
-    const form = await createClient(app).postForm('/register', { username: 'another', email: 'another@example.com', password: 'password123', role: 'admin' });
+    const form = await createClient(app).postForm('/register', { username: 'another', email: 'another@example.com', password: 'password123', acceptPolicy: 'on', role: 'admin' });
     expect(form.status).toBe(303);
     expect(await prisma.user.count({ where: { role: 'admin' } })).toBe(0);
   });
@@ -90,7 +90,7 @@ describe('register', () => {
 
   test('a successful form post redirects to the profile and shows a welcome once', async () => {
     const client = createClient(app);
-    const res = await client.postForm('/register', { username: 'สมหญิง', email: 'somying@example.com', password: 'password123' });
+    const res = await client.postForm('/register', { username: 'สมหญิง', email: 'somying@example.com', password: 'password123', acceptPolicy: 'on' });
     expect(res.status).toBe(303);
     expect(res.headers.location).toBe('/me');
 

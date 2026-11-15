@@ -4,7 +4,27 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= title %> · <%= siteName %></title>
-  <meta name="description" content="ค้นหาที่กิน ที่เที่ยว ที่พัก และบริการในเขตลาดกระบัง พร้อมรีวิวจากคนในย่าน">
+  <%
+    // Link previews (LINE, Facebook, X) and search engines. A page may pass
+    // `meta` with its own description, photo (a site path) and type.
+    const pageMeta = locals.meta || {};
+    const pageDescription = pageMeta.description || 'ค้นหาที่กิน ที่เที่ยว ที่พัก และบริการในเขตลาดกระบัง พร้อมรีวิวจากคนในย่าน';
+    const pageUrl = siteOrigin + currentPath;
+  %>
+  <meta name="description" content="<%= pageDescription %>">
+  <link rel="canonical" href="<%= pageUrl %>">
+  <meta property="og:site_name" content="<%= siteName %>">
+  <meta property="og:locale" content="th_TH">
+  <meta property="og:type" content="<%= pageMeta.type || 'website' %>">
+  <meta property="og:title" content="<%= title %>">
+  <meta property="og:description" content="<%= pageDescription %>">
+  <meta property="og:url" content="<%= pageUrl %>">
+  <% if (pageMeta.image) { %>
+  <meta property="og:image" content="<%= siteOrigin + pageMeta.image %>">
+  <meta name="twitter:card" content="summary_large_image">
+  <% } else { %>
+  <meta name="twitter:card" content="summary">
+  <% } %>
   <meta name="theme-color" content="#0e5a52">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="/fonts/text/ibm-plex-sans-thai-looped-thai-400-normal.woff2" as="font" type="font/woff2" crossorigin>

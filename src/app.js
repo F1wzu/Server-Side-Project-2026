@@ -11,6 +11,7 @@ const { loadCurrentUser } = require('./middleware/auth');
 const { csrfProtection, exposeCsrfToken } = require('./middleware/csrf');
 const { exposeFlash } = require('./middleware/flash');
 const { stripNul } = require('./middleware/sanitize');
+const { originOf } = require('./utils/origin');
 const { notFound, errorHandler } = require('./middleware/errors');
 const webRoutes = require('./routes/webRoutes');
 const apiRoutes = require('./routes/apiRoutes');
@@ -37,6 +38,7 @@ function createApp() {
   app.locals.siteName = 'วันนี้ไปไหนดี @ ลาดกระบัง';
   app.locals.currentUser = null;
   app.locals.currentPath = '';
+  app.locals.siteOrigin = ''; // set per request; empty on an error page rendered before that
   app.locals.csrfToken = () => '';
   app.locals.takeFlash = () => null;
   Object.assign(app.locals, viewHelpers); // icon(), rating(), date() ...
@@ -67,6 +69,7 @@ function createApp() {
   app.use(exposeFlash);
   app.use((req, res, next) => {
     res.locals.currentPath = req.path; // the header marks the current page
+    res.locals.siteOrigin = originOf(req); // absolute links in link previews
     next();
   });
   app.use(loadCurrentUser); // 7. who is logged in (role read from the database)

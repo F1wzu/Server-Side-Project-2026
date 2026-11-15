@@ -31,7 +31,7 @@ async function register(req, res) {
     // Show the form again with what was typed. The password is never sent back.
     return res.status(err.status).render('register', {
       title: 'สมัครสมาชิก',
-      values: { username: req.body?.username, email: req.body?.email },
+      values: { username: req.body?.username, email: req.body?.email, acceptPolicy: req.body?.acceptPolicy === 'on' },
       errors: errorsByField(err),
       formError: err.message,
       next,

@@ -242,4 +242,9 @@ async function randomId({ q = '', categoryId = null, openNow = false } = {}, now
   return place?.id ?? null;
 }
 
-module.exports = { countPublished, list, featured, highlyRated, findPublishedById, related, forMap, savedBy, randomId, MIN_REVIEWS_FOR_TOP_RATED };
+// Published places for sitemap.xml: the id and when it last changed.
+function sitemapEntries() {
+  return prisma.place.findMany({ where: { status: 'published' }, select: { id: true, updatedAt: true }, orderBy: { id: 'asc' } });
+}
+
+module.exports = { countPublished, sitemapEntries, list, featured, highlyRated, findPublishedById, related, forMap, savedBy, randomId, MIN_REVIEWS_FOR_TOP_RATED };

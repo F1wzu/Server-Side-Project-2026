@@ -25,7 +25,14 @@ const newPassword = z
   // bcrypt only reads the first 72 bytes; a Thai character takes 3 bytes.
   .refine((value) => Buffer.byteLength(value, 'utf8') <= 72, 'รหัสผ่านยาวเกินไป (ไม่เกิน 72 ไบต์)');
 
-const registerSchema = z.object({ username, email, password: newPassword });
+// The privacy policy must be accepted to register (PDPA consent). A checkbox
+// sends 'on'; the API sends true. Anything else, or nothing, is a refusal.
+const acceptPolicy = z.preprocess(
+  (value) => value === true || value === 'on' || value === 'true',
+  z.literal(true, { error: 'กรุณายอมรับนโยบายความเป็นส่วนตัวก่อนสมัครสมาชิก' })
+);
+
+const registerSchema = z.object({ username, email, password: newPassword, acceptPolicy });
 
 const updateProfileSchema = z.object({ username });
 

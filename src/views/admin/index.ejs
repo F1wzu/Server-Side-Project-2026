@@ -18,6 +18,11 @@
       <h2>แจ้งข้อมูลผิดที่ยังเปิดอยู่ <strong><%= openReports %></strong></h2>
       <p>ตรวจรายงานจากสมาชิก แล้วแก้ไขข้อมูลสถานที่</p>
     </a>
+    <a class="panel account-card" href="/admin/reviews?status=reported">
+      <span class="account-icon"><%- icon('info', 24) %></span>
+      <h2>รีวิวที่ถูกรายงาน <strong><%= reportedReviews %></strong></h2>
+      <p>ตรวจรีวิวที่สมาชิกรายงาน แล้วนำออกหรือไม่ดำเนินการ</p>
+    </a>
     <a class="panel account-card" href="/admin/places">
       <span class="account-icon"><%- icon('store', 24) %></span>
       <h2>สถานที่ที่เผยแพร่ <strong><%= publishedPlaces %></strong></h2>

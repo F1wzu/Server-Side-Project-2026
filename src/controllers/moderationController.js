@@ -3,6 +3,7 @@
 const reviewModel = require('../models/review');
 const reportModel = require('../models/report');
 const replyModel = require('../models/reply');
+const reviewReportModel = require('../models/reviewReport');
 const adminPlaceModel = require('../models/adminPlace');
 const { removeReviewSchema, removeReplySchema, closeReportSchema } = require('../validation/moderation');
 const { REPORT_REASONS } = require('../validation/report');
@@ -11,7 +12,7 @@ const { validate } = require('../utils/validate');
 const { setFlash } = require('../middleware/flash');
 const AppError = require('../utils/AppError');
 
-const REVIEW_FILTERS = ['all', 'active', 'deleted', 'removed'];
+const REVIEW_FILTERS = ['all', 'active', 'deleted', 'removed', 'reported'];
 const REPORT_FILTERS = ['open', 'resolved', 'dismissed', 'all'];
 
 function idFrom(value, what) {
@@ -141,6 +142,27 @@ async function removeReviewFromForm(req, res) {
   res.redirect(303, listUrl(base, 'all', status, page, reviewSearchFrom(req.body)));
 }
 
+// POST /admin/reviews/:id/reports/dismiss  ("ไม่ดำเนินการ": closes every open report of the review;
+// the form sends status, page, search and placeId like the removal form)
+async function dismissReviewReportsFromForm(req, res) {
+  const status = filterFrom(req.body?.status, REVIEW_FILTERS, 'all');
+  const backPlaceId = parseId(req.body?.placeId);
+  const page = pageFrom(req.body?.page);
+  try {
+    await reviewReportModel.dismissOpen(req.user.id, idFrom(req.params.id, 'รีวิว'));
+    setFlash(req, 'success', 'ปิดรายงานของรีวิวนี้แล้ว (ไม่ดำเนินการ)');
+  } catch (err) {
+    flashError(req, err);
+  }
+  const base = backPlaceId === null ? '/admin/reviews' : placeReviewsBase(backPlaceId);
+  res.redirect(303, listUrl(base, 'all', status, page, reviewSearchFrom(req.body)));
+}
+
+// POST /api/v1/admin/reviews/:id/reports/dismiss
+async function apiDismissReviewReports(req, res) {
+  res.json({ data: await reviewReportModel.dismissOpen(req.user.id, idFrom(req.params.id, 'รีวิว')) });
+}
+
 // POST /admin/replies/:id/remove  (from a review card on either reviews page;
 // the form sends status and placeId like the review removal form)
 async function removeReplyFromForm(req, res) {
@@ -249,6 +271,8 @@ module.exports = {
   reviewsPage,
   placeReviewsPage,
   removeReviewFromForm,
+  dismissReviewReportsFromForm,
+  apiDismissReviewReports,
   apiReviews,
   apiRemoveReview,
   removeReplyFromForm,

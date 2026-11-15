@@ -8,6 +8,7 @@ const prisma = require('../config/db');
 const AppError = require('../utils/AppError');
 const { paginate } = require('../utils/pagination');
 const replyModel = require('./reply');
+const { openReportsInclude } = require('./reviewReport');
 
 const authorFields = { select: { id: true, username: true } };
 
@@ -182,6 +183,8 @@ async function listOwn(userId, { page = 1, pageSize = 20 } = {}) {
 // ---------- admin ----------
 
 const REVIEW_STATUSES = ['active', 'deleted', 'removed'];
+// "reported" is not a review status: it lists active reviews with an open report.
+const REVIEW_LIST_FILTERS = [...REVIEW_STATUSES, 'reported'];
 
 // In a LIKE pattern % and _ are wildcards: escape them so "%" is not "everything".
 const escapeLike = (text) => text.replace(/[\\%_]/g, '\\$&');
@@ -201,6 +204,10 @@ const REVIEW_SORTS = {
 // part of the place's name, `rating` exact stars. Text matches ignore case.
 async function listAll({ status, placeId = null, q = '', user = '', place = '', rating = null, sort = 'newest', page = 1, pageSize = 20 } = {}) {
   const where = REVIEW_STATUSES.includes(status) ? { status } : {};
+  if (status === 'reported') {
+    where.status = 'active';
+    where.reports = { some: { status: 'open' } };
+  }
   if (placeId !== null) where.placeId = placeId;
   if (q) where.comment = containing(q);
   if (user) where.user = { username: containing(user) };
@@ -217,6 +224,7 @@ async function listAll({ status, placeId = null, q = '', user = '', place = '', 
       user: authorFields,
       place: { select: { id: true, name: true, status: true } },
       replies: replyModel.includeAll,
+      reports: openReportsInclude,
     },
   });
   return { data: rows.map(present), pagination };
@@ -239,9 +247,14 @@ async function adminRemove(adminId, reviewId, reason) {
       data: { status: 'removed', removedById: adminId, removedReason: reason },
       include: { user: authorFields, place: { select: { id: true, name: true, status: true } } },
     });
+    // The review is gone from the site, so reports about it are handled too.
+    await tx.reviewReport.updateMany({
+      where: { reviewId, status: 'open' },
+      data: { status: 'resolved', resolvedById: adminId, resolvedAt: new Date() },
+    });
     await recalculateRating(tx, found.placeId);
     return present(updated);
   });
 }
 
-module.exports = { create, update, remove, listForPlace, findOwnForPlace, listOwn, recalculateRating, listAll, adminRemove, REVIEW_STATUSES, REVIEW_SORTS };
+module.exports = { create, update, remove, listForPlace, findOwnForPlace, listOwn, recalculateRating, listAll, adminRemove, REVIEW_STATUSES, REVIEW_LIST_FILTERS, REVIEW_SORTS };

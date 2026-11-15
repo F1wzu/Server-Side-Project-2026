@@ -1,7 +1,8 @@
 <%- include('../partials/head') %>
 <%
   const statusLabels = { active: 'แสดงอยู่', deleted: 'ผู้เขียนลบแล้ว', removed: 'นำออกแล้ว' };
-  const filters = [['all', 'ทั้งหมด'], ['active', 'แสดงอยู่'], ['removed', 'นำออกแล้ว'], ['deleted', 'ผู้เขียนลบแล้ว']];
+  const filters = [['all', 'ทั้งหมด'], ['active', 'แสดงอยู่'], ['removed', 'นำออกแล้ว'], ['deleted', 'ผู้เขียนลบแล้ว'], ['reported', 'ถูกรายงาน']];
+  const reasonLabels = { spam: 'สแปมหรือโฆษณา', offensive: 'ไม่สุภาพหรือสร้างความเกลียดชัง', false_info: 'ข้อมูลเท็จหรือทำให้เข้าใจผิด', other: 'อื่น ๆ' };
   // Sent with each remove form, so the admin returns to the same search.
   const searchFields = Object.entries(search).filter(([key, value]) => value !== '' && value !== null && !(key === 'sort' && value === 'newest'));
 %>
@@ -102,6 +103,28 @@
 
       <% if (review.status === 'removed') { %>
       <div class="feedback-panel"><strong>เหตุผลที่นำออก</strong><p><%= review.removedReason %></p></div>
+      <% } %>
+
+      <% if (review.reports && review.reports.length) { %>
+      <div class="feedback-panel review-reports">
+        <h3>ถูกรายงาน <%= review.reports.length %> ครั้ง</h3>
+        <ul class="reply-list">
+          <% review.reports.forEach((report) => { %>
+          <li>
+            <strong><%= reasonLabels[report.reason] %></strong> · <%= report.user.username %> · <time class="meta" datetime="<%= report.createdAt.toISOString() %>"><%= date(report.createdAt) %></time>
+            <% if (report.details) { %><p class="preserve-lines small-note"><%= report.details %></p><% } %>
+          </li>
+          <% }) %>
+        </ul>
+        <form class="stack-form" action="/admin/reviews/<%= review.id %>/reports/dismiss" method="post">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <input type="hidden" name="status" value="<%= status %>">
+          <input type="hidden" name="page" value="<%= result.pagination.page %>">
+          <% searchFields.forEach(([key, value]) => { %><input type="hidden" name="<%= key %>" value="<%= value %>"><% }) %>
+          <% if (place) { %><input type="hidden" name="placeId" value="<%= place.id %>"><% } %>
+          <button class="button button-outline button-small" type="submit">ไม่ดำเนินการ</button>
+        </form>
+      </div>
       <% } %>
 
       <% if (review.replies && review.replies.length) { %>

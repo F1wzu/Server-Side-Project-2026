@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const prisma = require('../config/db');
 const env = require('../config/env');
 const AppError = require('../utils/AppError');
+const { POLICY_VERSION } = require('../config/policy');
 const { recalculateRating } = require('./review');
 const { unusedUploads, photoPathsOf } = require('./photoUsage');
 
@@ -16,11 +17,16 @@ const publicFields = { id: true, username: true, email: true, role: true, create
 const emailTaken = () =>
   new AppError(409, 'EMAIL_TAKEN', 'อีเมลนี้ถูกใช้สมัครสมาชิกแล้ว', [{ field: 'email', message: 'อีเมลนี้ถูกใช้สมัครสมาชิกแล้ว' }]);
 
-// Creates a member. The role is never taken from user input.
+// Creates a member. The role is never taken from user input. Registering
+// requires accepting the privacy policy (validation/auth.js), so the moment
+// and the policy version are recorded with the account.
 async function register({ username, email, password }) {
   const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
   try {
-    return await prisma.user.create({ data: { username, email, passwordHash }, select: publicFields });
+    return await prisma.user.create({
+      data: { username, email, passwordHash, policyAcceptedAt: new Date(), policyVersion: POLICY_VERSION },
+      select: publicFields,
+    });
   } catch (err) {
     if (err.code === 'P2002') throw emailTaken();
     throw err;

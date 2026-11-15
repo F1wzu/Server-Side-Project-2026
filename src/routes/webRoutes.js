@@ -8,7 +8,9 @@ const placeController = require('../controllers/placeController');
 const reviewController = require('../controllers/reviewController');
 const replyController = require('../controllers/replyController');
 const reportController = require('../controllers/reportController');
+const reviewReportController = require('../controllers/reviewReportController');
 const submissionController = require('../controllers/submissionController');
+const pageController = require('../controllers/pageController');
 const { photosUpload, deferUploadError } = require('../middleware/upload');
 const { csrfAfterUpload } = require('../middleware/csrf');
 const { stripNul } = require('../middleware/sanitize');
@@ -26,13 +28,17 @@ const router = express.Router();
 router.get('/healthz', healthController.check);
 router.get('/', homeController.home);
 
+// Plain pages, and the files search engines read.
+router.get('/about', pageController.about);
+router.get('/privacy', pageController.privacy);
+router.get('/robots.txt', pageController.robots);
+router.get('/sitemap.xml', pageController.sitemap);
+
 // Places. /places/random must come before /places/:id.
 router.get('/places', placeController.list);
 router.get('/places/random', placeController.random);
 router.get('/places/:id', placeController.show);
 
-// Pages that are in the menu already; their features arrive in later steps.
-const { comingSoon } = placeController;
 router.get('/map', placeController.map);
 
 // Reviews and saved places (members)
@@ -46,6 +52,7 @@ router.get('/me/reviews', requireLogin, reviewController.myReviews);
 router.post('/favorites/:placeId', requireLogin, reviewController.favoriteFromForm);
 router.get('/me/favorites', requireLogin, reviewController.myFavorites);
 router.post('/places/:id/reports', requireLogin, memberWriteLimiter, reportController.create);
+router.post('/reviews/:id/reports', requireLogin, memberWriteLimiter, reviewReportController.create);
 
 // Submissions (members). Login is checked before the upload is read.
 router.get('/submissions/new', requireLogin, submissionController.newForm);

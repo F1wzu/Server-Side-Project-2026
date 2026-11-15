@@ -1036,6 +1036,41 @@ input[type='checkbox'] {
   margin: 10px 0 14px;
 }
 
+/* Text pages (about, privacy): one panel per topic, readable line length. */
+.prose {
+  display: grid;
+  gap: 16px;
+}
+.prose h2 {
+  margin: 0 0 10px;
+  font-size: 1.15rem;
+}
+.prose p,
+.prose ul {
+  margin: 0 0 10px;
+  line-height: 1.75;
+}
+.prose p:last-child,
+.prose ul:last-child {
+  margin-bottom: 0;
+}
+.prose ul {
+  padding-left: 1.3em;
+}
+.prose li + li {
+  margin-top: 6px;
+}
+
+/* The privacy-policy checkbox on the sign-up form. */
+.consent-field .checkbox-label {
+  align-items: flex-start;
+  line-height: 1.6;
+}
+.consent-field input[type="checkbox"] {
+  margin-top: 0.3em;
+  flex-shrink: 0;
+}
+
 /* Review search on the admin reviews page: more fields than the place
    filter, in a narrow column, so they wrap into as many columns as fit. */
 .filter-panel.review-search {
@@ -2429,3 +2464,10 @@ details .stack-form {
   width: 64px;
   height: 48px;
 }
+
+/* Report a review (review_reports): the member form under a review card. */
+.review-report { margin-top: 0.5rem; }
+.review-report summary { color: var(--muted, inherit); font-size: 0.9rem; cursor: pointer; }
+.review-report fieldset { border: 0; padding: 0; margin: 0 0 0.5rem; }
+.review-report .radio-row { display: block; margin: 0.25rem 0; }
+.review-reports ul { margin: 0.5rem 0; padding-left: 1rem; }

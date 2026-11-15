@@ -35,7 +35,7 @@ function createClient(app) {
         .send({ _csrf: token, ...fields });
     },
     register(overrides = {}) {
-      return this.post('/api/v1/auth/register', { username: 'สมชาย', email: 'somchai@example.com', password: 'password123', ...overrides });
+      return this.post('/api/v1/auth/register', { username: 'สมชาย', email: 'somchai@example.com', password: 'password123', acceptPolicy: true, ...overrides });
     },
     // Registers an account and makes it an admin (admins cannot be created
     // through the site, so the role is set in the database).

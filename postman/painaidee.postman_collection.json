@@ -96,7 +96,7 @@
             "description": "สมัครบัญชีทดสอบอีเมลสุ่ม แล้วเข้าสู่ระบบเป็นบัญชีนั้นทันที",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"สมาชิกทดสอบ\",\n  \"email\": \"postman{{$timestamp}}@example.com\",\n  \"password\": \"{{registerPassword}}\"\n}",
+              "raw": "{\n  \"username\": \"สมาชิกทดสอบ\",\n  \"email\": \"postman{{$timestamp}}@example.com\",\n  \"password\": \"{{registerPassword}}\",\n  \"acceptPolicy\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"

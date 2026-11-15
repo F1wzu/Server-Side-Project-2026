@@ -1,0 +1,30 @@
+<%# "รายงานรีวิวนี้" under a review card. Params: review, place, reviewsPage.
+    Only for a logged-in member who is not the author. A <details> block, so
+    no script is needed. The reasons match REVIEW_REPORT_REASONS in
+    src/validation/reviewReport.js. %>
+<% if (currentUser && review.user && review.user.id !== currentUser.id) {
+  const reportBack = '/places/' + place.id + (typeof reviewsPage === 'number' && reviewsPage > 1 ? '?reviewsPage=' + reviewsPage : '') + '#review-' + review.id;
+  const reportReasons = [['spam', 'สแปมหรือโฆษณา'], ['offensive', 'ไม่สุภาพหรือสร้างความเกลียดชัง'], ['false_info', 'ข้อมูลเท็จหรือทำให้เข้าใจผิด'], ['other', 'อื่น ๆ']];
+%>
+<details class="review-report">
+  <summary>รายงานรีวิวนี้<span class="sr-only"> ของ <%= review.user.username %></span></summary>
+  <form class="stack-form" action="/reviews/<%= review.id %>/reports" method="post">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <input type="hidden" name="next" value="<%= reportBack %>">
+    <fieldset class="field">
+      <legend>เหตุผล</legend>
+      <% reportReasons.forEach(([value, label], index) => { %>
+      <label class="radio-row" for="rr-<%= review.id %>-<%= value %>">
+        <input type="radio" id="rr-<%= review.id %>-<%= value %>" name="reason" value="<%= value %>" <%= index === 0 ? 'required' : '' %>> <%= label %>
+      </label>
+      <% }) %>
+    </fieldset>
+    <div class="field">
+      <label for="rr-details-<%= review.id %>">รายละเอียด</label>
+      <textarea id="rr-details-<%= review.id %>" name="details" rows="2" maxlength="1000"></textarea>
+      <small>ไม่เกิน 1000 ตัวอักษร ต้องกรอกเมื่อเลือก "อื่น ๆ"</small>
+    </div>
+    <button type="submit" class="button button-outline button-small">ส่งรายงาน</button>
+  </form>
+</details>
+<% } %>

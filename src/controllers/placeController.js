@@ -75,6 +75,13 @@ async function show(req, res) {
   const reviewsPageLink = (page) => (page > 1 ? `/places/${place.id}?reviewsPage=${page}#reviews` : `/places/${place.id}#reviews`);
   res.render('place', {
     title: place.name,
+    // Link preview on LINE / Facebook: the place's own words and real photo
+    // (the category illustrations are SVG, which previews do not show).
+    meta: {
+      description: place.description.replace(/\s+/g, ' ').trim().slice(0, 160),
+      image: place.imagePath?.startsWith('/uploads/') ? place.imagePath : null,
+      type: 'article',
+    },
     place,
     related,
     reviews,
@@ -93,9 +100,6 @@ async function map(req, res) {
   const [places, total] = await Promise.all([placeModel.forMap(), placeModel.countPublished()]);
   res.render('map', { title: 'แผนที่ลาดกระบัง', places, total, withMap: true });
 }
-
-// Pages whose layout slot exists but whose feature is built in a later step.
-const comingSoon = (title, text) => (req, res) => res.render('coming-soon', { title, text });
 
 // ---------- API ----------
 
@@ -142,4 +146,4 @@ async function apiRecommendations(req, res) {
   res.json({ data: { featured, highlyRated, rules: { minimumReviews: placeModel.MIN_REVIEWS_FOR_TOP_RATED } } });
 }
 
-module.exports = { list, random, show, map, comingSoon, apiCategories, apiList, apiMap, apiRandom, apiShow, apiRelated, apiRecommendations };
+module.exports = { list, random, show, map, apiCategories, apiList, apiMap, apiRandom, apiShow, apiRelated, apiRecommendations };

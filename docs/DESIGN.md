@@ -126,9 +126,11 @@ erDiagram
     SUBMISSIONS |o--o| PLACES : "becomes on approval"
     USERS ||--o{ PLACE_REPORTS : reports
     PLACES ||--o{ PLACE_REPORTS : "reported in"
+    USERS ||--o{ REVIEW_REPORTS : reports
+    REVIEWS ||--o{ REVIEW_REPORTS : "reported in"
 ```
 
-มีสิบสองตาราง (รายวิชากำหนดอย่างน้อยสามตาราง) เก้าตารางสร้างแล้วในขั้นที่ 1
+มีสิบสามตาราง (รายวิชากำหนดอย่างน้อยสามตาราง) เก้าตารางสร้างแล้วในขั้นที่ 1
 คอลัมน์ `phone` และ `website_url` เพิ่มแล้วด้วย migration ในขั้นที่ 3
 ส่วน `place_reports` เพิ่มแล้วในขั้นที่ 4 `review_replies` และ `place_photos` เพิ่มในขั้นที่ 7 ทุกตารางมี primary key เป็น `id`
 ชนิด integer เว้นแต่ระบุ key อื่นไว้ `created_at` และ `updated_at` เป็น `timestamptz`
@@ -142,6 +144,7 @@ erDiagram
 | email | varchar(254) | ห้ามซ้ำ เก็บเป็นตัวพิมพ์เล็ก |
 | password_hash | varchar(100) | bcrypt hash ไม่ถูกส่งออกจาก endpoint ใดเลย |
 | role | enum | `member` (ค่าเริ่มต้น) หรือ `admin` |
+| policy_accepted_at, policy_version | timestamptz, varchar(20) | เวลาและฉบับของนโยบายความเป็นส่วนตัวที่ยอมรับตอนสมัคร (PDPA) มีทั้งคู่หรือว่างทั้งคู่ ว่างสำหรับบัญชีเก่าและผู้ดูแลที่สร้างด้วยสคริปต์ |
 | created_at, updated_at | timestamptz | |
 
 ### categories
@@ -289,6 +292,25 @@ Index: `(status, created_at)`, `(user_id)`
 
 Index: `(status, created_at)` สมาชิกหนึ่งคนมีรายงานที่ยัง `open` ได้หนึ่งรายการต่อสถานที่
 
+### review_reports
+
+สมาชิกรายงานรีวิวของคนอื่น (สแปม ไม่สุภาพ ข้อมูลเท็จ)
+
+| คอลัมน์ | ชนิด | กฎ |
+|---|---|---|
+| id | integer | Primary key |
+| review_id | integer | Foreign key → reviews (ลบรีวิวจริงแล้วรายงานลบตาม) |
+| user_id | integer | Foreign key → users (สมาชิกที่รายงาน) |
+| reason | enum | `spam` (สแปมหรือโฆษณา), `offensive` (ไม่สุภาพหรือสร้างความเกลียดชัง), `false_info` (ข้อมูลเท็จหรือทำให้เข้าใจผิด) หรือ `other` (อื่น ๆ) |
+| details | varchar(1000) | คำอธิบาย ห้ามเป็นข้อความว่าง จำเป็นเมื่อเหตุผลเป็น `other` |
+| status | enum | ใช้ `report_status` ร่วมกับ place_reports: `open`, `resolved` (รีวิวถูกนำออก) หรือ `dismissed` (ไม่ดำเนินการ) |
+| resolved_by | integer | Foreign key → users มีค่าเมื่อไม่ใช่ `open` (CHECK) |
+| created_at, resolved_at | timestamptz | |
+
+Index: `(status, created_at)` สมาชิกหนึ่งคนมีรายงานที่ยัง `open` ได้หนึ่งรายการต่อรีวิว
+(partial unique index) รายงานรีวิวของตัวเองไม่ได้ (ตรวจในโค้ด) เมื่อผู้ดูแลนำรีวิวออก
+รายงานที่ยัง `open` ของรีวิวนั้นกลายเป็น `resolved` ในธุรกรรมเดียวกัน
+
 ### sessions
 
 ตารางนี้เป็นของตัวจัดเก็บ session (`connect-pg-simple` เพิ่มในขั้นที่ 2)
@@ -387,7 +409,7 @@ Index: `(status, created_at)` สมาชิกหนึ่งคนมีร�
 | Method | Path | คำอธิบาย | Status |
 |---|---|---|---|
 | GET | `/auth/csrf` | ขอ CSRF token | 200 |
-| POST | `/auth/register` | สมัครสมาชิก บทบาทเป็น `member` เสมอ | 201 |
+| POST | `/auth/register` | สมัครสมาชิก บทบาทเป็น `member` เสมอ ต้องส่ง `acceptPolicy: true` (ยอมรับนโยบายความเป็นส่วนตัว) ไม่ส่งตอบ 400 (`field: acceptPolicy`) | 201 |
 | POST | `/auth/login` | เข้าสู่ระบบ เริ่ม session ใหม่ | 200 |
 | GET | `/categories` | หมวดหมู่พร้อมจำนวนสถานที่ | 200 |
 | GET | `/places` | ค้นหาและกรองสถานที่ที่เผยแพร่ | 200 |
@@ -422,6 +444,7 @@ Index: `(status, created_at)` สมาชิกหนึ่งคนมีร�
 | GET | `/me/reviews` | รีวิวของตัวเอง | 200 |
 | PATCH | `/reviews/:id` | แก้ไขรีวิวของตัวเอง เฉพาะฟิลด์ที่ส่งมา (`comment: null` คือลบความเห็น) | 200 |
 | DELETE | `/reviews/:id` | ลบรีวิวของตัวเอง (soft) | 204 |
+| POST | `/reviews/:id/reports` | รายงานรีวิวของคนอื่น body: `reason` (`spam` `offensive` `false_info` `other`) และ `details` (ไม่บังคับ ไม่เกิน 1000 ตัวอักษร ต้องมีเมื่อเป็น `other`) รีวิวที่ซ่อนอยู่หรือของสถานที่ที่ไม่เผยแพร่ตอบ 404 รีวิวของตัวเองตอบ 409 `INVALID_STATE` รายงานซ้ำที่ยังเปิดอยู่ตอบ 409 `REPORT_EXISTS` | 201 |
 | POST | `/reviews/:id/replies` | ตอบกลับรีวิว (รีวิวที่ซ่อนอยู่หรือไม่มีตอบ 404) หนึ่งรีวิวมีความเห็นตอบกลับได้ไม่เกิน 50 รายการ รายการที่ 51 ตอบ 409 `INVALID_STATE` | 201 |
 | PATCH | `/replies/:id` | แก้ไขความเห็นตอบกลับของตัวเอง (`body`) | 200 |
 | DELETE | `/replies/:id` | ลบความเห็นตอบกลับของตัวเอง (soft) | 204 |
@@ -455,8 +478,9 @@ Index: `(status, created_at)` สมาชิกหนึ่งคนมีร�
 | POST | `/admin/places/:id/photos/:photoId/move` | เลื่อนรูป `{ direction: "up" \| "down" }` สุดทางแล้วไม่เปลี่ยนอะไร | 200 |
 | DELETE | `/admin/places/:id/photos/:photoId` | ลบรูป (ไฟล์ถูกลบเมื่อไม่มีที่ใช้แล้ว) | 204 |
 | DELETE | `/admin/places/:id/cover` | ลบรูปหลัก รูปแรกในแกลเลอรีขึ้นเป็นรูปหลักแทน | 200 |
-| GET | `/admin/reviews` | รีวิวทั้งหมด แต่ละรีวิวมี `replies` ทุกสถานะ กรองด้วย `status` และ `placeId` (สถานที่ที่ไม่มีอยู่ตอบ 404) ค้นหาด้วย `q` (คำในรีวิว) `user` (ส่วนหนึ่งของชื่อผู้รีวิว) `place` (ส่วนหนึ่งของชื่อสถานที่) ไม่สนตัวพิมพ์เล็กใหญ่ และ `rating` (1–5) เรียงด้วย `sort` = `newest` (ค่าเริ่มต้น) `oldest` `lowest` `highest` ค่าที่ไม่รู้จักถูกละไว้ | 200 |
-| POST | `/admin/reviews/:id/remove` | ลบรีวิวพร้อมเหตุผล | 200 |
+| GET | `/admin/reviews` | รีวิวทั้งหมด แต่ละรีวิวมี `replies` ทุกสถานะ กรองด้วย `status` และ `placeId` (สถานที่ที่ไม่มีอยู่ตอบ 404) ค้นหาด้วย `q` (คำในรีวิว) `user` (ส่วนหนึ่งของชื่อผู้รีวิว) `place` (ส่วนหนึ่งของชื่อสถานที่) ไม่สนตัวพิมพ์เล็กใหญ่ และ `rating` (1–5) เรียงด้วย `sort` = `newest` (ค่าเริ่มต้น) `oldest` `lowest` `highest` ค่าที่ไม่รู้จักถูกละไว้ `status=reported` แสดงรีวิวที่ยังแสดงอยู่และมีรายงานที่ `open` และทุกรีวิวมี `reports` (รายงานที่ `open` พร้อมผู้รายงาน) | 200 |
+| POST | `/admin/reviews/:id/remove` | ลบรีวิวพร้อมเหตุผล รายงานที่ยังเปิดของรีวิวนั้นกลายเป็น `resolved` | 200 |
+| POST | `/admin/reviews/:id/reports/dismiss` | ไม่ดำเนินการ: ปิดรายงานที่ยังเปิดทั้งหมดของรีวิวเป็น `dismissed` (ไม่มีรายงานเปิดอยู่ตอบ 409 `INVALID_STATE`) | 200 |
 | POST | `/admin/replies/:id/remove` | นำความเห็นตอบกลับออกพร้อมเหตุผล (ซ้ำตอบ 409) | 200 |
 | POST | `/admin/categories` | เพิ่มหมวดหมู่ | 201 |
 | PATCH | `/admin/categories/:id` | เปลี่ยนชื่อหมวดหมู่ | 200 |
@@ -488,7 +512,10 @@ Index: `(status, created_at)` สมาชิกหนึ่งคนมีร�
 | `/places` | รายการพร้อมการค้นหาและตัวกรอง | สาธารณะ |
 | `/places/:id` | รายละเอียดสถานที่ เบอร์โทร ลิงก์ เวลาเปิดปิด หมุดบนแผนที่ ปุ่มนำทาง รีวิว และฟอร์มแจ้งข้อมูลผิดสำหรับสมาชิก ผู้ดูแลเห็นปุ่ม "จัดการ" ไปยังหน้าแก้ไข | สาธารณะ |
 | `/map` | แผนที่ของทุกสถานที่ | สาธารณะ |
-| `/register`, `/login` | ฟอร์มบัญชีผู้ใช้ | สาธารณะ |
+| `/register`, `/login` | ฟอร์มบัญชีผู้ใช้ การสมัครต้องติ๊กยอมรับนโยบายความเป็นส่วนตัว | สาธารณะ |
+| `/about` | เกี่ยวกับโครงงาน วิธีติดต่อ ที่มาของข้อมูล | สาธารณะ |
+| `/privacy` | นโยบายความเป็นส่วนตัว (PDPA): ข้อมูลที่เก็บ คุกกี้ สิทธิ์ของสมาชิก | สาธารณะ |
+| `/robots.txt`, `/sitemap.xml` | สำหรับเครื่องมือค้นหา: กันหน้าส่วนตัว และรายการหน้าสาธารณะกับสถานที่ที่เผยแพร่ | สาธารณะ |
 | `/me` | โปรไฟล์ แก้ไขชื่อผู้ใช้ เปลี่ยนรหัสผ่าน | สมาชิก |
 | `/me/favorites` | สถานที่ที่บันทึกไว้ | สมาชิก |
 | `/me/reviews` | รีวิวของตัวเอง | สมาชิก |
@@ -501,7 +528,7 @@ Index: `(status, created_at)` สมาชิกหนึ่งคนมีร�
 | `/admin/places/new` | เพิ่มสถานที่โดยตรง | ผู้ดูแล |
 | `/admin/places/:id/edit` | แก้ไขสถานที่ | ผู้ดูแล |
 | `/admin/places/:id/photos` | แท็บรูปภาพของสถานที่: เพิ่มหลายรูป ตั้งรูปหลัก เลื่อนลำดับ ลบ (ไม่เกิน 10 รูป) | ผู้ดูแล |
-| `/admin/reviews` | ดูแลรีวิว (ทุกสถานที่) | ผู้ดูแล |
+| `/admin/reviews` | ดูแลรีวิว (ทุกสถานที่) แท็บ "ถูกรายงาน" (`?status=reported`) แสดงรีวิวที่มีรายงานรอตรวจ | ผู้ดูแล |
 | `/admin/places/:id/reviews` | แท็บรีวิวของสถานที่หนึ่งแห่ง (กรองสถานะ นำรีวิวออก) | ผู้ดูแล |
 | `/admin/reports` | รายการแจ้งข้อมูลผิด (ทุกสถานที่) | ผู้ดูแล |
 | `/admin/places/:id/reports` | แท็บแจ้งข้อมูลผิดของสถานที่หนึ่งแห่ง (ปิดรายการแล้วกลับมาที่แท็บเดิม) | ผู้ดูแล |

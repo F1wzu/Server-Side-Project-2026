@@ -138,6 +138,7 @@
             <time class="meta" datetime="<%= review.createdAt.toISOString() %>"><%= date(review.createdAt) %></time>
             <% if (review.comment) { %><p class="preserve-lines"><%= review.comment %></p><% } %>
             <%- include('partials/review-replies', { review, place, reviewsPage: reviews.pagination.page }) %>
+            <%- include('partials/review-report-form', { review, place, reviewsPage: reviews.pagination.page }) %>
           </div>
         </article>
         <% }) %>
