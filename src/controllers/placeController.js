@@ -119,7 +119,11 @@ async function apiMap(req, res) {
 async function apiRandom(req, res) {
   const id = await placeModel.randomId(validate(randomQuerySchema, req.query));
   if (!id) throw AppError.notFound('ไม่พบสถานที่ที่ตรงกับเงื่อนไข');
-  res.json({ data: await placeModel.findPublishedById(id) });
+  // The place can be unpublished between the pick and this read; that is a
+  // missing place, not an empty success.
+  const place = await placeModel.findPublishedById(id);
+  if (!place) throw AppError.notFound('ไม่พบสถานที่');
+  res.json({ data: place });
 }
 
 // GET /api/v1/places/:id

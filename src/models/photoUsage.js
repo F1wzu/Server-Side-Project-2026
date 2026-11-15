@@ -14,6 +14,9 @@ async function isUploadUnused(tx, path) {
     tx.placePhoto.count({ where: { imagePath: path } }),
     tx.submission.count({ where: { imagePath: path } }),
     tx.submission.count({ where: { extraImagePaths: { has: path } } }),
+    // The history of a submission shows the photos of every saved version, so
+    // a snapshot that mentions the file keeps it alive too.
+    tx.$queryRaw`SELECT 1 AS used FROM submission_events WHERE snapshot->>'imagePath' = ${path} OR jsonb_exists(snapshot->'extraImagePaths', ${path}) LIMIT 1`.then((rows) => rows.length),
   ]);
   return counts.every((count) => count === 0);
 }

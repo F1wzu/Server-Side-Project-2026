@@ -73,7 +73,8 @@ function lenientListQuery(query) {
   return result;
 }
 
-const randomQuerySchema = z.object({ categoryId: listQueryFields.categoryId, openNow: listQueryFields.openNow });
+// The random pick follows the same search and filters as the list it is linked from.
+const randomQuerySchema = z.object({ q: listQueryFields.q, categoryId: listQueryFields.categoryId, openNow: listQueryFields.openNow });
 const idParamSchema = z.object({ id });
 
 module.exports = { listQuerySchema, lenientListQuery, randomQuerySchema, idParamSchema };

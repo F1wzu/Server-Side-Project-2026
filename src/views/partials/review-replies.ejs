@@ -1,7 +1,7 @@
 <%# Replies under one review, and the form to add one.
-    Params: review (with .replies), place. One level only: replies have no
+    Params: review (with .replies), place, reviewsPage (current page of the place's reviews, so `next` returns to it). One level only: replies have no
     reply button. Every form sends `next` so the member lands back here. %>
-<% const back = '/places/' + place.id + '#review-' + review.id; %>
+<% const back = '/places/' + place.id + (typeof reviewsPage === 'number' && reviewsPage > 1 ? '?reviewsPage=' + reviewsPage : '') + '#review-' + review.id; %>
 <div class="review-replies">
   <% if (review.replies && review.replies.length) { %>
   <ul class="reply-list" aria-label="ความเห็นตอบกลับรีวิวของ <%= review.user ? review.user.username : 'คุณ' %>">

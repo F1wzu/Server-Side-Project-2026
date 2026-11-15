@@ -143,7 +143,7 @@ describe('creating with several photos', () => {
 });
 
 describe('editing a returned submission', () => {
-  test('new photos replace all the old ones and the old files are deleted', async () => {
+  test('new photos replace all the old ones; the old files stay for the history', async () => {
     const created = (await apiPost(jpegs.slice(0, 3))).body.data;
     const old = [created.imagePath, ...created.extraImagePaths];
     const returned = await returnToMember(created.id);
@@ -151,7 +151,7 @@ describe('editing a returned submission', () => {
     expect(res.status).toBe(200);
     const fresh = [res.body.data.imagePath, ...res.body.data.extraImagePaths];
     expect(fresh).toHaveLength(2);
-    old.forEach((p) => expect(exists(p)).toBe(false));
+    old.forEach((p) => expect(exists(p)).toBe(true));
     fresh.forEach((p) => expect(exists(p)).toBe(true));
     expect(fresh.some((p) => old.includes(p))).toBe(false);
   });

@@ -7,6 +7,8 @@ const NEAR_METERS = 150;
 const MAX_RESULTS = 5;
 // A name this short ("ก") would "contain-match" almost anything.
 const MIN_NAME_LENGTH = 3;
+// The shorter name must be at least this share of the longer one.
+const MIN_SHARE = 0.6;
 
 const number = (decimal) => (decimal === null || decimal === undefined ? null : Number(decimal));
 
@@ -20,7 +22,10 @@ function sameName(a, b) {
   if (!x || !y) return false;
   if (x === y) return true;
   const [short, long] = x.length <= y.length ? [x, y] : [y, x];
-  return short.length >= MIN_NAME_LENGTH && long.includes(short);
+  // Containment alone over-matches: "กาแฟ" is inside half the cafés in the
+  // district. The shorter name must also cover most of the longer one
+  // ("กาแฟริมคลอง" vs "ร้านกาแฟริมคลอง" still matches).
+  return short.length >= MIN_NAME_LENGTH && short.length / long.length >= MIN_SHARE && long.includes(short);
 }
 
 // Distance between two points in metres (haversine).

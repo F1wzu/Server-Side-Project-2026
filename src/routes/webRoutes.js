@@ -9,13 +9,15 @@ const reviewController = require('../controllers/reviewController');
 const replyController = require('../controllers/replyController');
 const reportController = require('../controllers/reportController');
 const submissionController = require('../controllers/submissionController');
-const { photosUpload } = require('../middleware/upload');
+const { photosUpload, deferUploadError } = require('../middleware/upload');
 const { csrfAfterUpload } = require('../middleware/csrf');
 const { stripNul } = require('../middleware/sanitize');
 
 // Parse the photo form, then check its CSRF token (see middleware/csrf.js).
 // Up to 5 photos per submission (the first is the cover).
 const withPhotos = [photosUpload(5), stripNul, csrfAfterUpload];
+// Page forms keep an upload error for the handler, which shows it on the form.
+const withPhotosForm = [deferUploadError(photosUpload(5)), stripNul, csrfAfterUpload];
 const { requireLogin, requireAdmin, redirectIfLoggedIn } = require('../middleware/auth');
 const { loginLimiter, passwordChangeLimiter, registerLimiter, memberWriteLimiter } = require('../middleware/rateLimit');
 
@@ -47,11 +49,11 @@ router.post('/places/:id/reports', requireLogin, memberWriteLimiter, reportContr
 
 // Submissions (members). Login is checked before the upload is read.
 router.get('/submissions/new', requireLogin, submissionController.newForm);
-router.post('/submissions', requireLogin, memberWriteLimiter, withPhotos, submissionController.create);
+router.post('/submissions', requireLogin, memberWriteLimiter, withPhotosForm, submissionController.create);
 router.get('/me/submissions', requireLogin, submissionController.mine);
 router.get('/me/submissions/:id', requireLogin, submissionController.show);
 router.get('/me/submissions/:id/edit', requireLogin, submissionController.editForm);
-router.post('/me/submissions/:id', requireLogin, memberWriteLimiter, withPhotos, submissionController.update);
+router.post('/me/submissions/:id', requireLogin, memberWriteLimiter, withPhotosForm, submissionController.update);
 router.post('/me/submissions/:id/resubmit', requireLogin, memberWriteLimiter, submissionController.resubmit);
 
 // Accounts

@@ -23,6 +23,17 @@ function normalize(err) {
     return new AppError(403, 'FORBIDDEN', 'แบบฟอร์มหมดอายุหรือไม่ถูกต้อง กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง');
   }
 
+  // Known database errors (Prisma error codes). Checked before the status
+  // checks below: a Prisma error has no `status`, so placed after them these
+  // lines were never reached and every such error became a 500. The models
+  // catch the conflicts they expect; these are the safety net for the rest,
+  // e.g. a category deleted at the very moment a place is saved with it.
+  if (err.code === 'P2002') return new AppError(409, 'CONFLICT', 'ข้อมูลนี้มีอยู่แล้ว');
+  if (err.code === 'P2025') return AppError.notFound();
+  if (err.code === 'P2003') {
+    return new AppError(409, 'CONFLICT', 'ข้อมูลที่อ้างถึงถูกเปลี่ยนหรือลบไปแล้ว กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง');
+  }
+
   // Errors from the body parsers.
   if (err.type === 'entity.too.large') return new AppError(413, 'PAYLOAD_TOO_LARGE', 'ข้อมูลที่ส่งมามีขนาดใหญ่เกินไป');
   if (err.type === 'entity.parse.failed') return new AppError(400, 'VALIDATION_ERROR', 'รูปแบบข้อมูลไม่ถูกต้อง');
@@ -43,10 +54,6 @@ function normalize(err) {
     if (status === 415) return new AppError(415, 'UNSUPPORTED_MEDIA_TYPE', 'รูปแบบข้อมูลที่ส่งมาไม่รองรับ');
     return new AppError(400, 'BAD_REQUEST', 'คำขอไม่ถูกต้อง');
   }
-
-  // Known database errors (Prisma error codes).
-  if (err.code === 'P2002') return new AppError(409, 'CONFLICT', 'ข้อมูลนี้มีอยู่แล้ว');
-  if (err.code === 'P2025') return AppError.notFound();
 
   return null;
 }
@@ -71,4 +78,4 @@ function errorHandler(err, req, res, next) {
   return res.render('error', { title: TITLES[status] ?? 'เกิดข้อผิดพลาด', status, message });
 }
 
-module.exports = { notFound, errorHandler };
+module.exports = { notFound, errorHandler, normalize };

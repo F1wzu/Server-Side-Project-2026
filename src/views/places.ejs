@@ -2,6 +2,7 @@
 <%
   const active = filters.q || filters.categoryId || filters.openNow;
   const randomQuery = new URLSearchParams({
+    ...(filters.q ? { q: filters.q } : {}),
     ...(filters.categoryId ? { categoryId: String(filters.categoryId) } : {}),
     ...(filters.openNow ? { openNow: 'true' } : {}),
   }).toString();

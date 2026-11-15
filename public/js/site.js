@@ -20,12 +20,15 @@ const setMenu = (expanded) => {
   document.getElementById('site-nav')?.classList.toggle('open', expanded);
 };
 menu?.addEventListener('click', () => setMenu(menu.getAttribute('aria-expanded') !== 'true'));
-// Escape closes the open menu and puts focus back on its button, so keyboard users
-// are never left inside a panel they cannot dismiss.
+// Escape closes the open menu. Focus goes back to its button only when focus was
+// inside the menu (or on the button), so keyboard users are never left inside a panel
+// they cannot dismiss, without yanking focus away from wherever it already is.
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape' || !menu || menu.getAttribute('aria-expanded') !== 'true') return;
+  // Read focus before closing: hiding the panel can drop focus to the body.
+  const focusInMenu = document.getElementById('site-nav')?.contains(document.activeElement) || document.activeElement === menu;
   setMenu(false);
-  menu.focus();
+  if (focusInMenu) menu.focus();
 });
 
 // A broken image becomes a neutral placeholder instead of a broken-image icon.
@@ -97,19 +100,24 @@ document.querySelectorAll('form[data-favorite]').forEach((form) => {
         credentials: 'same-origin',
       });
       if (!response.ok) throw new Error('favorite request failed: ' + response.status);
-      action.value = saving ? 'remove' : 'save';
-      // Only the place page's text button swaps styles; the card heart is
-      // styled from aria-pressed and must not pick up the big button colours.
-      if (button.classList.contains('button')) {
-        button.classList.toggle('button-primary', saving);
-        button.classList.toggle('button-outline', !saving);
+      // The same place can be in several cards on one page, and each card's heart
+      // (and the place page's button) must show the new state, not only the one clicked.
+      const sameForms = [...document.querySelectorAll('form[data-favorite]')].filter((other) => other.dataset.place === form.dataset.place);
+      for (const other of sameForms) {
+        other.elements.namedItem('action').value = saving ? 'remove' : 'save';
+        const otherButton = other.querySelector('button');
+        // Only the place page's text button swaps styles; the card heart is
+        // styled from aria-pressed and must not pick up the big button colours.
+        if (otherButton.classList.contains('button')) {
+          otherButton.classList.toggle('button-primary', saving);
+          otherButton.classList.toggle('button-outline', !saving);
+        }
+        otherButton.setAttribute('aria-pressed', String(saving));
+        // The place page has a visible text label. The heart on a card has only an
+        // icon; its aria-label stays "บันทึก <name>" and aria-pressed carries the state.
+        const label = other.querySelector('[data-favorite-label]');
+        if (label) label.textContent = saving ? 'บันทึกแล้ว' : 'บันทึกสถานที่';
       }
-      button.setAttribute('aria-pressed', String(saving));
-      // The place page has a visible text label; the heart on a card has only an
-      // icon, so its accessible name carries the place name instead.
-      const label = form.querySelector('[data-favorite-label]');
-      if (label) label.textContent = saving ? 'บันทึกแล้ว' : 'บันทึกสถานที่';
-      if (button.dataset.name) button.setAttribute('aria-label', (saving ? 'เลิกบันทึก ' : 'บันทึก ') + button.dataset.name);
       announce(saving ? 'บันทึกสถานที่แล้ว' : 'นำออกจากรายการที่บันทึกแล้ว');
       button.disabled = false;
     } catch {
@@ -134,6 +142,8 @@ document.querySelectorAll('[data-gallery]').forEach((gallery) => {
   });
   let timer;
   strip.addEventListener('scroll', () => {
+    // A hidden strip (clientWidth 0) would divide by zero and mark no thumb at all.
+    if (!strip.clientWidth) return;
     clearTimeout(timer);
     timer = setTimeout(() => mark(Math.round(strip.scrollLeft / strip.clientWidth)), 80);
   });

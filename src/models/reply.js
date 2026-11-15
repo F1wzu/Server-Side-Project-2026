@@ -34,22 +34,39 @@ function includeFor(viewerId) {
 }
 
 // Admins see every reply, whatever its status.
+// `take` so a review never loads unbounded rows (the cap on create is 50
+// visible ones, so 100 leaves room for deleted ones).
 const includeAll = {
+  take: 100,
   orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
   include: { user: authorFields },
 };
 
 // Replies to an active review of a published place. A review that is
 // hidden (deleted, removed, or its place unpublished) answers 404, so its
-// existence is not revealed.
+// existence is not revealed. Runs under the place row lock that review.create
+// also takes, so a reply cannot land on a review that is being deleted and
+// rewritten at the same moment.
 async function create(userId, reviewId, body) {
-  const review = await prisma.review.findFirst({
-    where: { id: reviewId, status: 'active', place: { status: 'published' } },
-    select: { id: true, placeId: true },
+  return prisma.$transaction(async (tx) => {
+    const found = await tx.review.findUnique({ where: { id: reviewId }, select: { placeId: true } });
+    if (!found) throw AppError.notFound('ไม่พบรีวิวนี้');
+    const locked = await tx.$queryRaw`SELECT id FROM places WHERE id = ${found.placeId} AND status = 'published' FOR UPDATE`;
+    if (!locked.length) throw AppError.notFound('ไม่พบรีวิวนี้');
+    // Read again under the lock: the review may have changed while waiting.
+    const review = await tx.review.findFirst({
+      where: { id: reviewId, status: 'active' },
+      select: { id: true, placeId: true, createdAt: true },
+    });
+    if (!review) throw AppError.notFound('ไม่พบรีวิวนี้');
+    // Replies from before a rewrite are not shown, so they do not count.
+    const visible = await tx.reviewReply.count({
+      where: { reviewId, status: { in: ['active', 'removed'] }, createdAt: { gte: review.createdAt } },
+    });
+    if (visible >= MAX_SHOWN) throw new AppError(409, 'INVALID_STATE', 'รีวิวนี้มีความเห็นตอบกลับครบ 50 รายการแล้ว');
+    const reply = await tx.reviewReply.create({ data: { reviewId, userId, body }, include: { user: authorFields } });
+    return { ...present(reply), placeId: review.placeId };
   });
-  if (!review) throw AppError.notFound('ไม่พบรีวิวนี้');
-  const reply = await prisma.reviewReply.create({ data: { reviewId, userId, body }, include: { user: authorFields } });
-  return { ...present(reply), placeId: review.placeId };
 }
 
 // Edits or deletes the member's own active reply. The status is part of the

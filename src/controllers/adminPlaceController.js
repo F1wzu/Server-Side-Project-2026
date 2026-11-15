@@ -134,6 +134,7 @@ async function newForm(req, res) {
 // POST /admin/places (multipart, with an optional photo)
 async function create(req, res) {
   try {
+    if (req.uploadError) throw req.uploadError;
     const { content, publication } = validInput(req.body);
     const place = await withStoredPhoto(req.file, (imagePath) => adminPlaceModel.create(req.user.id, content, imagePath, publication));
     setFlash(req, 'success', `เพิ่มสถานที่ "${place.name}" แล้ว`);
@@ -155,6 +156,7 @@ async function update(req, res) {
   const id = placeId(req);
   const place = await adminPlaceModel.findById(id); // 404 before anything else
   try {
+    if (req.uploadError) throw req.uploadError;
     const { content, publication } = validInput(req.body, { requirePublication: true });
     const { orphanedImagePath } = await withStoredPhoto(req.file, (imagePath) => adminPlaceModel.update(id, content, publication, imagePath));
     await removeOrphan(orphanedImagePath);
@@ -169,7 +171,8 @@ async function update(req, res) {
 // Where to go back to after the quick publish button: the list the admin was
 // on, with its filters and page. Only a plain /admin/places path with an
 // optional ?query is accepted, so the form field cannot become an open redirect.
-const SAFE_BACK = /^\/admin\/places(\?[A-Za-z0-9%=&_.~+-]{0,500})?$/;
+// Room for a 200-character Thai search, which URL-encodes to about 1800 characters.
+const SAFE_BACK = /^\/admin\/places(\?[A-Za-z0-9%=&_.~+*-]{0,2500})?$/;
 const backFrom = (value) => (typeof value === 'string' && SAFE_BACK.test(value) ? value : '/admin/places');
 
 // POST /admin/places/:id/status  (quick publish / unpublish from the list)
@@ -208,11 +211,33 @@ async function apiCreate(req, res) {
   res.status(201).json({ data: place });
 }
 
+// Editing content replaces all seven hours rows, so an API client that sends
+// content without `hours` would silently reset them to unknown. Require them.
+// In multipart, `hours` arrives as a JSON string; parse it here.
+function requireHoursWithContent(body) {
+  if (!body || !hasContent(body) || body.state0 !== undefined) return;
+  let hours = body.hours;
+  if (typeof hours === 'string') {
+    try {
+      hours = JSON.parse(hours);
+    } catch {
+      hours = null;
+    }
+  }
+  if (!Array.isArray(hours)) {
+    throw new AppError(400, 'VALIDATION_ERROR', 'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง', [
+      { field: 'hours', message: 'กรุณาส่งเวลาเปิดปิดครบ 7 วัน (hours) เมื่อแก้ไขเนื้อหาสถานที่' },
+    ]);
+  }
+  body.hours = hours;
+}
+
 // PATCH /api/v1/admin/places/:id (multipart or JSON). With no content field,
 // only status / featuredOrder change.
 async function apiUpdate(req, res) {
   const id = placeId(req);
   await adminPlaceModel.findById(id); // 404 before validation
+  requireHoursWithContent(req.body);
   const { content, publication } = validInput(req.body, { contentOptional: true, hasFile: Boolean(req.file) });
   const { place, orphanedImagePath } = await withStoredPhoto(req.file, (imagePath) => adminPlaceModel.update(id, content, publication, imagePath));
   await removeOrphan(orphanedImagePath);

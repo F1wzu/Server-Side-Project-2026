@@ -12,10 +12,14 @@ const replyModel = require('./reply');
 const authorFields = { select: { id: true, username: true } };
 
 // What a review looks like outside this file. The admin's id is never shown
-// (nor on its replies, when they were loaded).
+// (nor on its replies, when they were loaded). Replies older than the review
+// itself belong to a text the author has since rewritten (create sets
+// createdAt = now on reuse), so they are not shown, even an admin-removed one.
 function present(review) {
   const { removedById, replies, ...rest } = review;
-  return replies === undefined ? rest : { ...rest, replies: replies.map(replyModel.present) };
+  if (replies === undefined) return rest;
+  const current = replies.filter((reply) => reply.createdAt >= review.createdAt);
+  return { ...rest, replies: current.map(replyModel.present) };
 }
 
 const notFound = () => AppError.notFound('ไม่พบรีวิวนี้');

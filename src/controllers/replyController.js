@@ -14,9 +14,9 @@ function idFrom(value, what) {
 }
 
 // The forms send `next` so the member lands back on the review they were
-// reading. Only /places/<id> with an optional #review-<id> is accepted;
+// reading. Only /places/<id> with an optional ?reviewsPage=N and #review-<id> is accepted;
 // anything else (other sites, //host, odd ids) means the place list.
-const PLACE_NEXT = /^\/places\/[1-9]\d{0,9}(#review-[1-9]\d{0,9})?$/;
+const PLACE_NEXT = /^\/places\/[1-9]\d{0,9}(\?reviewsPage=[1-9]\d{0,5})?(#review-[1-9]\d{0,9})?$/;
 const backTo = (body) => (typeof body?.next === 'string' && PLACE_NEXT.test(body.next) ? body.next : '/places');
 
 const FIXABLE = new Set(['VALIDATION_ERROR', 'INVALID_STATE', 'NOT_FOUND']);
@@ -26,22 +26,26 @@ function flashError(req, err) {
   setFlash(req, 'error', detail && err.code === 'VALIDATION_ERROR' ? detail : err.message);
 }
 
-// Runs a form action, flashes the outcome, and goes back to `next`.
-async function formAction(req, res, action, success) {
+// Runs a form action, flashes the outcome, and goes back to `next`. With
+// `notFoundTo` set, a NOT_FOUND failure goes there instead: the place page
+// itself may be gone (unpublished), and it would answer 404.
+async function formAction(req, res, action, success, notFoundTo = null) {
+  let target = backTo(req.body);
   try {
     await action();
     setFlash(req, 'success', success);
   } catch (err) {
     flashError(req, err);
+    if (notFoundTo && err.code === 'NOT_FOUND') target = notFoundTo;
   }
-  res.redirect(303, backTo(req.body));
+  res.redirect(303, target);
 }
 
 // ---------- pages ----------
 
 // POST /reviews/:id/replies
 const createFromForm = (req, res) =>
-  formAction(req, res, () => replyModel.create(req.user.id, idFrom(req.params.id, 'รีวิว'), validate(replySchema, req.body).body), 'ตอบกลับรีวิวแล้ว');
+  formAction(req, res, () => replyModel.create(req.user.id, idFrom(req.params.id, 'รีวิว'), validate(replySchema, req.body).body), 'ตอบกลับรีวิวแล้ว', '/places');
 
 // POST /replies/:id/edit
 const updateFromForm = (req, res) =>

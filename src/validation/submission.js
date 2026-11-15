@@ -119,7 +119,7 @@ function readSubmission(body) {
 
 // The version the member's edit was based on (a hidden form field).
 const versionSchema = z.object({
-  version: z.coerce.number({ error: 'ไม่พบหมายเลขฉบับของคำขอ' }).int('ไม่พบหมายเลขฉบับของคำขอ').min(1, 'ไม่พบหมายเลขฉบับของคำขอ'),
+  version: z.coerce.number({ error: 'ไม่พบหมายเลขฉบับของคำขอ' }).int('ไม่พบหมายเลขฉบับของคำขอ').min(1, 'ไม่พบหมายเลขฉบับของคำขอ').max(2147483647, 'ไม่พบหมายเลขฉบับของคำขอ'),
 });
 
 // ---------- places managed by an admin ----------

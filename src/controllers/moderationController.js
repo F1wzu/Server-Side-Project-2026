@@ -100,6 +100,7 @@ async function placeReviewsPage(req, res) {
 async function removeReviewFromForm(req, res) {
   const status = filterFrom(req.body?.status, REVIEW_FILTERS, 'all');
   const backPlaceId = parseId(req.body?.placeId);
+  const page = pageFrom(req.body?.page);
   try {
     const id = idFrom(req.params.id, 'รีวิว');
     await reviewModel.adminRemove(req.user.id, id, validate(removeReviewSchema, req.body).reason);
@@ -108,7 +109,7 @@ async function removeReviewFromForm(req, res) {
     flashError(req, err);
   }
   const base = backPlaceId === null ? '/admin/reviews' : placeReviewsBase(backPlaceId);
-  res.redirect(303, listUrl(base, 'all', status, 1));
+  res.redirect(303, listUrl(base, 'all', status, page));
 }
 
 // POST /admin/replies/:id/remove  (from a review card on either reviews page;
@@ -116,6 +117,7 @@ async function removeReviewFromForm(req, res) {
 async function removeReplyFromForm(req, res) {
   const status = filterFrom(req.body?.status, REVIEW_FILTERS, 'all');
   const backPlaceId = parseId(req.body?.placeId);
+  const page = pageFrom(req.body?.page);
   try {
     const id = idFrom(req.params.id, 'ความเห็นตอบกลับ');
     await replyModel.adminRemove(req.user.id, id, validate(removeReplySchema, req.body).reason);
@@ -124,7 +126,7 @@ async function removeReplyFromForm(req, res) {
     flashError(req, err);
   }
   const base = backPlaceId === null ? '/admin/reviews' : placeReviewsBase(backPlaceId);
-  res.redirect(303, listUrl(base, 'all', status, 1));
+  res.redirect(303, listUrl(base, 'all', status, page));
 }
 
 // POST /api/v1/admin/replies/:id/remove

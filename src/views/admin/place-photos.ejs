@@ -1,6 +1,7 @@
 <%- include('../partials/head') %>
 <%
   const others = place.photos;
+  const firstOther = place.imagePath ? 2 : 1; // the cover, when there is one, is photo 1
   const label = (n) => 'รูปที่ ' + n + ' ของ ' + place.name;
 %>
 <div class="container narrow page-content">
@@ -40,8 +41,8 @@
     <ul class="photo-admin-grid">
       <% others.forEach((photo, index) => { %>
       <li class="photo-admin-item">
-        <img src="<%= photo.imagePath %>" alt="<%= label(index + 2) %>" loading="lazy">
-        <p class="meta">รูปที่ <%= index + 2 %></p>
+        <img src="<%= photo.imagePath %>" alt="<%= label(index + firstOther) %>" loading="lazy">
+        <p class="meta">รูปที่ <%= index + firstOther %></p>
         <%# Two rows: the order (earlier / later in the gallery), then what to
             do with the photo. In a grid "up / down" would be ambiguous. %>
         <div class="photo-admin-actions">
@@ -50,25 +51,25 @@
             <form method="post" action="/admin/places/<%= place.id %>/photos/<%= photo.id %>/move">
               <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
               <input type="hidden" name="direction" value="up">
-              <button class="button button-small button-outline" type="submit" aria-label="ย้ายรูปที่ <%= index + 2 %> ไปก่อนหน้า">← ก่อนหน้า</button>
+              <button class="button button-small button-outline" type="submit" aria-label="ย้ายรูปที่ <%= index + firstOther %> ไปก่อนหน้า">← ก่อนหน้า</button>
             </form>
             <% } %>
             <% if (index < others.length - 1) { %>
             <form method="post" action="/admin/places/<%= place.id %>/photos/<%= photo.id %>/move">
               <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
               <input type="hidden" name="direction" value="down">
-              <button class="button button-small button-outline" type="submit" aria-label="ย้ายรูปที่ <%= index + 2 %> ไปถัดไป">ถัดไป →</button>
+              <button class="button button-small button-outline" type="submit" aria-label="ย้ายรูปที่ <%= index + firstOther %> ไปถัดไป">ถัดไป →</button>
             </form>
             <% } %>
           </div>
           <div class="photo-admin-row">
             <form method="post" action="/admin/places/<%= place.id %>/photos/<%= photo.id %>/cover">
               <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-              <button class="button button-small button-outline" type="submit" aria-label="ตั้งรูปที่ <%= index + 2 %> เป็นรูปหลัก">ตั้งเป็นรูปหลัก</button>
+              <button class="button button-small button-outline" type="submit" aria-label="ตั้งรูปที่ <%= index + firstOther %> เป็นรูปหลัก">ตั้งเป็นรูปหลัก</button>
             </form>
             <form method="post" action="/admin/places/<%= place.id %>/photos/<%= photo.id %>/delete">
               <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-              <button class="text-button photo-admin-delete" type="submit" aria-label="ลบรูปที่ <%= index + 2 %>">ลบ</button>
+              <button class="text-button photo-admin-delete" type="submit" aria-label="ลบรูปที่ <%= index + firstOther %>">ลบ</button>
             </form>
           </div>
         </div>

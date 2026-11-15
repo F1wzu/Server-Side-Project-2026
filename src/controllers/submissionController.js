@@ -91,7 +91,18 @@ async function renderForm(res, { status = 200, submission = null, body = null, e
 
 // Errors the member can fix on the form; anything else goes to the error page.
 const FORM_ERRORS = new Set(['VALIDATION_ERROR', 'UNSUPPORTED_FILE', 'FILE_TOO_LARGE']);
-const photoField = (err) => (['UNSUPPORTED_FILE', 'FILE_TOO_LARGE'].includes(err.code) ? { photo: err.message } : {});
+// Upload errors (too large, too many, broken body) belong under the photo input.
+const photoField = (err) => (err.fromUpload || ['UNSUPPORTED_FILE', 'FILE_TOO_LARGE'].includes(err.code) ? { photo: err.message } : {});
+
+// The page routes defer multer's error (see deferUploadError); raising it here,
+// inside the handler's try, shows it on the form with the typed text kept.
+function raiseUploadError(req) {
+  const err = req.uploadError;
+  if (!err) return;
+  const appError = err instanceof AppError ? err : new AppError(400, 'VALIDATION_ERROR', 'รูปแบบข้อมูลที่ส่งมาไม่ถูกต้อง');
+  appError.fromUpload = true;
+  throw appError;
+}
 
 // ---------- pages ----------
 
@@ -103,6 +114,7 @@ async function newForm(req, res) {
 // POST /submissions (multipart, with an optional photo)
 async function create(req, res) {
   try {
+    raiseUploadError(req);
     const data = validContent(req.body);
     const submission = await withStoredPhotos(req.photoFiles, (imagePaths) => submissionModel.create(req.user.id, data, imagePaths));
     setFlash(req, 'success', 'ส่งคำขอแล้ว ผู้ดูแลจะตรวจสอบก่อนเผยแพร่');
@@ -155,6 +167,7 @@ async function update(req, res) {
   const id = submissionId(req);
   try {
     await ensureEditable(req.user.id, id);
+    raiseUploadError(req);
     const data = validContent(req.body);
     const { version } = validate(versionSchema, req.body);
     const { replacedImagePaths } = await withStoredPhotos(req.photoFiles, (imagePaths) => submissionModel.updateOwn(req.user.id, id, version, data, imagePaths));

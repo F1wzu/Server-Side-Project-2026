@@ -144,6 +144,9 @@ async function highlyRated(limit = 4, now = new Date()) {
 
 // One published place with its week of opening hours and its gallery, or
 // null. `gallery` lists every photo, cover first, then the admin's order.
+// The seed illustration shipped for each category (same pattern as isIllustration in views).
+const ILLUSTRATION_PATH = /^\/images\/places\/[a-z0-9-]+\.svg$/i;
+
 async function findPublishedById(id, now = new Date()) {
   const row = await prisma.place.findFirst({
     where: { id, ...published },
@@ -151,7 +154,11 @@ async function findPublishedById(id, now = new Date()) {
   });
   if (!row) return null;
   const { photos, ...place } = row;
-  const gallery = [place.imagePath, ...photos.map((photo) => photo.imagePath)].filter(Boolean);
+  const photoPaths = photos.map((photo) => photo.imagePath);
+  // An illustration is a stand-in for a missing photo. Once real photos exist,
+  // it would only sit in the gallery as a misleading first picture, so it is left out.
+  const coverIsStandIn = Boolean(place.imagePath) && ILLUSTRATION_PATH.test(place.imagePath) && photoPaths.length > 0;
+  const gallery = coverIsStandIn ? photoPaths : [place.imagePath, ...photoPaths].filter(Boolean);
   return { ...present(place, now, { withHours: true }), gallery };
 }
 
@@ -210,19 +217,22 @@ async function forMap(now = new Date()) {
 async function savedBy(userId, { page = 1, pageSize = 24 } = {}, now = new Date()) {
   const where = { ...published, favorites: { some: { userId } } };
   const total = await prisma.place.count({ where });
+  // A page past the end shows the last page, the same as the public list does.
+  const pagination = paginate(total, page, pageSize);
+  if (pagination.page > pagination.totalPages) pagination.page = pagination.totalPages;
   const rows = await prisma.favorite.findMany({
     where: { userId, place: published },
     orderBy: [{ createdAt: 'desc' }, { placeId: 'desc' }],
-    skip: (page - 1) * pageSize,
+    skip: (pagination.page - 1) * pageSize,
     take: pageSize,
     select: { place: { select: publicFields } },
   });
-  return { data: rows.map((row) => present(row.place, now)), pagination: paginate(total, page, pageSize) };
+  return { data: rows.map((row) => present(row.place, now)), pagination };
 }
 
 // The id of one published place chosen at random, or null when none match.
-async function randomId({ categoryId = null, openNow = false } = {}, now = new Date()) {
-  const where = await buildWhere({ categoryId, openNow }, now);
+async function randomId({ q = '', categoryId = null, openNow = false } = {}, now = new Date()) {
+  const where = await buildWhere({ q, categoryId, openNow }, now);
   const total = await prisma.place.count({ where });
   if (!total) return null;
   const [place] = await prisma.place.findMany({ where, orderBy: { id: 'asc' }, skip: Math.floor(Math.random() * total), take: 1, select: { id: true } });

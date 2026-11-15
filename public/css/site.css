@@ -1853,13 +1853,14 @@ details .stack-form {
     grid-template-columns: 1fr;
   }
   .detail-aside,
-  .form-aside,
-  .map-canvas {
+  .form-aside {
     position: static;
   }
   .map-canvas {
-    /* Leaflet turns a static map container into position: relative, which
-       would apply the desktop "top: 96px" and push the map over the list. */
+    /* Stays relative (not static) so the absolutely positioned .map-status
+       loading text sits inside the map when Leaflet does not run. Leaflet keeps
+       it relative too, so the desktop "top: 96px" must still be cleared here. */
+    position: relative;
     top: auto;
     height: 52vh;
     min-height: 320px;

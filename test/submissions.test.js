@@ -651,7 +651,7 @@ describe('editing and resubmitting', () => {
     expect(await prisma.submissionEvent.count({ where: { submissionId: created.id, action: 'edited' } })).toBe(1);
   });
 
-  test('a new photo replaces the old one and deletes its file; an edit without a photo keeps it', async () => {
+  test('a new photo replaces the old one (the file stays for the history); an edit without a photo keeps it', async () => {
     const res = await apiMultipart(alice, 'post', '/api/v1/submissions', validFields(), jpegPhoto());
     expect(res.status).toBe(201);
     const { id, imagePath: oldPath } = res.body.data;
@@ -663,10 +663,11 @@ describe('editing and resubmitting', () => {
     const newPath = withPhoto.body.data.imagePath;
     expect(newPath).toMatch(UUID_PATH);
     expect(newPath).not.toBe(oldPath);
-    expect(fs.existsSync(storedFile(oldPath))).toBe(false);
+    // The old photo is still shown in the submission's history, so it is kept.
+    expect(fs.existsSync(storedFile(oldPath))).toBe(true);
     expect(fs.existsSync(storedFile(newPath))).toBe(true);
     expect(await sharp(fs.readFileSync(storedFile(newPath))).metadata()).toMatchObject({ format: 'webp', width: 300, height: 200 });
-    expect((await alice.get(oldPath)).status).toBe(404);
+    expect((await alice.get(oldPath)).status).toBe(200);
 
     // Without a photo (multipart and JSON): the current photo stays.
     const multipartNoPhoto = await apiMultipart(alice, 'patch', `/api/v1/me/submissions/${id}`, validFields({ name: 'ไม่เปลี่ยนรูป', version: '3' }));
@@ -687,7 +688,7 @@ describe('editing and resubmitting', () => {
     const row = await prisma.submission.findUnique({ where: { id } });
     expect(row.imagePath).toMatch(UUID_PATH);
     expect(row.imagePath).not.toBe(oldPath);
-    expect(fs.existsSync(storedFile(oldPath))).toBe(false);
+    expect(fs.existsSync(storedFile(oldPath))).toBe(true); // history still shows it
   });
 
   test('the detail page shows the note, the history, and the buttons only when returned', async () => {

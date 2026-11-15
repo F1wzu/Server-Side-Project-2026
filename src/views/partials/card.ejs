@@ -21,7 +21,7 @@
     <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
     <input type="hidden" name="action" value="<%= isSaved ? 'remove' : 'save' %>">
     <input type="hidden" name="next" value="<%= backTo %>">
-    <button class="card-save-button" type="submit" aria-pressed="<%= isSaved ? 'true' : 'false' %>" data-name="<%= place.name %>" aria-label="<%= isSaved ? 'เลิกบันทึก' : 'บันทึก' %> <%= place.name %>"><%- icon('heart', 20) %></button>
+    <button class="card-save-button" type="submit" aria-pressed="<%= isSaved ? 'true' : 'false' %>" aria-label="บันทึก <%= place.name %>"><%- icon('heart', 20) %></button>
   </form>
   <% } %>
   <div class="card-body">

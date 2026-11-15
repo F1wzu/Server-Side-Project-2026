@@ -85,4 +85,18 @@ function photosUpload(max) {
   };
 }
 
-module.exports = { photoUpload, photosUpload, MAX_FILE_SIZE };
+// For page forms: instead of failing the request, an upload error (file too
+// large, too many files, broken body) is kept on req.uploadError and the
+// request goes on to the CSRF check and the handler, which raises it inside
+// its own error handling and shows it on the form with the typed text kept.
+// The API routes keep the plain middleware and answer the error directly.
+function deferUploadError(upload) {
+  return function deferredUpload(req, res, next) {
+    upload(req, res, (err) => {
+      if (err) req.uploadError = err;
+      next();
+    });
+  };
+}
+
+module.exports = { photoUpload, photosUpload, deferUploadError, MAX_FILE_SIZE };

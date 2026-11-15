@@ -78,6 +78,7 @@
               <form class="stack-form" action="/admin/replies/<%= reply.id %>/remove" method="post">
                 <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
                 <input type="hidden" name="status" value="<%= status %>">
+<input type="hidden" name="page" value="<%= result.pagination.page %>">
                 <% if (place) { %><input type="hidden" name="placeId" value="<%= place.id %>"><% } %>
                 <div class="field">
                   <label for="reply-reason-<%= reply.id %>">เหตุผล (ผู้เขียนจะเห็นข้อความนี้)</label>
@@ -99,6 +100,7 @@
         <form class="stack-form" action="/admin/reviews/<%= review.id %>/remove" method="post">
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
           <input type="hidden" name="status" value="<%= status %>">
+<input type="hidden" name="page" value="<%= result.pagination.page %>">
           <% if (place) { %><input type="hidden" name="placeId" value="<%= place.id %>"><% } %>
           <div class="field">
             <label for="reason-<%= review.id %>">เหตุผล (ผู้เขียนจะเห็นข้อความนี้)</label>

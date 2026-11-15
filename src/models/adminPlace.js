@@ -83,6 +83,8 @@ async function list({ q = '', status = 'all', missing = null, page = 1, pageSize
 
   const total = await prisma.place.count({ where });
   const pagination = paginate(total, page, pageSize);
+  // Hiding the last row of the last page must not leave an empty page behind.
+  if (pagination.page > pagination.totalPages) pagination.page = Math.max(1, pagination.totalPages);
   const rows = await prisma.place.findMany({
     where,
     orderBy: [{ name: 'asc' }, { id: 'asc' }],
@@ -101,8 +103,9 @@ async function list({ q = '', status = 'all', missing = null, page = 1, pageSize
 }
 
 // One place with every field, for the edit form. Throws 404 when unknown.
-async function findById(id) {
-  const place = await prisma.place.findUnique({ where: { id }, select: detailSelect });
+// `client` lets create/update read the place inside their own transaction.
+async function findById(id, client = prisma) {
+  const place = await client.place.findUnique({ where: { id }, select: detailSelect });
   if (!place) throw AppError.notFound('ไม่พบสถานที่นี้');
   return presentDetail(place);
 }
@@ -128,7 +131,9 @@ const contentData = (data) => ({
 
 // Adds a place (published unless said otherwise) with its seven hours rows.
 async function create(adminId, data, imagePath, { status = 'published', featuredOrder = null } = {}) {
-  const id = await prisma.$transaction(async (tx) => {
+  // Read back inside the transaction: a failed read after the commit would make
+  // the caller delete a photo file the database already references.
+  return prisma.$transaction(async (tx) => {
     await ensureCategory(tx, data.categoryId);
     const place = await tx.place.create({
       data: {
@@ -141,9 +146,8 @@ async function create(adminId, data, imagePath, { status = 'published', featured
       },
       select: { id: true },
     });
-    return place.id;
+    return findById(place.id, tx);
   });
-  return findById(id);
 }
 
 // Edits a place. `data` is the full content (or null to change only the
@@ -152,7 +156,10 @@ async function create(adminId, data, imagePath, { status = 'published', featured
 // photo was replaced and nothing else uses the old file, `orphanedImagePath`
 // for the caller to delete after the transaction succeeded.
 async function update(id, data, publication, imagePath) {
-  const { orphanedImagePath } = await prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => {
+    // Lock first so concurrent edits / gallery changes cannot orphan or drop a cover.
+    const locked = await tx.$queryRaw`SELECT id FROM places WHERE id = ${id} FOR UPDATE`;
+    if (locked.length === 0) throw AppError.notFound('ไม่พบสถานที่นี้');
     const current = await tx.place.findUnique({ where: { id }, select: { id: true, imagePath: true } });
     if (!current) throw AppError.notFound('ไม่พบสถานที่นี้');
 
@@ -171,9 +178,8 @@ async function update(id, data, publication, imagePath) {
     const replaced = imagePath && current.imagePath && current.imagePath !== imagePath;
     // Asked after the update, so this place no longer counts as a user.
     const orphaned = replaced ? await isUploadUnused(tx, current.imagePath) : false;
-    return { orphanedImagePath: orphaned ? current.imagePath : null };
+    return { place: await findById(id, tx), orphanedImagePath: orphaned ? current.imagePath : null };
   });
-  return { place: await findById(id), orphanedImagePath };
 }
 
 module.exports = { list, findById, create, update, MISSING: Object.keys(MISSING_FILTERS) };

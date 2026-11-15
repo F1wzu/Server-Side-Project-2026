@@ -60,7 +60,9 @@ describe.each([
     expect(heart).toContain(path ? 'aria-pressed="true"' : 'aria-pressed="false"');
     expect(heart).toContain('data-favorite');
     expect(heart).toContain(path ? 'name="action" value="remove"' : 'name="action" value="save"');
-    expect(heart).toContain(path ? `aria-label="เลิกบันทึก ${target.name}"` : `aria-label="บันทึก ${target.name}"`);
+    // The accessible name is constant; aria-pressed alone carries the saved state.
+    expect(heart).toContain(`aria-label="บันทึก ${target.name}"`);
+    expect(heart).not.toContain('data-name=');
     // Never nested inside the card link.
     const link = res.text.slice(res.text.indexOf('<a class="card-media"'));
     expect(link.slice(0, link.indexOf('</a>'))).not.toContain('card-save');
