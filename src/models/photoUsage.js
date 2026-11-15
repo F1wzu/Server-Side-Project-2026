@@ -31,4 +31,12 @@ async function unusedUploads(tx, paths) {
   return unused;
 }
 
-module.exports = { isUploadUnused, unusedUploads };
+// Every photo path a submission row or a history snapshot mentions
+// (the cover plus photos 2 to 5).
+function photoPathsOf(source) {
+  if (!source) return [];
+  const extras = Array.isArray(source.extraImagePaths) ? source.extraImagePaths : [];
+  return [source.imagePath, ...extras].filter((path) => typeof path === 'string');
+}
+
+module.exports = { isUploadUnused, unusedUploads, photoPathsOf };

@@ -2,7 +2,8 @@
 // Page handlers render or redirect; API handlers answer JSON. Both call the
 // same functions in models/user.js, so every rule is written once.
 const userModel = require('../models/user');
-const { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema } = require('../validation/auth');
+const { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema, deleteAccountSchema } = require('../validation/auth');
+const storage = require('../storage');
 const { validate, errorsByField } = require('../utils/validate');
 const safeRedirect = require('../utils/safeRedirect');
 const { startSession, endSession } = require('../middleware/auth');
@@ -66,9 +67,45 @@ async function logout(req, res) {
   res.redirect(303, '/');
 }
 
-// The profile page holds two small forms; each gets its own errors.
-function renderProfile(res, { status = 200, username, usernameErrors = {}, passwordErrors = {} } = {}) {
-  res.status(status).render('me', { title: 'บัญชีของฉัน', username, usernameErrors, passwordErrors });
+// The profile page holds three small forms; each gets its own errors.
+function renderProfile(res, { status = 200, username, usernameErrors = {}, passwordErrors = {}, deleteErrors = {} } = {}) {
+  res.status(status).render('me', { title: 'บัญชีของฉัน', username, usernameErrors, passwordErrors, deleteErrors });
+}
+
+// Deletes the account (see userModel.deleteAccount), then its photo files.
+// A wrong password is marked like on the password form, so the same
+// throttle counts the guesses.
+async function deleteOwnAccount(req, res) {
+  const { password } = validate(deleteAccountSchema, req.body);
+  try {
+    const { unusedFiles } = await userModel.deleteAccount(req.user.id, password);
+    await Promise.all(unusedFiles.map((path) => storage.remove(path).catch(() => {})));
+  } catch (err) {
+    if (err.details?.[0]?.field === 'password') res.locals.wrongCurrentPassword = true;
+    throw err;
+  }
+}
+
+// POST /me/delete
+async function deleteAccount(req, res) {
+  try {
+    await deleteOwnAccount(req, res);
+  } catch (err) {
+    if (!isFormError(err) && err.code !== 'INVALID_STATE') throw err;
+    return renderProfile(res, { status: err.status, username: req.user.username, deleteErrors: errorsByField(err).password ? errorsByField(err) : { password: err.message } });
+  }
+  // The account's sessions were deleted with it (and its session version
+  // raised, so the old one could never log in again even if written back).
+  // This browser gets a fresh, logged-out session that only carries the
+  // goodbye message.
+  await new Promise((resolve, reject) => {
+    req.session.regenerate((regenerateError) => {
+      if (regenerateError) return reject(regenerateError);
+      setFlash(req, 'success', 'ลบบัญชีแล้ว ขอบคุณที่ใช้งาน');
+      return req.session.save((saveError) => (saveError ? reject(saveError) : resolve()));
+    });
+  });
+  return res.redirect(303, '/');
 }
 
 function profile(req, res) {
@@ -160,6 +197,13 @@ async function apiChangePassword(req, res) {
   res.status(204).end();
 }
 
+// DELETE /api/v1/me  (needs `password`)
+async function apiDeleteAccount(req, res) {
+  await deleteOwnAccount(req, res);
+  await endSession(req, res);
+  res.status(204).end();
+}
+
 module.exports = {
   showRegister,
   register,
@@ -176,4 +220,6 @@ module.exports = {
   apiMe,
   apiUpdateProfile,
   apiChangePassword,
+  deleteAccount,
+  apiDeleteAccount,
 };

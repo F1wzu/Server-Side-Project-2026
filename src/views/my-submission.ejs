@@ -74,6 +74,18 @@
       <% } else if (submission.status === 'pending') { %>
       <p class="small-note">คำขออยู่ระหว่างรอผู้ดูแลตรวจสอบ ระหว่างนี้แก้ไขไม่ได้</p>
       <% } %>
+
+      <% if (submission.status === 'pending' || submission.status === 'changes_requested') { %>
+      <details class="danger-zone">
+        <summary>ถอนคำขอนี้</summary>
+        <p>คำขอ รูป และประวัติของคำขอนี้จะถูกลบถาวร ผู้ดูแลจะไม่เห็นอีก และกู้คืนไม่ได้</p>
+        <form method="post" action="/me/submissions/<%= submission.id %>/withdraw">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <input type="hidden" name="version" value="<%= submission.version %>">
+          <button class="button button-danger" type="submit">ยืนยันถอนคำขอ</button>
+        </form>
+      </details>
+      <% } %>
     </section>
 
     <aside>

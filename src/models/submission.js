@@ -9,7 +9,7 @@
 const prisma = require('../config/db');
 const AppError = require('../utils/AppError');
 const { paginate } = require('../utils/pagination');
-const { unusedUploads } = require('./photoUsage');
+const { unusedUploads, photoPathsOf } = require('./photoUsage');
 
 const number = (decimal) => (decimal === null || decimal === undefined ? null : Number(decimal));
 
@@ -161,4 +161,29 @@ async function resubmit(userId, id, version) {
   });
 }
 
-module.exports = { create, listOwn, findOwn, updateOwn, resubmit, snapshotOf };
+// A submission the member may still take back: not yet decided by an admin.
+const WITHDRAWABLE = ['pending', 'changes_requested'];
+
+// Deletes the member's own undecided submission with its history (the
+// events cascade). The status and version are part of the delete's
+// condition, so an admin approving at the same moment wins or loses cleanly:
+// an approved submission is never deleted. Returns the photo files nothing
+// uses any more, for the caller to delete after this has committed.
+async function withdraw(userId, id, version) {
+  return prisma.$transaction(async (tx) => {
+    const before = await tx.submission.findFirst({ where: { id, userId }, select: { imagePath: true, extraImagePaths: true } });
+    const history = before ? await tx.submissionEvent.findMany({ where: { submissionId: id }, select: { snapshot: true } }) : [];
+    const { count } = await tx.submission.deleteMany({ where: { id, userId, status: { in: WITHDRAWABLE }, version } });
+    if (count === 0) {
+      const current = await tx.submission.findUnique({ where: { id }, select: { userId: true, status: true } });
+      if (!current || current.userId !== userId) throw AppError.notFound('ไม่พบคำขอนี้');
+      if (!WITHDRAWABLE.includes(current.status)) {
+        throw new AppError(409, 'INVALID_STATE', 'ถอนได้เฉพาะคำขอที่ยังรอตรวจสอบหรือรอแก้ไขเท่านั้น');
+      }
+      throw new AppError(409, 'STALE_VERSION', 'คำขอนี้ถูกเปลี่ยนแปลงไปแล้ว กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง');
+    }
+    return { unusedFiles: await unusedUploads(tx, [...photoPathsOf(before), ...history.flatMap((event) => photoPathsOf(event.snapshot))]) };
+  });
+}
+
+module.exports = { create, listOwn, findOwn, updateOwn, resubmit, withdraw, snapshotOf, WITHDRAWABLE };

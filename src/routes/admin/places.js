@@ -22,11 +22,13 @@ web.get('/places/new', controller.newForm);
 web.post('/places', withPhotoPage, controller.create);
 web.get('/places/:id/edit', controller.editForm);
 web.post('/places/:id/status', controller.setStatus);
+web.post('/places/:id/delete', controller.destroy);
 web.post('/places/:id', withPhotoPage, controller.update);
 
 api.get('/places', controller.apiList);
 api.post('/places', withPhoto, controller.apiCreate);
 api.get('/places/:id', controller.apiShow);
 api.patch('/places/:id', withPhoto, controller.apiUpdate);
+api.delete('/places/:id', controller.apiDestroy);
 
 module.exports = { web, api };

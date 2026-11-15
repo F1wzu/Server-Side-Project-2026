@@ -1018,6 +1018,24 @@ input[type='checkbox'] {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
+/* A permanent, can't-undo action kept out of the way behind a <details>:
+   withdrawing a submission, deleting a place, deleting an account. */
+.danger-zone {
+  margin-top: 24px;
+  padding: 14px 18px;
+  border: 1px solid var(--brick);
+  border-radius: var(--radius-small);
+  background: var(--card);
+}
+.danger-zone summary {
+  color: var(--brick);
+  font-weight: 600;
+  cursor: pointer;
+}
+.danger-zone p {
+  margin: 10px 0 14px;
+}
+
 /* Review search on the admin reviews page: more fields than the place
    filter, in a narrow column, so they wrap into as many columns as fit. */
 .filter-panel.review-search {

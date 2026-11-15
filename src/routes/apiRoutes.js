@@ -27,6 +27,7 @@ router.post('/auth/logout', requireLogin, authController.apiLogout);
 router.get('/me', requireLogin, authController.apiMe);
 router.patch('/me', requireLogin, authController.apiUpdateProfile);
 router.put('/me/password', requireLogin, passwordChangeLimiter, authController.apiChangePassword);
+router.delete('/me', requireLogin, passwordChangeLimiter, authController.apiDeleteAccount);
 
 // Browsing places (public). The fixed paths come before /places/:id.
 router.get('/categories', placeController.apiCategories);
@@ -57,6 +58,7 @@ router.get('/me/submissions', requireLogin, submissionController.apiMine);
 router.get('/me/submissions/:id', requireLogin, submissionController.apiShow);
 router.patch('/me/submissions/:id', requireLogin, memberWriteLimiter, withPhotos, submissionController.apiUpdate);
 router.post('/me/submissions/:id/resubmit', requireLogin, memberWriteLimiter, submissionController.apiResubmit);
+router.delete('/me/submissions/:id', requireLogin, memberWriteLimiter, submissionController.apiWithdraw);
 
 // Admin areas. Everything under /admin needs a logged-in admin.
 for (const area of ['submissions', 'places', 'photos', 'moderation']) {

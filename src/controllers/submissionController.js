@@ -199,7 +199,31 @@ async function resubmit(req, res) {
   res.redirect(303, `/me/submissions/${id}`);
 }
 
+// POST /me/submissions/:id/withdraw  (needs `version`)
+async function withdraw(req, res) {
+  const id = submissionId(req);
+  try {
+    const { version } = validate(versionSchema, req.body);
+    const { unusedFiles } = await submissionModel.withdraw(req.user.id, id, version);
+    await removeFiles(unusedFiles);
+    setFlash(req, 'success', 'ถอนคำขอแล้ว');
+    return res.redirect(303, '/me/submissions');
+  } catch (err) {
+    if (!['STALE_VERSION', 'INVALID_STATE', 'VALIDATION_ERROR'].includes(err.code)) throw err;
+    setFlash(req, 'error', err.message);
+    return res.redirect(303, `/me/submissions/${id}`);
+  }
+}
+
 // ---------- API ----------
+
+// DELETE /api/v1/me/submissions/:id  (needs `version`)
+async function apiWithdraw(req, res) {
+  const { version } = validate(versionSchema, req.body ?? {});
+  const { unusedFiles } = await submissionModel.withdraw(req.user.id, submissionId(req), version);
+  await removeFiles(unusedFiles);
+  res.status(204).end();
+}
 
 // POST /api/v1/submissions (multipart or JSON)
 async function apiCreate(req, res) {
@@ -236,4 +260,4 @@ async function apiResubmit(req, res) {
   res.json({ data: await submissionModel.resubmit(req.user.id, submissionId(req), version) });
 }
 
-module.exports = { newForm, create, mine, show, editForm, update, resubmit, apiCreate, apiMine, apiShow, apiUpdate, apiResubmit, STATUS_LABELS, ACTION_LABELS };
+module.exports = { newForm, create, mine, show, editForm, update, resubmit, withdraw, apiCreate, apiMine, apiShow, apiUpdate, apiResubmit, apiWithdraw, STATUS_LABELS, ACTION_LABELS };

@@ -6,7 +6,7 @@ const AppError = require('../utils/AppError');
 const { paginate } = require('../utils/pagination');
 const { toPlaceHoursRows } = require('../utils/hours');
 const { toClock } = require('../utils/openingHours');
-const { isUploadUnused } = require('./photoUsage');
+const { isUploadUnused, unusedUploads, photoPathsOf } = require('./photoUsage');
 
 const number = (decimal) => (decimal === null || decimal === undefined ? null : Number(decimal));
 
@@ -182,4 +182,39 @@ async function update(id, data, publication, imagePath) {
   });
 }
 
-module.exports = { list, findById, create, update, MISSING: Object.keys(MISSING_FILTERS) };
+// Permanently deletes a place. Hiding (unpublishing) is the normal way to
+// take a place down; this is for mistakes and test entries, so it is refused
+// once anyone has reviewed the place (in any status: a review row keeps a
+// member's words and the admin's removal reasons, and its rating history).
+// The place row is locked first, the same lock review.create takes, so a
+// review cannot land on the place while it is being deleted.
+//
+// Hours, gallery rows, saved hearts and reports go with the place (ON DELETE
+// CASCADE). A place that came from a member's submission takes that approved
+// submission and its history with it: the submission only exists to explain
+// how the place was made. Returns the photo files nothing uses any more, for
+// the caller to delete after this has committed.
+async function destroy(id) {
+  return prisma.$transaction(async (tx) => {
+    const locked = await tx.$queryRaw`SELECT id FROM places WHERE id = ${id} FOR UPDATE`;
+    if (!locked.length) throw AppError.notFound('ไม่พบสถานที่นี้');
+    if ((await tx.review.count({ where: { placeId: id } })) > 0) {
+      throw new AppError(409, 'INVALID_STATE', 'สถานที่นี้มีรีวิวแล้ว จึงลบถาวรไม่ได้ ใช้ "ซ่อนจากหน้าสาธารณะ" แทน');
+    }
+    const place = await tx.place.findUnique({ where: { id }, select: { name: true, imagePath: true, photos: { select: { imagePath: true } } } });
+    const submission = await tx.submission.findUnique({ where: { placeId: id }, select: { id: true, imagePath: true, extraImagePaths: true } });
+    const history = submission ? await tx.submissionEvent.findMany({ where: { submissionId: submission.id }, select: { snapshot: true } }) : [];
+    const paths = [
+      place.imagePath,
+      ...place.photos.map((photo) => photo.imagePath),
+      ...photoPathsOf(submission),
+      ...history.flatMap((event) => photoPathsOf(event.snapshot)),
+    ].filter(Boolean);
+
+    if (submission) await tx.submission.delete({ where: { id: submission.id } });
+    await tx.place.delete({ where: { id } });
+    return { name: place.name, fromSubmission: Boolean(submission), unusedFiles: await unusedUploads(tx, paths) };
+  });
+}
+
+module.exports = { list, findById, create, update, destroy, MISSING: Object.keys(MISSING_FILTERS) };

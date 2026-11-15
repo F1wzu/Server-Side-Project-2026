@@ -55,6 +55,7 @@ router.get('/me/submissions/:id', requireLogin, submissionController.show);
 router.get('/me/submissions/:id/edit', requireLogin, submissionController.editForm);
 router.post('/me/submissions/:id', requireLogin, memberWriteLimiter, withPhotosForm, submissionController.update);
 router.post('/me/submissions/:id/resubmit', requireLogin, memberWriteLimiter, submissionController.resubmit);
+router.post('/me/submissions/:id/withdraw', requireLogin, memberWriteLimiter, submissionController.withdraw);
 
 // Accounts
 router.get('/register', redirectIfLoggedIn, authController.showRegister);
@@ -65,6 +66,7 @@ router.post('/logout', authController.logout);
 router.get('/me', requireLogin, authController.profile);
 router.post('/me', requireLogin, authController.updateProfile);
 router.post('/me/password', requireLogin, passwordChangeLimiter, authController.changePassword);
+router.post('/me/delete', requireLogin, passwordChangeLimiter, authController.deleteAccount);
 
 // Admin
 router.get('/admin', requireLogin, requireAdmin, adminController.dashboard);

@@ -57,5 +57,19 @@
       <button class="button button-primary" type="submit"><%= editing ? 'บันทึกการแก้ไข' : 'เพิ่มสถานที่' %></button>
     </div>
   </form>
+
+  <% if (editing) { %>
+  <%# A separate form: forms cannot be nested. Hiding (the status above) is the usual way to take a place down. %>
+  <details class="danger-zone">
+    <summary>ลบสถานที่นี้ถาวร</summary>
+    <p>ปกติให้ใช้ "ซ่อนจากหน้าสาธารณะ" ด้านบน ซึ่งกลับมาเผยแพร่ได้ ส่วนการลบถาวรมีไว้สำหรับสถานที่ที่เพิ่มผิดหรือข้อมูลทดสอบ
+      ใช้ได้เฉพาะสถานที่ที่ยังไม่มีใครรีวิว ข้อมูล เวลาเปิดปิด รูป การบันทึกของสมาชิก รายการแจ้งข้อมูลผิด
+      และคำขอของสมาชิกที่สร้างสถานที่นี้ (ถ้ามี) จะถูกลบทั้งหมด และกู้คืนไม่ได้</p>
+    <form method="post" action="/admin/places/<%= place.id %>/delete">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <button class="button button-danger" type="submit">ยืนยันลบ "<%= place.name %>" ถาวร</button>
+    </form>
+  </details>
+  <% } %>
 </div>
 <%- include('../partials/foot') %>

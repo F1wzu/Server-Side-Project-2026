@@ -189,7 +189,29 @@ async function setStatus(req, res) {
   return res.redirect(303, back);
 }
 
+// POST /admin/places/:id/delete  (the second, permanent option after hiding)
+async function destroy(req, res) {
+  const id = placeId(req);
+  try {
+    const { name, unusedFiles } = await adminPlaceModel.destroy(id);
+    await Promise.all(unusedFiles.map((path) => storage.remove(path).catch(() => {})));
+    setFlash(req, 'success', `ลบ "${name}" ถาวรแล้ว`);
+    return res.redirect(303, '/admin/places');
+  } catch (err) {
+    if (err.code !== 'INVALID_STATE') throw err;
+    setFlash(req, 'error', err.message);
+    return res.redirect(303, `/admin/places/${id}/edit`);
+  }
+}
+
 // ---------- API ----------
+
+// DELETE /api/v1/admin/places/:id
+async function apiDestroy(req, res) {
+  const { unusedFiles } = await adminPlaceModel.destroy(placeId(req));
+  await Promise.all(unusedFiles.map((path) => storage.remove(path).catch(() => {})));
+  res.status(204).end();
+}
 
 // GET /api/v1/admin/places
 async function apiList(req, res) {
@@ -244,4 +266,4 @@ async function apiUpdate(req, res) {
   res.json({ data: place });
 }
 
-module.exports = { index, newForm, create, editForm, update, setStatus, apiList, apiShow, apiCreate, apiUpdate };
+module.exports = { index, newForm, create, editForm, update, setStatus, destroy, apiList, apiShow, apiCreate, apiUpdate, apiDestroy };

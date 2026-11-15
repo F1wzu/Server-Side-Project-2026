@@ -60,5 +60,19 @@
     <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
     <button class="button button-outline" type="submit"><%- icon('logout', 18) %>ออกจากระบบ</button>
   </form>
+
+  <% if (currentUser.role !== 'admin') { %>
+  <details class="danger-zone"<%- deleteErrors.password ? ' open' : '' %>>
+    <summary>ลบบัญชีของฉัน</summary>
+    <p>รีวิวและความเห็นตอบกลับทั้งหมดของคุณจะถูกลบ คะแนนของสถานที่จะคำนวณใหม่
+      ที่บันทึกไว้และคำขอที่ยังรอตรวจสอบจะถูกลบ ส่วนสถานที่ที่อนุมัติแล้วยังอยู่ แต่จะไม่แสดงชื่อของคุณ
+      อีเมลนี้นำไปสมัครใหม่ได้ภายหลัง การลบกู้คืนไม่ได้</p>
+    <form method="post" action="/me/delete" class="stack-form" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <%- include('partials/field', { name: 'password', label: 'ยืนยันด้วยรหัสผ่าน', type: 'password', error: deleteErrors.password, autocomplete: 'current-password' }) %>
+      <button type="submit" class="button button-danger">ลบบัญชีถาวร</button>
+    </form>
+  </details>
+  <% } %>
 </div>
 <%- include('partials/foot') %>

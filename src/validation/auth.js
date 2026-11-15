@@ -45,4 +45,9 @@ const loginSchema = z.object({
   password: z.string({ error: 'กรุณากรอกรหัสผ่าน' }).min(1, 'กรุณากรอกรหัสผ่าน').max(1000, 'รหัสผ่านไม่ถูกต้อง'),
 });
 
-module.exports = { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema };
+// Deleting the account asks for the password once more.
+const deleteAccountSchema = z.object({
+  password: z.string({ error: 'กรุณากรอกรหัสผ่าน' }).min(1, 'กรุณากรอกรหัสผ่าน').max(1000, 'รหัสผ่านไม่ถูกต้อง'),
+});
+
+module.exports = { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema, deleteAccountSchema };
