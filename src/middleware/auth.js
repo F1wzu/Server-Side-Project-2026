@@ -5,6 +5,7 @@ const wantsJson = require('../utils/wantsJson');
 const safeRedirect = require('../utils/safeRedirect');
 const { cookieOptions, COOKIE_NAME, revokeSession } = require('./session');
 const env = require('../config/env');
+const { activeSuspension } = require('../utils/suspension');
 
 // Drops the login from this session and continues as a visitor.
 function forgetLogin(req) {
@@ -30,7 +31,11 @@ async function loadCurrentUser(req, res, next) {
     await forgetLogin(req);
     return next();
   }
-  const { sessionVersion, ...user } = found;
+  // The raw suspension columns stay here; the rest of the app sees only
+  // req.user.suspension ({ reason, until } while suspended now, otherwise null).
+  const { sessionVersion, suspendedAt, suspendedUntil, suspendedReason, ...user } = found;
+  const suspended = activeSuspension({ suspendedAt, suspendedUntil, suspendedReason });
+  user.suspension = suspended ? { reason: suspended.reason, until: suspended.until } : null;
   req.user = user;
   res.locals.currentUser = user;
   // Pages for a logged-in user must not be kept by the browser's cache.

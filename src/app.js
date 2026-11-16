@@ -9,6 +9,7 @@ const requestLogger = require('./middleware/requestLogger');
 const { sessionMiddleware } = require('./middleware/session');
 const { loadCurrentUser } = require('./middleware/auth');
 const { csrfProtection, exposeCsrfToken } = require('./middleware/csrf');
+const { blockSuspended } = require('./middleware/suspension');
 const { exposeFlash } = require('./middleware/flash');
 const { stripNul } = require('./middleware/sanitize');
 const { originOf } = require('./utils/origin');
@@ -43,6 +44,7 @@ function createApp() {
   app.locals.csrfToken = () => '';
   app.locals.takeFlash = () => null;
   Object.assign(app.locals, viewHelpers); // icon(), rating(), date() ...
+  app.locals.suspensionEnd = require('./utils/suspension').suspensionEnd; // the suspended member's banner
   // The district border as JSON, for the map pickers to draw (see utils/district.js).
   app.locals.districtBoundaryJson = JSON.stringify(require('./utils/district').BOUNDARY);
 
@@ -79,6 +81,7 @@ function createApp() {
   app.use(loadCurrentUser); // 7. who is logged in (role read from the database)
   app.use(exposeCsrfToken);
   app.use(csrfProtection); // 8. token required on POST, PUT, PATCH, DELETE
+  app.use(blockSuspended); //    a suspended member cannot write (except log out, password, delete account)
 
   app.use('/api/v1', apiRoutes); // 9. routes
   app.use(webRoutes);

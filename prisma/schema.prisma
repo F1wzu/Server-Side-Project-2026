@@ -101,6 +101,13 @@ model User {
   // and for admins made by scripts/create-admin.js.
   policyAcceptedAt DateTime? @map("policy_accepted_at") @db.Timestamptz(6)
   policyVersion    String?   @map("policy_version") @db.VarChar(20)
+  // Suspension (admin moderation of members): a suspended member can read but
+  // not write (middleware/suspension.js). suspended_until NULL while
+  // suspended_at is set means "until an admin lifts it"; an expired date simply
+  // stops counting, there is no job that clears it.
+  suspendedAt     DateTime? @map("suspended_at") @db.Timestamptz(6)
+  suspendedUntil  DateTime? @map("suspended_until") @db.Timestamptz(6)
+  suspendedReason String?   @map("suspended_reason") @db.VarChar(500)
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -116,8 +123,36 @@ model User {
   resolvedReports  PlaceReport[]     @relation("ReportResolver")
   reviewReports         ReviewReport[] @relation("ReviewReportAuthor")
   resolvedReviewReports ReviewReport[] @relation("ReviewReportResolver")
+  moderationEvents      UserModerationEvent[] @relation("ModerationTarget")
+  moderationActions     UserModerationEvent[] @relation("ModerationActor")
 
   @@map("users")
+}
+
+enum UserModerationAction {
+  suspended
+  unsuspended
+
+  @@map("user_moderation_action")
+}
+
+// The history of suspensions: one row per suspend or unsuspend, kept even
+// after the member's account is emptied.
+model UserModerationEvent {
+  id        Int                  @id @default(autoincrement())
+  userId    Int                  @map("user_id")
+  actorId   Int                  @map("actor_id")
+  action    UserModerationAction
+  // The reason when suspending, an optional note when lifting.
+  note      String?              @db.VarChar(500)
+  until     DateTime?            @db.Timestamptz(6)
+  createdAt DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user  User @relation("ModerationTarget", fields: [userId], references: [id], onDelete: Restrict)
+  actor User @relation("ModerationActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt])
+  @@map("user_moderation_events")
 }
 
 model Category {

@@ -33,6 +33,11 @@
       <h2>รีวิว</h2>
       <p>ดูรีวิวทั้งหมด และนำรีวิวที่ไม่เหมาะสมออกพร้อมเหตุผล</p>
     </a>
+    <a class="panel account-card" href="/admin/users">
+      <span class="account-icon"><%- icon('user', 24) %></span>
+      <h2>สมาชิกที่ถูกระงับ <strong><%= suspendedMembers %></strong></h2>
+      <p>ดูสมาชิก ระงับการเขียนของสมาชิกที่ละเมิดกติกา และยกเลิกการระงับ</p>
+    </a>
     <a class="panel account-card" href="/admin/categories">
       <span class="account-icon"><%- icon('grid', 24) %></span>
       <h2>หมวดหมู่</h2>

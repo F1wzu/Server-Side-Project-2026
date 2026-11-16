@@ -79,7 +79,7 @@ router.post('/me/delete', requireLogin, passwordChangeLimiter, authController.de
 router.get('/admin', requireLogin, requireAdmin, adminController.dashboard);
 
 // Admin areas. Everything under /admin needs a logged-in admin.
-for (const area of ['submissions', 'places', 'photos', 'moderation']) {
+for (const area of ['submissions', 'places', 'photos', 'moderation', 'users']) {
   router.use('/admin', requireLogin, requireAdmin, require(`./admin/${area}`).web);
 }
 

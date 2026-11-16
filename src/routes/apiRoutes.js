@@ -63,7 +63,7 @@ router.post('/me/submissions/:id/resubmit', requireLogin, memberWriteLimiter, su
 router.delete('/me/submissions/:id', requireLogin, memberWriteLimiter, submissionController.apiWithdraw);
 
 // Admin areas. Everything under /admin needs a logged-in admin.
-for (const area of ['submissions', 'places', 'photos', 'moderation']) {
+for (const area of ['submissions', 'places', 'photos', 'moderation', 'users']) {
   router.use('/admin', requireLogin, requireAdmin, require(`./admin/${area}`).api);
 }
 

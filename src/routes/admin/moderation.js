@@ -4,9 +4,13 @@
 const express = require('express');
 const moderation = require('../../controllers/moderationController');
 const categories = require('../../controllers/categoryController');
+const activity = require('../../controllers/activityController');
 
 const web = express.Router();
 const api = express.Router();
+
+web.get('/activity', activity.page);
+api.get('/activity', activity.apiList);
 
 web.get('/reviews', moderation.reviewsPage);
 web.get('/places/:id/reviews', moderation.placeReviewsPage);

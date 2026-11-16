@@ -68,6 +68,10 @@ const weekdayLabels = ['อาทิตย์', 'จันทร์', 'อัง
 const date = (value) =>
   new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Bangkok' }).format(new Date(value));
 
+// Date and time in Bangkok, for the admin's activity history.
+const dateTime = (value) =>
+  new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }).format(new Date(value));
+
 // A place with no reviews shows no number.
 const rating = (value) => (value === null || value === undefined ? 'ยังไม่มีคะแนน' : Number(value).toFixed(2));
 
@@ -95,4 +99,4 @@ function mapsUrl(place) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.name} ${place.address}`)}`;
 }
 
-module.exports = { icon, isIllustration, categoryKind, categoryIcon, photoFallback, weekdayLabels, date, rating, hoursLabel, distanceLabel, openLabel, mapsUrl };
+module.exports = { icon, isIllustration, categoryKind, categoryIcon, photoFallback, weekdayLabels, date, dateTime, rating, hoursLabel, distanceLabel, openLabel, mapsUrl };

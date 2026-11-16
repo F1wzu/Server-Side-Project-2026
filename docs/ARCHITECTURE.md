@@ -117,7 +117,7 @@ middleware ทำงานตามลำดับนี้ ลำดับเ�
 | 5 | Body parser | body ของฟอร์มและ JSON จำกัด 64 KB |
 | 6 | Session | อ่านคุกกี้ โหลด session จาก PostgreSQL |
 | 7 | ผู้ใช้ปัจจุบัน | โหลดผู้ใช้และบทบาทจากฐานข้อมูลสำหรับคำขอนี้ |
-| 8 | CSRF | ตรวจ token บน POST, PUT, PATCH และ DELETE |
+| 8 | CSRF แล้วตรวจการระงับ | ตรวจ token บน POST, PUT, PATCH และ DELETE จากนั้น `blockSuspended` ปฏิเสธคำขอที่เปลี่ยนข้อมูลของสมาชิกที่ถูกระงับ (403 `ACCOUNT_SUSPENDED`) ที่จุดเดียว route ใหม่จึงถูกครอบคลุมเอง |
 | 9 | Routes | middleware ราย route: จำกัดอัตรา, `requireLogin`, `requireAdmin`, อัปโหลด |
 | 10 | 404 handler | ไม่มี route ใดตรง |
 | 11 | Error handler | แปลงข้อผิดพลาดทุกชนิดเป็นหน้าเว็บหรือคำตอบ JSON |

@@ -55,9 +55,13 @@ function findById(id) {
 }
 
 // The account as the login check needs it: public fields plus the session
-// version (which never leaves the server).
+// version and the suspension columns (neither leaves the server as raw
+// columns; middleware/auth.js turns the suspension into req.user.suspension).
 function findForSession(id) {
-  return prisma.user.findUnique({ where: { id }, select: { ...publicFields, sessionVersion: true } });
+  return prisma.user.findUnique({
+    where: { id },
+    select: { ...publicFields, sessionVersion: true, suspendedAt: true, suspendedUntil: true, suspendedReason: true },
+  });
 }
 
 function updateUsername(id, username) {

@@ -10,7 +10,12 @@ const email = z
   .toLowerCase()
   .min(1, 'กรุณากรอกอีเมล')
   .max(254, 'อีเมลยาวเกินไป')
-  .pipe(z.email({ error: 'รูปแบบอีเมลไม่ถูกต้อง' }));
+  .pipe(z.email({ error: 'รูปแบบอีเมลไม่ถูกต้อง' }))
+  // A deleted account keeps its row under deleted-<id>@deleted.invalid
+  // (models/user.js). Nobody may register in that domain: it would block that
+  // member from ever deleting their account, and the account would pass for a
+  // deleted one in the admin's member list.
+  .refine((value) => !value.endsWith('@deleted.invalid'), 'รูปแบบอีเมลไม่ถูกต้อง');
 
 // A display name: 3–50 characters a person can see, on one line.
 const username = visibleText({ label: 'ชื่อผู้ใช้', min: 3, max: 50, minMessage: 'ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร' }).refine(

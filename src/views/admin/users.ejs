@@ -1,0 +1,74 @@
+<%- include('../partials/head') %>
+<%
+  const filters = [['all', 'ทั้งหมด'], ['suspended', 'ถูกระงับ'], ['active', 'ปกติ']];
+  const roleLabels = { member: 'สมาชิก', admin: 'ผู้ดูแล' };
+%>
+<div class="container page-content">
+  <%- include('../partials/admin-nav') %>
+  <div class="page-heading">
+    <h1>สมาชิก</h1>
+    <p>ดูสมาชิกและกิจกรรมของแต่ละคน สมาชิกที่ถูกระงับยังเข้าสู่ระบบและอ่านข้อมูลได้ แต่เขียนหรือแก้ไขอะไรไม่ได้ กดชื่อสมาชิกเพื่อระงับหรือยกเลิกการระงับ</p>
+  </div>
+
+  <form class="filter-panel" method="get" action="/admin/users">
+    <div class="field search-field">
+      <label for="q">ค้นหาจากชื่อผู้ใช้หรืออีเมล</label>
+      <input id="q" name="q" type="search" value="<%= search.q %>" maxlength="200">
+    </div>
+    <% if (search.status !== 'all') { %><input type="hidden" name="status" value="<%= search.status %>"><% } %>
+    <button class="button button-primary" type="submit">ค้นหา</button>
+  </form>
+
+  <nav class="tabs" aria-label="กรองตามสถานะ">
+    <% filters.forEach(([key, label]) => { %>
+    <a href="<%= statusLink(key) %>"<%- search.status === key ? ' aria-current="true"' : '' %>><%= label %></a>
+    <% }) %>
+  </nav>
+  <p class="meta list-count"><%= result.pagination.total %> คน</p>
+
+  <% if (result.pagination.total === 0) { %>
+  <div class="empty-state">
+    <%- icon('user', 28) %>
+    <h2>ไม่พบสมาชิก</h2>
+  </div>
+  <% } else { %>
+  <div class="table-shell">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">สมาชิก</th>
+          <th scope="col">บทบาท</th>
+          <th scope="col">สถานะ</th>
+          <th scope="col">รีวิว</th>
+          <th scope="col">ถูกนำออก</th>
+          <th scope="col">คำขอแนะนำ</th>
+          <th scope="col">สมัครเมื่อ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% result.data.forEach((member) => { %>
+        <tr>
+          <td><a href="/admin/users/<%= member.id %>"><strong><%= member.username %></strong></a><span class="meta table-meta"><%= member.email %></span></td>
+          <td data-label="บทบาท"><%= roleLabels[member.role] %></td>
+          <td data-label="สถานะ">
+            <% if (member.suspension) { %>
+            <span class="status status-review-removed">ถูกระงับ</span>
+            <span class="meta table-meta"><%= suspensionEnd(member.suspension.until) %></span>
+            <% } else { %>
+            <span class="status status-review-active">ปกติ</span>
+            <% } %>
+          </td>
+          <td data-label="รีวิว"><%= member.reviews %></td>
+          <td data-label="ถูกนำออก"><%= member.removed %></td>
+          <td data-label="คำขอแนะนำ"><%= member.submissions %></td>
+          <td data-label="สมัครเมื่อ" class="table-date"><%= date(member.createdAt) %></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+
+  <%- include('../partials/pagination', { pagination: result.pagination, pageLink }) %>
+</div>
+<%- include('../partials/foot') %>

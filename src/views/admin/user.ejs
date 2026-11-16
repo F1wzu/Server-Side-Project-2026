@@ -1,0 +1,101 @@
+<%- include('../partials/head') %>
+<%
+  const roleLabels = { member: 'สมาชิก', admin: 'ผู้ดูแล' };
+  const actionLabels = { suspended: 'ระงับ', unsuspended: 'ยกเลิกการระงับ' };
+  const durations = [['1', '1 วัน'], ['3', '3 วัน'], ['7', '7 วัน'], ['30', '30 วัน'], ['', 'จนกว่าจะยกเลิก']];
+%>
+<div class="container narrow page-content">
+  <%- include('../partials/admin-nav') %>
+  <nav class="breadcrumb" aria-label="ตำแหน่งหน้า">
+    <a href="/admin/users">สมาชิก</a><%- icon('chevron', 16) %>
+    <span><%= member.username %></span>
+  </nav>
+  <div class="page-heading">
+    <h1><%= member.username %></h1>
+    <p><%= member.email %> · <%= roleLabels[member.role] %> · สมัครเมื่อ <%= date(member.createdAt) %></p>
+  </div>
+
+  <section class="panel" aria-labelledby="member-summary">
+    <h2 id="member-summary">สถานะและกิจกรรม</h2>
+    <% if (member.suspension) { %>
+    <p><span class="status status-review-removed">ถูกระงับ</span> <%= suspensionEnd(member.suspension.until) %> (ตั้งเมื่อ <%= dateTime(member.suspension.at) %>)</p>
+    <p class="preserve-lines">เหตุผล: <%= member.suspension.reason %></p>
+    <% } else { %>
+    <p><span class="status status-review-active">ปกติ</span></p>
+    <% } %>
+    <ul>
+      <li>รีวิวที่แสดงอยู่ <%= member.reviews %> รายการ</li>
+      <li>รีวิวและความเห็นที่ผู้ดูแลนำออก <%= member.removed %> รายการ</li>
+      <li>คำขอแนะนำสถานที่ <%= member.submissions %> รายการ</li>
+    </ul>
+    <p><a class="text-link" href="/admin/reviews?user=<%= encodeURIComponent(member.username) %>">ดูรีวิวของสมาชิกคนนี้</a></p>
+  </section>
+
+  <% if (member.role !== 'admin') { %>
+  <section class="panel" aria-labelledby="member-action">
+    <% if (member.suspension) { %>
+    <h2 id="member-action">ยกเลิกการระงับ</h2>
+    <form class="stack-form" action="/admin/users/<%= member.id %>/unsuspend" method="post">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <div class="field">
+        <label for="note">หมายเหตุ (ไม่บังคับ)</label>
+        <textarea id="note" name="note" maxlength="500" rows="2"></textarea>
+      </div>
+      <button class="button button-primary" type="submit">ยกเลิกการระงับ</button>
+    </form>
+    <% } else { %>
+    <h2 id="member-action">ระงับสมาชิก</h2>
+    <p class="small-note">สมาชิกที่ถูกระงับยังเข้าสู่ระบบและอ่านข้อมูลได้ แต่เขียนรีวิว แนะนำสถานที่ หรือแก้ไขข้อมูลไม่ได้ และจะเห็นเหตุผลที่กรอกไว้นี้</p>
+    <form class="stack-form" action="/admin/users/<%= member.id %>/suspend" method="post">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <div class="field">
+        <label for="reason">เหตุผล (สมาชิกจะเห็นข้อความนี้)</label>
+        <textarea id="reason" name="reason" minlength="3" maxlength="500" rows="3" required></textarea>
+      </div>
+      <div class="field">
+        <label for="days">ระยะเวลา</label>
+        <select id="days" name="days">
+          <% durations.forEach(([value, label]) => { %><option value="<%= value %>"><%= label %></option><% }) %>
+        </select>
+      </div>
+      <button class="button button-danger" type="submit">ระงับสมาชิก</button>
+    </form>
+    <% } %>
+  </section>
+  <% } else { %>
+  <p class="small-note">บัญชีผู้ดูแลระงับไม่ได้</p>
+  <% } %>
+
+  <section class="content-section" aria-labelledby="member-history">
+    <h2 id="member-history">ประวัติการระงับ</h2>
+    <% if (member.events.length === 0) { %>
+    <p class="meta">ยังไม่เคยถูกระงับ</p>
+    <% } else { %>
+    <div class="table-shell">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">เวลา</th>
+            <th scope="col">การดำเนินการ</th>
+            <th scope="col">โดย</th>
+            <th scope="col">เหตุผลหรือหมายเหตุ</th>
+            <th scope="col">ถึง</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% member.events.forEach((event) => { %>
+          <tr>
+            <td data-label="เวลา" class="table-date cell-nowrap"><%= dateTime(event.createdAt) %></td>
+            <td data-label="การดำเนินการ"><%= actionLabels[event.action] %></td>
+            <td data-label="โดย"><%= event.actor.username %></td>
+            <td data-label="เหตุผลหรือหมายเหตุ" class="preserve-lines"><%= event.note || '-' %></td>
+            <td data-label="ถึง"><%= event.action === 'suspended' ? suspensionEnd(event.until) : '-' %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  </section>
+</div>
+<%- include('../partials/foot') %>

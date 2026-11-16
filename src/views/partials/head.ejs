@@ -81,5 +81,9 @@
   </div>
 </header>
 <main id="main-content" class="page-main">
+<% if (currentUser && currentUser.suspension) { %>
+<%# Not a data-flash notice: it must stay on screen on every page while the suspension lasts. %>
+<div class="container"><div class="notice notice-error" role="alert"><%- icon('info') %><p>บัญชีของคุณถูกระงับการใช้งาน (<%= suspensionEnd(currentUser.suspension.until) %>) คุณยังอ่านข้อมูลได้ แต่เขียนรีวิวหรือแก้ไขข้อมูลไม่ได้ เหตุผล: <%= currentUser.suspension.reason %></p></div></div>
+<% } %>
 <% const flash = takeFlash(); %>
 <% if (flash) { %><div class="container"><div class="notice<%= flash.type === 'error' ? ' notice-error' : '' %>" role="status" data-flash><%- icon(flash.type === 'error' ? 'info' : 'check') %><%= flash.text %></div></div><% } %>
