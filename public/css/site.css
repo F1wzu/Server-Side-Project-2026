@@ -1833,29 +1833,41 @@ input[type='checkbox'] {
   background: var(--klong);
   border-color: var(--klong);
 }
+/* Always one row: on a narrow screen it scrolls sideways inside the bar
+   (site.js brings the current tab into view) instead of wrapping into a
+   tall, lumpy pill. */
 .admin-nav {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   margin-bottom: 24px;
   padding: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
   background: var(--klong-deep);
   border-radius: 999px;
 }
+.admin-nav::-webkit-scrollbar {
+  display: none;
+}
 .admin-nav-label {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 8px;
-  padding: 0 14px;
+  padding: 0 12px;
   color: var(--marigold);
   font-weight: 600;
 }
 .admin-nav a {
   display: inline-flex;
+  flex: none;
   align-items: center;
   min-height: 44px;
-  padding: 6px 16px;
+  padding: 6px 12px;
+  white-space: nowrap;
   color: rgb(255 255 255 / 85%);
   border-radius: 999px;
   font-weight: 500;

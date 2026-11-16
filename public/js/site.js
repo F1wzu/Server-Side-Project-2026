@@ -783,3 +783,11 @@ document.querySelectorAll('[data-featured-sortable]').forEach((list) => {
   list.addEventListener('pointerup', finish);
   list.addEventListener('pointercancel', finish);
 });
+
+// The admin menu scrolls sideways when it does not fit; start with the
+// current page's tab in view rather than cut off at the end.
+document.querySelectorAll('.admin-nav').forEach((nav) => {
+  const current = nav.querySelector('[aria-current="page"]');
+  if (!current || nav.scrollWidth <= nav.clientWidth) return;
+  nav.scrollLeft = current.offsetLeft - (nav.clientWidth - current.offsetWidth) / 2;
+});
