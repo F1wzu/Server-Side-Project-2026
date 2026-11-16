@@ -191,13 +191,80 @@
   const map = L.map(canvas, touchOptions).setView([13.7245, 100.765], 13);
   touchHint(canvas);
   tiles().addTo(map);
+  // The district border, the same orange line as the pin picker, so a visitor
+  // sees where Lat Krabang ends. Not clickable: pins stay easy to tap.
+  const district = canvas.dataset.boundary
+    ? L.polygon(JSON.parse(canvas.dataset.boundary), {
+      color: '#f97316',
+      weight: 3,
+      opacity: 0.85,
+      fillColor: '#f97316',
+      fillOpacity: 0.04,
+      interactive: false,
+    }).addTo(map)
+    : null;
+  // Pins close together become one numbered circle that splits as you zoom
+  // in (places in Lat Krabang sit close together along the main roads).
+  // Without the add-on the pins are simply shown one by one.
+  const pinLayer = L.markerClusterGroup
+    ? L.markerClusterGroup({
+      maxClusterRadius: 44,
+      showCoverageOnHover: false,
+      spiderfyOnMaxZoom: true,
+      disableClusteringAtZoom: 18,
+      iconCreateFunction: (cluster) =>
+        L.divIcon({
+          className: '',
+          html: `<span class="map-cluster">${cluster.getChildCount()}</span>`,
+          iconSize: [40, 40],
+        }),
+    })
+    : L.layerGroup();
+  pinLayer.addTo(map);
   const markers = new Map();
   let activeId = null;
+
+  // The list shows 20 places at a time; "show more" adds 20. On a phone the
+  // list sits below the map, and 100 cards made the page about 18 screens long.
+  const PAGE_SIZE = 20;
+  const moreButton = page.querySelector('[data-map-more]');
+  let matches = null; // ids that pass the filters (null until the pins have loaded)
+  let limit = PAGE_SIZE;
+  function renderList() {
+    if (!matches) return;
+    let listed = 0;
+    for (const [id, item] of items) {
+      const match = matches.has(id);
+      item.hidden = !match || listed >= limit;
+      if (match) listed++;
+    }
+    if (moreButton) {
+      moreButton.hidden = matches.size <= limit;
+      moreButton.textContent = `แสดงเพิ่ม (อีก ${matches.size - Math.min(limit, matches.size)} แห่ง)`;
+    }
+    if (countText) countText.textContent = matches.size > limit ? `แสดง ${limit} จาก ${matches.size} สถานที่` : `${matches.size} สถานที่`;
+  }
 
   const kindOf = (id) => items.get(id)?.dataset.kind || 'other';
   function popup(place) {
     const box = document.createElement('div');
     box.className = 'map-popup';
+    // The cover photo; a photo that cannot load becomes the category illustration.
+    const fallback = items.get(String(place.id))?.dataset.fallback;
+    const src = place.imagePath || fallback;
+    if (src) {
+      const image = document.createElement('img');
+      image.className = 'map-popup-image';
+      image.alt = '';
+      image.width = 220;
+      image.height = 132;
+      image.addEventListener('error', () => {
+        if (fallback && image.getAttribute('src') !== fallback) image.src = fallback;
+        else image.remove();
+      });
+      image.src = src;
+      box.append(image);
+    }
     const name = document.createElement('strong');
     name.textContent = place.name;
     const category = document.createElement('span');
@@ -219,30 +286,54 @@
     entry.marker.setIcon(pin(kindOf(id), true));
     const item = items.get(id);
     item?.classList.add('is-active');
+    // A pin tapped on the map may belong to a place past the shown part of the list.
+    if (item?.hidden && matches?.has(id)) {
+      const position = [...items.keys()].filter((key) => matches.has(key)).indexOf(id);
+      limit = Math.ceil((position + 1) / PAGE_SIZE) * PAGE_SIZE;
+      renderList();
+    }
     if (pan) {
-      map.setView(entry.marker.getLatLng(), Math.max(map.getZoom(), 16));
-      entry.marker.openPopup();
+      const open = () => {
+        map.setView(entry.marker.getLatLng(), Math.max(map.getZoom(), 16));
+        entry.marker.openPopup();
+      };
+      // Inside a numbered circle the pin has no place on the map yet: zoom until it does.
+      if (pinLayer.zoomToShowLayer) pinLayer.zoomToShowLayer(entry.marker, open);
+      else open();
+      // On a phone the map is above the list, out of sight: bring it into view.
+      const top = canvas.getBoundingClientRect().top;
+      if (top < 0 || top > window.innerHeight * 0.5) canvas.scrollIntoView({ block: 'start', behavior: 'smooth' });
     } else item?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
-  function applyFilter(filter) {
+  // The category dropdown and the "open now" button combine.
+  // The name search narrows the same list and pins.
+  const categorySelect = page.querySelector('[data-map-category]');
+  const openButton = page.querySelector('[data-map-open]');
+  const searchInput = page.querySelector('[data-map-search]');
+  const countText = page.querySelector('[data-map-count]');
+  function applyFilter() {
+    matches = new Set();
+    const category = categorySelect?.value || '';
+    const openOnly = openButton?.getAttribute('aria-pressed') === 'true';
+    const query = (searchInput?.value || '').trim().toLowerCase();
     let visible = 0;
     for (const [id, { marker, place }] of markers) {
       const show =
-        filter === 'all' ||
-        (filter === 'open' && place.openStatus?.state === 'open') ||
-        filter === 'category-' + place.category.id;
-      if (show) marker.addTo(map);
-      else marker.remove();
-      const item = items.get(id);
-      if (item) item.hidden = !show;
-      if (show) visible++;
+        (!category || String(place.category.id) === category) &&
+        (!openOnly || place.openStatus?.state === 'open') &&
+        (!query || place.name.toLowerCase().includes(query));
+      if (show) {
+        pinLayer.addLayer(marker);
+        matches.add(id);
+        visible++;
+      } else pinLayer.removeLayer(marker);
     }
     empty.hidden = visible > 0;
-    page.querySelectorAll('[data-map-filter]').forEach((chip) => {
-      const on = chip.dataset.mapFilter === filter;
-      chip.classList.toggle('is-active', on);
-      chip.setAttribute('aria-pressed', String(on));
-    });
+    limit = PAGE_SIZE;
+    renderList();
+    // Show every pin that is left, so a filter never leaves the view empty.
+    const shown = [...markers.values()].filter(({ place }) => matches.has(String(place.id))).map(({ marker }) => marker.getLatLng());
+    if (shown.length) map.fitBounds(shown, { paddingTopLeft: [28, 48], paddingBottomRight: [28, 20], maxZoom: 16 });
   }
 
   fetch(page.dataset.endpoint, { headers: { Accept: 'application/json' } })
@@ -256,20 +347,23 @@
           title: place.name,
           alt: place.name,
         })
-          .bindPopup(popup(place))
-          .addTo(map);
+          .bindPopup(popup(place));
+        pinLayer.addLayer(marker);
         marker.on('click', () => activate(id));
         markers.set(id, { marker, place });
       }
+      matches = new Set(markers.keys());
+      renderList();
       if (data.length) {
         // Re-measure first: the map can be created before the page has its
         // final width, and a fit against the old size left pins cut off at
         // the edge. The top padding is larger because a pin stands above its point.
+        // The first view shows the whole district border with every pin
+        // inside it; filters then zoom to the pins that are left.
         map.invalidateSize({ animate: false });
-        map.fitBounds(
-          data.map((place) => [place.latitude, place.longitude]),
-          { paddingTopLeft: [28, 48], paddingBottomRight: [28, 20], maxZoom: 15, animate: false }
-        );
+        const first = L.latLngBounds(data.map((place) => [place.latitude, place.longitude]));
+        if (district) first.extend(district.getBounds());
+        map.fitBounds(first, { paddingTopLeft: [28, 48], paddingBottomRight: [28, 20], maxZoom: 15, animate: false });
       } else {
         status.hidden = false;
         status.textContent = 'ยังไม่มีสถานที่ที่มีพิกัดยืนยันแล้ว';
@@ -283,7 +377,16 @@
   page.querySelectorAll('[data-map-focus]').forEach((button) =>
     button.addEventListener('click', () => activate(button.dataset.mapFocus, { pan: true }))
   );
-  page.querySelectorAll('[data-map-filter]').forEach((chip) =>
-    chip.addEventListener('click', () => applyFilter(chip.dataset.mapFilter))
-  );
+  moreButton?.addEventListener('click', () => {
+    limit += PAGE_SIZE;
+    renderList();
+  });
+  categorySelect?.addEventListener('change', applyFilter);
+  searchInput?.addEventListener('input', applyFilter);
+  openButton?.addEventListener('click', () => {
+    const on = openButton.getAttribute('aria-pressed') !== 'true';
+    openButton.setAttribute('aria-pressed', String(on));
+    openButton.classList.toggle('is-active', on);
+    applyFilter();
+  });
 })();

@@ -34,6 +34,10 @@
   <% if (locals.withMap) { %>
   <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
   <script src="/vendor/leaflet/leaflet.js" defer></script>
+  <% if (locals.withClusters) { %>
+  <link rel="stylesheet" href="/vendor/markercluster/MarkerCluster.css">
+  <script src="/vendor/markercluster/leaflet.markercluster.js" defer></script>
+  <% } %>
   <script src="/js/map.js" defer></script>
   <% } %>
 </head>

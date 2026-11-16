@@ -217,7 +217,7 @@ describe('public API', () => {
   test('the map lists only places that have a pin', async () => {
     const { body } = await api('/places/map');
     expect(body.data.map((place) => place.id).sort()).toEqual([allDay.id, shut.id, overnight.id].sort());
-    expect(Object.keys(body.data[0]).sort()).toEqual(['category', 'id', 'latitude', 'longitude', 'name', 'openStatus']);
+    expect(Object.keys(body.data[0]).sort()).toEqual(['category', 'id', 'imagePath', 'latitude', 'longitude', 'name', 'openStatus']);
   });
 
   test('random returns one published place, and 404 when nothing matches', async () => {
@@ -290,8 +290,35 @@ describe('map page', () => {
     expect(res.text).not.toContain('ง คะแนนสูง'); // no pin
   });
 
+  test('filters are one category dropdown with counts plus an "open now" button', async () => {
+    const res = await request(app).get('/map');
+    expect(res.text).toContain('<select id="map-category" data-map-category>');
+    expect(res.text).toContain('<option value="">ทุกหมวดหมู่ (3)</option>');
+    expect(res.text).toMatch(/<option value="\d+">[^<]+ \(\d+\)<\/option>/);
+    expect(res.text).toContain('data-map-open aria-pressed="false"');
+    expect(res.text).not.toContain('data-map-filter');
+  });
+
+  test('each list card is a "show on map" button with a separate detail link, and the list has a name search', async () => {
+    const res = await request(app).get('/map');
+    expect(res.text).toMatch(/<button class="map-item-focus" type="button" data-map-focus="\d+"[^>]*>[\s\S]*?map-item-name[\s\S]*?<\/button>/);
+    expect(res.text).toMatch(/<a class="map-item-link text-link" href="\/places\/\d+"/);
+    expect(res.text).toContain('data-map-search');
+    expect(res.text).toContain('<p class="meta map-count" data-map-count aria-live="polite">3 สถานที่</p>');
+  });
+
+  test('only the map page loads the pin-grouping add-on, and it has a "show more" button for its list', async () => {
+    const mapPage = await request(app).get('/map');
+    expect(mapPage.text).toContain('<script src="/vendor/markercluster/leaflet.markercluster.js" defer></script>');
+    expect(mapPage.text).toContain('<link rel="stylesheet" href="/vendor/markercluster/MarkerCluster.css">');
+    expect(mapPage.text).toMatch(/data-map-more hidden>แสดงเพิ่ม<\/button>/);
+    const placePage = await request(app).get(`/places/${allDay.id}`);
+    expect(placePage.text).toContain('/vendor/leaflet/leaflet.js');
+    expect(placePage.text).not.toContain('markercluster');
+  });
+
   test('the map library and script are served', async () => {
-    for (const path of ['/vendor/leaflet/leaflet.js', '/vendor/leaflet/leaflet.css', '/js/map.js']) {
+    for (const path of ['/vendor/leaflet/leaflet.js', '/vendor/leaflet/leaflet.css', '/vendor/markercluster/leaflet.markercluster.js', '/vendor/markercluster/MarkerCluster.css', '/js/map.js']) {
       expect((await request(app).get(path)).status).toBe(200);
     }
   });

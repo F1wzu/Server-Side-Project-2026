@@ -61,6 +61,8 @@ function createApp() {
   app.use('/fonts/display', express.static(packageFolder('@fontsource/chonburi', 'files'), fonts));
   app.use('/fonts/text', express.static(packageFolder('@fontsource/ibm-plex-sans-thai-looped', 'files'), fonts));
   app.use('/vendor/leaflet', express.static(packageFolder('leaflet', 'dist'), fonts)); // the map library
+  // Groups pins that sit close together into one numbered circle (map page).
+  app.use('/vendor/markercluster', express.static(packageFolder('leaflet.markercluster', 'dist'), fonts));
   // Uploaded photos, when they are stored on this computer (STORAGE_DRIVER=local).
   // Names are random and never reused, so they can be cached for a long time.
   if (UPLOAD_DIR) app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: env.isProduction ? '30d' : 0, fallthrough: false }));

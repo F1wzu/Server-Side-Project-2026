@@ -210,8 +210,9 @@ async function forMap(now = new Date()) {
     select: publicFields,
   });
   return rows.map((row) => {
-    const { id, name, latitude, longitude, category, openStatus: status } = present(row, now);
-    return { id, name, latitude, longitude, category, openStatus: status };
+    const { id, name, latitude, longitude, imagePath, category, openStatus: status } = present(row, now);
+    // The cover goes into the pin's popup.
+    return { id, name, latitude, longitude, imagePath, category, openStatus: status };
   });
 }
 

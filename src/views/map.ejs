@@ -7,32 +7,53 @@
   </div>
 
   <div class="map-layout" data-map-page data-endpoint="/api/v1/places/map">
-    <div class="map-canvas" data-map-canvas role="region" aria-label="แผนที่สถานที่ในลาดกระบัง">
+    <div class="map-canvas" data-map-canvas data-boundary="<%= districtBoundaryJson %>" role="region" aria-label="แผนที่สถานที่ในลาดกระบัง">
       <p class="map-status" data-map-status>กำลังโหลดแผนที่…</p>
     </div>
     <div class="map-side">
+      <%# One dropdown for the category (it stays one line however many
+          categories an admin adds) plus an on/off "open now"; both combine. %>
+      <%
+        const mapCategories = [...places.reduce((found, place) => {
+          const entry = found.get(place.category.id) || { category: place.category, count: 0 };
+          entry.count += 1;
+          return found.set(place.category.id, entry);
+        }, new Map()).values()].sort((a, b) => a.category.name.localeCompare(b.category.name, 'th'));
+      %>
       <div class="map-filters" role="group" aria-label="กรองสถานที่บนแผนที่">
-        <button class="chip is-active" type="button" data-map-filter="all" aria-pressed="true">ทั้งหมด</button>
-        <button class="chip" type="button" data-map-filter="open" aria-pressed="false"><span class="dot dot-open" aria-hidden="true"></span>เปิดอยู่</button>
-        <% [...new Map(places.map((place) => [place.category.id, place.category])).values()].forEach((category) => { %>
-        <button class="chip" type="button" data-map-filter="category-<%= category.id %>" aria-pressed="false"><%= category.name %></button>
-        <% }) %>
+        <label class="sr-only" for="map-category">หมวดหมู่</label>
+        <select id="map-category" data-map-category>
+          <option value="">ทุกหมวดหมู่ (<%= places.length %>)</option>
+          <% mapCategories.forEach(({ category, count }) => { %>
+          <option value="<%= category.id %>"><%= category.name %> (<%= count %>)</option>
+          <% }) %>
+        </select>
+        <button class="chip" type="button" data-map-open aria-pressed="false"><span class="dot dot-open" aria-hidden="true"></span>เปิดอยู่</button>
+      </div>
+      <%# A long list is easier to search than to scroll. %>
+      <div class="map-search">
+        <label class="sr-only" for="map-search">ค้นหาชื่อสถานที่บนแผนที่</label>
+        <input id="map-search" type="search" data-map-search placeholder="ค้นหาชื่อสถานที่" autocomplete="off">
       </div>
       <h2 class="sr-only">รายการสถานที่บนแผนที่</h2>
+      <p class="meta map-count" data-map-count aria-live="polite"><%= places.length %> สถานที่</p>
       <ul class="map-list">
         <% places.forEach((place) => { %>
-        <li class="map-item tone-<%= categoryKind(place.category) %>" data-map-item="<%= place.id %>" data-kind="<%= categoryKind(place.category) %>" data-category="<%= place.category.id %>" data-open="<%= place.openStatus.state === 'open' %>">
+        <%# The whole card shows the place's pin; the small link opens its page. %>
+        <li class="map-item tone-<%= categoryKind(place.category) %>" data-map-item="<%= place.id %>" data-kind="<%= categoryKind(place.category) %>" data-fallback="<%= photoFallback(place.category) %>">
           <button class="map-item-focus" type="button" data-map-focus="<%= place.id %>" aria-label="แสดง <%= place.name %> บนแผนที่">
             <span class="category-icon"><%- icon(categoryIcon(place.category), 20) %></span>
+            <span class="map-item-text">
+              <span class="map-item-name"><%= place.name %></span>
+              <span class="meta"><%= place.category.name %></span>
+              <%- include('partials/open-badge', { status: place.openStatus }) %>
+            </span>
           </button>
-          <div>
-            <a class="map-item-name" href="/places/<%= place.id %>"><%= place.name %></a>
-            <span class="meta"><%= place.category.name %></span>
-            <%- include('partials/open-badge', { status: place.openStatus }) %>
-          </div>
+          <a class="map-item-link text-link" href="/places/<%= place.id %>" aria-label="ดูรายละเอียด <%= place.name %>">ดูรายละเอียด</a>
         </li>
         <% }) %>
       </ul>
+      <button class="button button-outline button-block map-more" type="button" data-map-more hidden>แสดงเพิ่ม</button>
       <p class="map-empty" data-map-empty hidden>ไม่มีสถานที่ที่ตรงกับตัวกรองนี้</p>
     </div>
   </div>

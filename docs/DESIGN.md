@@ -413,7 +413,7 @@ Index: `(status, created_at)` สมาชิกหนึ่งคนมีร�
 | POST | `/auth/login` | เข้าสู่ระบบ เริ่ม session ใหม่ | 200 |
 | GET | `/categories` | หมวดหมู่พร้อมจำนวนสถานที่ | 200 |
 | GET | `/places` | ค้นหาและกรองสถานที่ที่เผยแพร่ | 200 |
-| GET | `/places/map` | สถานที่ที่มีพิกัด | 200 |
+| GET | `/places/map` | สถานที่ที่มีพิกัด (`id`, `name`, `latitude`, `longitude`, `imagePath` รูปหลักที่แสดงใน popup ของหมุด, `category`, `openStatus`) | 200 |
 | GET | `/places/random` | สุ่มสถานที่หนึ่งแห่ง (กรองด้วยคำค้น `q` หมวดหมู่ / เปิดอยู่ตอนนี้ได้) | 200 |
 | GET | `/places/:id` | รายละเอียดสถานที่และเวลาเปิดปิด พร้อม `gallery` (path ของทุกรูป รูปหลักก่อน) รายการรีวิวเรียงและกรองได้ด้วย `reviewSort` และ `reviewRating` | 200 |
 | GET | `/places/:id/related` | สถานที่ในหมวดหมู่เดียวกัน | 200 |
