@@ -83,7 +83,6 @@ function formValues(body, place) {
     state: body[`state${weekday}`] || 'unknown',
     opensAt: body[`opens${weekday}`] || '',
     closesAt: body[`closes${weekday}`] || '',
-    closesNextDay: body[`next${weekday}`] === 'on',
   }));
   return { ...body, hours, imagePath: place?.imagePath };
 }

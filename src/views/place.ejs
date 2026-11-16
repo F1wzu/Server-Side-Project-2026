@@ -209,7 +209,7 @@
           <% place.hours.forEach((day) => { %>
           <div class="<%= day.weekday === todayWeekday ? 'is-today' : '' %>">
             <dt><%= weekdayLabels[day.weekday] %><% if (day.weekday === todayWeekday) { %> <span class="today-tag">วันนี้</span><% } %></dt>
-            <dd class="<%= day.state %>"><%= hoursLabel(day) %><% if (day.closesNextDay) { %> <small>(วันถัดไป)</small><% } %></dd>
+            <dd class="<%= day.state %>"><%= hoursLabel(day) %></dd>
           </div>
           <% }) %>
         </dl>

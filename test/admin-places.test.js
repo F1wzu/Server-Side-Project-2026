@@ -224,7 +224,7 @@ describe('the list', () => {
 describe('adding a place', () => {
   test('page form with a photo: 303 to the edit page, one published place, seven hours rows, createdById set', async () => {
     const before = listUploads();
-    const res = await formMultipart(admin, '/admin/places', validFields({ state1: 'open', opens1: '09:00', closes1: '17:30', state5: 'open', opens5: '18:00', closes5: '02:00', next5: 'on' }), photo());
+    const res = await formMultipart(admin, '/admin/places', validFields({ state1: 'open', opens1: '09:00', closes1: '17:30', state5: 'open', opens5: '18:00', closes5: '02:00' }), photo());
     expect(res.status).toBe(303);
     expect(res.headers.location).toBe(`/admin/places/${(await prisma.place.findFirst()).id}/edit`);
 
@@ -387,7 +387,7 @@ describe('editing a place', () => {
   test('invalid hours leave the old place and hours untouched (one transaction)', async () => {
     const place = await seeded();
     const hours = closedWeek();
-    hours[2] = { weekday: 2, state: 'open', opensAt: '20:00', closesAt: '10:00', closesNextDay: false };
+    hours[2] = { weekday: 2, state: 'open', opensAt: '20:00', closesAt: '' };
     const res = await admin.patch(`/api/v1/admin/places/${place.id}`, validJson({ name: 'ไม่ควรบันทึก', hours }));
     expect(res.status).toBe(400);
     const after = await prisma.place.findUnique({ where: { id: place.id }, include: { hours: true } });

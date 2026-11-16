@@ -55,18 +55,29 @@ document.querySelectorAll('img').forEach((img) => {
   img.addEventListener('error', () => replaceBroken(img));
 });
 
-// Opening-hours editor: time inputs are only active on days marked "open".
+// Opening-hours editor: time inputs are only active on days marked "open",
+// and a note says plainly when the times mean midnight, past midnight or
+// 24 hours (the same wording as hoursNote in partials/place-fields.ejs).
 document.querySelectorAll('[data-hours-day]').forEach((row) => {
   const state = row.querySelector('[data-hours-state]');
+  const [opens, closes] = row.querySelectorAll('[data-hours-time]');
+  const note = row.querySelector('[data-hours-note]');
+  const noteText = () => {
+    if (state.value !== 'open' || !opens.value || !closes.value) return '';
+    if (opens.value === closes.value) return 'เปิด 24 ชั่วโมง';
+    if (closes.value === '00:00') return 'ปิดตอนเที่ยงคืน';
+    return closes.value < opens.value ? 'ปิดหลังเที่ยงคืน' : '';
+  };
   const update = () => {
     const open = state.value === 'open';
-    row.querySelectorAll('[data-hours-time]').forEach((input) => {
+    [opens, closes].forEach((input) => {
       input.disabled = !open;
       input.required = open;
     });
-    row.querySelector('[data-hours-next]').disabled = !open;
+    if (note && note.textContent !== noteText()) note.textContent = noteText();
   };
-  state.addEventListener('change', update);
+  [state, opens, closes].forEach((control) => control.addEventListener('change', update));
+  [opens, closes].forEach((input) => input.addEventListener('input', update));
   update();
 });
 
@@ -178,10 +189,237 @@ document.querySelectorAll('[data-gallery]').forEach((gallery) => {
   });
 });
 
+// Photo picker on the submission form. The member can pick photos in several
+// rounds (each round adds to the list instead of replacing it), remove any
+// photo, and change the order; the first one is the cover. On the edit form
+// the photos already attached join the same list, so they can be kept,
+// removed or moved too. The chosen new files are put back into the file
+// input in order, and a hidden `photoOrder` field tells the server how the
+// kept and new photos are arranged. Without JavaScript (or without
+// DataTransfer, needed to set input.files) the plain file input stays.
+document.querySelectorAll('[data-photo-picker]').forEach((picker) => {
+  const input = picker.closest('.field')?.querySelector('input[type="file"]');
+  if (!input || typeof DataTransfer !== 'function') return;
+  try {
+    new DataTransfer();
+  } catch {
+    return;
+  }
+  input.dataset.pickerReady = '';
+  const max = Number(picker.dataset.max) || 5;
+  const MAX_BYTES = 5 * 1024 * 1024;
+  const TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+  // Each item: { kind: 'keep', index, src } or { kind: 'new', file, src }.
+  const items = [...picker.querySelectorAll('[data-current-photos] li[data-src]')].map((li, index) => ({ kind: 'keep', index, src: li.dataset.src }));
+  picker.querySelector('[data-current-photos]')?.remove();
+  picker.querySelector('[data-nojs-note]')?.remove();
+
+  const order = document.createElement('input');
+  order.type = 'hidden';
+  order.name = 'photoOrder';
+  input.form?.append(order);
+
+  // The real input stays in the form (it carries the files) but is hidden;
+  // the "add" tile opens it.
+  // (hidden, not visually-hidden: a hidden input is still sent with the form
+  // and click() still opens the file dialog.)
+  input.hidden = true;
+
+  const list = document.createElement('ol');
+  list.className = 'photo-picker-list';
+  list.setAttribute('aria-label', 'รูปที่จะแนบ เรียงตามลำดับ รูปแรกเป็นรูปหลัก');
+  const message = document.createElement('p');
+  message.className = 'photo-picker-message';
+  message.hidden = true;
+  picker.append(list, message);
+
+  const say = (text, isError = false) => {
+    message.textContent = text;
+    message.hidden = !text;
+    message.classList.toggle('is-error', isError);
+    if (text) announce(text);
+  };
+
+  const button = (label, text, onClick, className) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'photo-picker-btn ' + className;
+    b.setAttribute('aria-label', label);
+    b.title = label;
+    b.textContent = text;
+    b.addEventListener('click', onClick);
+    return b;
+  };
+
+  // Puts the new files back into the input in their chosen order and writes
+  // photoOrder ("keep:0,new:1,...").
+  const sync = () => {
+    const transfer = new DataTransfer();
+    const tokens = items.map((item) => {
+      if (item.kind === 'keep') return `keep:${item.index}`;
+      transfer.items.add(item.file);
+      return `new:${transfer.files.length - 1}`;
+    });
+    input.files = transfer.files;
+    order.value = tokens.join(',');
+  };
+
+  const addTile = document.createElement('button');
+  addTile.type = 'button';
+  addTile.className = 'photo-picker-add';
+  addTile.innerHTML = '<span class="photo-picker-add-plus" aria-hidden="true">+</span><span>เพิ่มรูป</span><small class="photo-picker-add-count"></small>';
+  addTile.addEventListener('click', () => input.click());
+  // The field's label and hint now belong to the add button, the control the member uses.
+  addTile.id = input.id + '-add';
+  const label = input.id && document.querySelector(`label[for="${input.id}"]`);
+  if (label) label.htmlFor = addTile.id;
+  if (input.getAttribute('aria-describedby')) addTile.setAttribute('aria-describedby', input.getAttribute('aria-describedby'));
+
+  let dragFrom = null;
+
+  const move = (from, to, focusSelector) => {
+    if (to < 0 || to >= items.length || from === to) return;
+    const [item] = items.splice(from, 1);
+    items.splice(to, 0, item);
+    render();
+    const target = list.children[to]?.querySelector(focusSelector);
+    (target && !target.disabled ? target : list.children[to]?.querySelector('.is-remove'))?.focus();
+    announce(to === 0 ? 'ตั้งเป็นรูปหลักแล้ว' : `ย้ายไปเป็นรูปที่ ${to + 1}`);
+  };
+
+  function render() {
+    list.replaceChildren();
+    items.forEach((item, index) => {
+      const li = document.createElement('li');
+      li.className = 'photo-picker-item';
+      li.draggable = true;
+      const img = document.createElement('img');
+      if (item.src) img.src = item.src;
+      img.alt = index === 0 ? 'รูปหลัก' : `รูปที่ ${index + 1}`;
+      // Two plain choices per photo: remove it, or make it the cover. The
+      // order of the other photos matters little, so it has no buttons of its
+      // own (a mouse can still drag tiles to reorder them).
+      li.append(img);
+      if (index === 0) {
+        const tag = document.createElement('span');
+        tag.className = 'photo-picker-tag is-cover';
+        tag.textContent = 'รูปหลัก';
+        li.append(tag);
+      } else {
+        const cover = button(`ตั้งรูปที่ ${index + 1} เป็นรูปหลัก`, 'ตั้งเป็นรูปหลัก', () => move(index, 0, '.is-remove'), 'is-cover-btn');
+        li.append(cover);
+      }
+      const remove = button(`ลบรูปที่ ${index + 1}`, '×', () => {
+        items.splice(index, 1);
+        render();
+        say('');
+        announce('ลบรูปแล้ว');
+        (list.children[Math.min(index, items.length - 1)]?.querySelector('.is-remove') || addTile).focus();
+      }, 'is-remove');
+      li.append(remove);
+
+      // Drag to reorder with a mouse; the arrow buttons do the same on touch and keyboard.
+      li.addEventListener('dragstart', (event) => {
+        dragFrom = index;
+        li.classList.add('is-dragging');
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', String(index));
+      });
+      li.addEventListener('dragend', () => {
+        li.classList.remove('is-dragging');
+        dragFrom = null;
+      });
+      li.addEventListener('dragover', (event) => {
+        if (dragFrom === null) return;
+        event.preventDefault();
+        li.classList.add('is-drop-target');
+      });
+      li.addEventListener('dragleave', () => li.classList.remove('is-drop-target'));
+      li.addEventListener('drop', (event) => {
+        if (dragFrom === null) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const from = dragFrom;
+        dragFrom = null;
+        move(from, index, '.is-remove');
+      });
+      list.append(li);
+    });
+
+    const left = max - items.length;
+    if (left > 0) {
+      const li = document.createElement('li');
+      li.className = 'photo-picker-add-item';
+      addTile.querySelector('.photo-picker-add-count').textContent = items.length ? `เพิ่มได้อีก ${left} รูป` : `สูงสุด ${max} รูป`;
+      li.append(addTile);
+      list.append(li);
+    }
+    sync();
+  }
+
+  const addFiles = (files) => {
+    const problems = [];
+    for (const file of files) {
+      if (items.length >= max) {
+        problems.push(`แนบรูปได้ไม่เกิน ${max} รูป รูปที่เกินไม่ได้ถูกเพิ่ม`);
+        break;
+      }
+      if (!TYPES.includes(file.type)) {
+        problems.push(`${file.name}: รองรับเฉพาะ JPEG PNG หรือ WebP`);
+        continue;
+      }
+      if (file.size > MAX_BYTES) {
+        problems.push(`${file.name}: ใหญ่เกิน 5 MB`);
+        continue;
+      }
+      const item = { kind: 'new', file, src: '' };
+      items.push(item);
+      // data: URLs, which the page's image policy already allows.
+      const reader = new FileReader();
+      reader.addEventListener('load', () => {
+        item.src = reader.result;
+        const img = list.children[items.indexOf(item)]?.querySelector('img');
+        if (img) img.src = item.src;
+      });
+      reader.readAsDataURL(file);
+    }
+    render();
+    say(problems.join(' · '), problems.length > 0);
+    if (!problems.length) announce(`มีรูปทั้งหมด ${items.length} รูป`);
+  };
+
+  // Picking again ADDS to the list. The input's own file list is rebuilt
+  // from `items` by sync(), so nothing picked earlier is lost.
+  input.addEventListener('change', () => {
+    const picked = [...input.files];
+    sync();
+    if (picked.length) addFiles(picked);
+  });
+
+  // Files dropped onto the picker from the computer are added too.
+  picker.addEventListener('dragover', (event) => {
+    if (dragFrom !== null || !event.dataTransfer?.types.includes('Files')) return;
+    event.preventDefault();
+    picker.classList.add('is-file-over');
+  });
+  picker.addEventListener('dragleave', (event) => {
+    if (!picker.contains(event.relatedTarget)) picker.classList.remove('is-file-over');
+  });
+  picker.addEventListener('drop', (event) => {
+    picker.classList.remove('is-file-over');
+    if (dragFrom !== null || !event.dataTransfer?.files.length) return;
+    event.preventDefault();
+    addFiles([...event.dataTransfer.files]);
+  });
+
+  render();
+});
+
 // A file input that takes several photos warns as soon as too many are
 // picked, instead of after a slow upload. The server still enforces the
 // limit; this only saves the member a wasted upload.
-document.querySelectorAll('input[type="file"][data-max-files]').forEach((input) => {
+document.querySelectorAll('input[type="file"][data-max-files]:not([data-picker-ready])').forEach((input) => {
   input.addEventListener('change', () => {
     const max = Number(input.dataset.maxFiles);
     input.setCustomValidity(input.files.length > max ? `แนบรูปได้ไม่เกิน ${max} รูป` : '');
@@ -272,7 +510,7 @@ document.querySelectorAll('textarea[maxlength]').forEach((area) => {
 // so a member can see what they chose (and which one comes first and becomes
 // the cover) without waiting for the upload. Read as data: URLs, which the
 // page's image policy already allows; nothing leaves the browser here.
-document.querySelectorAll('input[type="file"][accept*="image"]').forEach((input) => {
+document.querySelectorAll('input[type="file"][accept*="image"]:not([data-picker-ready])').forEach((input) => {
   const list = document.createElement('ul');
   list.className = 'photo-preview';
   list.hidden = true;

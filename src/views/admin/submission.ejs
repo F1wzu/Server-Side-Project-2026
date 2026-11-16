@@ -1,7 +1,6 @@
 <%- include('../partials/head') %>
 <%
   const lastNote = [...submission.events].reverse().find((event) => event.action === 'returned' || event.action === 'rejected');
-  const hoursText = (day) => (day.state === 'open' ? day.opensAt + '–' + day.closesAt : day.state === 'closed' ? 'ปิด' : 'ยังไม่ระบุ');
   const pending = submission.status === 'pending';
 %>
 <div class="container page-content">
@@ -66,7 +65,7 @@
           <dd>
             <dl class="opening-hours">
               <% submission.hours.forEach((day) => { %>
-              <div><dt><%= weekdayLabels[day.weekday] %></dt><dd class="<%= day.state %>"><%= hoursText(day) %><% if (day.closesNextDay) { %> <small>(วันถัดไป)</small><% } %></dd></div>
+              <div><dt><%= weekdayLabels[day.weekday] %></dt><dd class="<%= day.state %>"><%= hoursLabel(day) %></dd></div>
               <% }) %>
             </dl>
           </dd>

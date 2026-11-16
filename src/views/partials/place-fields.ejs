@@ -12,6 +12,13 @@
   const fieldError = (name) => errors[name];
   const invalid = (name) => (errors[name] ? 'aria-invalid="true" aria-describedby="' + name + '-error"' : '');
   const hoursError = Object.keys(errors).find((key) => key.startsWith('hours'));
+  // The note beside a day's times; public/js/site.js writes the same text as the times change.
+  const hoursNote = (day) => {
+    if (day.state !== 'open' || !day.opensAt || !day.closesAt) return '';
+    if (day.opensAt === day.closesAt) return 'เปิด 24 ชั่วโมง';
+    if (day.closesAt === '00:00') return 'ปิดตอนเที่ยงคืน';
+    return day.closesAt < day.opensAt ? 'ปิดหลังเที่ยงคืน' : '';
+  };
 %>
 <div class="field">
   <label for="name">ชื่อสถานที่ <span class="required">*</span></label>
@@ -81,13 +88,19 @@
 <% } else { %>
 <div class="field">
   <label for="photo"><%= multiPhoto ? 'รูปภาพ (ถ้ามี สูงสุด 5 รูป)' : 'รูปภาพ (ถ้ามี)' %></label>
-  <% if (multiPhoto && currentPhotos.length) { %>
-  <ul class="photo-grid" aria-label="รูปที่แนบไว้ในคำขอนี้">
-    <% currentPhotos.forEach((src, index) => { %>
-    <li><img src="<%= src %>" alt="<%= index === 0 ? 'รูปหลักที่แนบไว้' : 'รูปที่ ' + (index + 1) + ' ที่แนบไว้' %>" width="120" height="90" loading="lazy"></li>
-    <% }) %>
-  </ul>
-  <small>ถ้าเลือกรูปใหม่ รูปเดิมทั้งหมดจะถูกแทนที่</small>
+  <% if (multiPhoto) { %>
+  <%# site.js turns this into a picker (add more, remove, reorder). Without
+      JavaScript the plain file input below still works: new photos replace the old. %>
+  <div class="photo-picker" data-photo-picker data-max="5">
+    <% if (currentPhotos.length) { %>
+    <ul class="photo-grid" data-current-photos aria-label="รูปที่แนบไว้ในคำขอนี้">
+      <% currentPhotos.forEach((src, index) => { %>
+      <li data-src="<%= src %>"><img src="<%= src %>" alt="<%= index === 0 ? 'รูปหลักที่แนบไว้' : 'รูปที่ ' + (index + 1) + ' ที่แนบไว้' %>" width="120" height="90" loading="lazy"></li>
+      <% }) %>
+    </ul>
+    <small data-nojs-note>ถ้าเลือกรูปใหม่ รูปเดิมทั้งหมดจะถูกแทนที่</small>
+    <% } %>
+  </div>
   <% } else if (values.imagePath) { %>
   <img class="current-photo" src="<%= values.imagePath %>" alt="รูปที่แนบไว้ในคำขอนี้" width="320">
   <small>เลือกรูปใหม่เพื่อแทนที่รูปเดิม หรือเว้นว่างเพื่อใช้รูปเดิม</small>
@@ -104,7 +117,13 @@
 
 <fieldset class="field-group">
   <legend>เวลาเปิดบริการ</legend>
-  <p class="meta">เวลาประเทศไทย เลือก "ยังไม่ทราบ" เมื่อยังไม่ได้ยืนยัน เวลาที่ระบุจะใช้กับตัวกรอง "เปิดอยู่ตอนนี้"</p>
+  <p class="meta">เวลาประเทศไทย แบบ 24 ชั่วโมง เลือก "ยังไม่ทราบ" เมื่อยังไม่ได้ยืนยัน</p>
+  <ul class="hours-tips">
+    <li>ปิดตอนเที่ยงคืน ใส่เวลาปิด <strong>00:00</strong> เช่น 08:00 – 00:00</li>
+    <li>ปิดหลังเที่ยงคืน ใส่เวลาจริงได้เลย เช่น 18:00 – 02:00</li>
+    <li>เปิด 24 ชั่วโมง ใส่ 00:00 – 00:00</li>
+    <li>ถ้าช่องเวลาแสดงแบบ AM/PM: เที่ยงคืนคือ 12:00 AM เที่ยงวันคือ 12:00 PM</li>
+  </ul>
   <% if (hoursError) { %><p class="field-error"><%= errors[hoursError] %></p><% } %>
   <div class="hours-editor">
     <% weekdayLabels.forEach((label, weekday) => { const day = values.hours?.[weekday] || { state: 'unknown' }; %>
@@ -123,7 +142,7 @@
         <span aria-hidden="true">–</span>
         <input type="time" name="closes<%= weekday %>" value="<%= day.closesAt || '' %>" aria-label="เวลาปิดวัน<%= label %>" data-hours-time>
       </span>
-      <label class="checkbox-label"><input type="checkbox" name="next<%= weekday %>" <%= day.closesNextDay ? 'checked' : '' %> data-hours-next>ปิดวันถัดไป</label>
+      <small class="hours-note" data-hours-note aria-live="polite"><%= hoursNote(day) %></small>
     </div>
     <% }) %>
   </div>

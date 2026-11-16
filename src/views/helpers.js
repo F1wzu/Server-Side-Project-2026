@@ -76,9 +76,18 @@ const dateTime = (value) =>
 const rating = (value) => (value === null || value === undefined ? 'ยังไม่มีคะแนน' : Number(value).toFixed(2));
 
 // One row of the weekly hours table. Unknown hours are shown as unknown, never as closed.
+// Midnight reads better as a word: "08:00–เที่ยงคืน" instead of "08:00–00:00".
+const clockLabel = (hhmm) => (hhmm === '00:00' ? 'เที่ยงคืน' : hhmm);
+
+// One day of opening hours as shown to people. A closing time at or before
+// the opening time means the place closes after midnight (see
+// validation/submission.js), which is spelled out instead of left to guess.
 const hoursLabel = (day) => {
-  if (day.state === 'open') return `${day.opensAt}–${day.closesAt}`;
-  return day.state === 'closed' ? 'ปิด' : 'ยังไม่ระบุ';
+  if (day.state !== 'open') return day.state === 'closed' ? 'ปิด' : 'ยังไม่ระบุ';
+  if (day.opensAt === day.closesAt) return 'เปิด 24 ชั่วโมง';
+  if (day.closesAt === '00:00') return `${clockLabel(day.opensAt)}–เที่ยงคืน`;
+  const range = `${clockLabel(day.opensAt)}–${day.closesAt}`;
+  return day.closesAt < day.opensAt ? `${range} (เลยเที่ยงคืน)` : range;
 };
 
 // "350 ม." or "1.2 กม."
@@ -87,7 +96,7 @@ const distanceLabel = (km) => (km < 1 ? `${Math.max(50, Math.round((km * 1000) /
 // "เปิดอยู่ ถึง 21:00" / "ปิดอยู่ เปิด 10:00". Unknown hours produce no label at all.
 function openLabel(status) {
   if (!status || status.state === 'unknown') return '';
-  if (status.state === 'open') return 'เปิดอยู่' + (status.closesAt ? ' ถึง ' + status.closesAt : '');
+  if (status.state === 'open') return 'เปิดอยู่' + (status.closesAt ? ' ถึง ' + clockLabel(status.closesAt) : '');
   return 'ปิดอยู่' + (status.opensAt ? ' เปิด ' + status.opensAt : '');
 }
 

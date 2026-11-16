@@ -49,7 +49,8 @@ const day = z
     state: z.enum(['open', 'closed', 'unknown'], { error: 'สถานะวันไม่ถูกต้อง' }),
     opensAt: z.string().nullable().optional(),
     closesAt: z.string().nullable().optional(),
-    closesNextDay: z.boolean().optional().default(false),
+    // Accepted for older clients but not trusted: it is worked out below.
+    closesNextDay: z.unknown().optional(),
   })
   .transform((value, ctx) => {
     if (value.state !== 'open') return { weekday: value.weekday, state: value.state, opensAt: null, closesAt: null, closesNextDay: false };
@@ -57,19 +58,13 @@ const day = z
       ctx.addIssue({ code: 'custom', message: 'วันที่เปิดต้องระบุเวลาเปิดและเวลาปิดแบบ ชั่วโมง:นาที' });
       return z.NEVER;
     }
-    if (!value.closesNextDay && value.closesAt <= value.opensAt) {
-      ctx.addIssue({ code: 'custom', message: 'เวลาปิดต้องหลังเวลาเปิด หรือเลือก "ปิดวันถัดไป"' });
-      return z.NEVER;
-    }
-    // "Next day" only makes sense when the closing time is past midnight;
-    // 10:00–20:00 ticked as next day would mean open for 34 hours. Equal
-    // times (00:00–00:00) mean open around the clock. The database checks
-    // the same rule (place_hours_order_check).
-    if (value.closesNextDay && value.closesAt > value.opensAt) {
-      ctx.addIssue({ code: 'custom', message: 'เลือก "ปิดวันถัดไป" ได้เฉพาะเมื่อเวลาปิดเลยเที่ยงคืน' });
-      return z.NEVER;
-    }
-    return { weekday: value.weekday, state: 'open', opensAt: value.opensAt, closesAt: value.closesAt, closesNextDay: value.closesNextDay };
+    // A closing time at or before the opening time can only mean "after
+    // midnight": 08:00–00:00 closes at midnight, 18:00–02:00 at two in the
+    // morning, and equal times (00:00–00:00) mean open around the clock.
+    // Members no longer tick a "closes next day" box; it follows from the
+    // times, the same rule the database checks (place_hours_order_check).
+    const closesNextDay = value.closesAt <= value.opensAt;
+    return { weekday: value.weekday, state: 'open', opensAt: value.opensAt, closesAt: value.closesAt, closesNextDay };
   });
 
 const hours = z
@@ -77,7 +72,7 @@ const hours = z
   .length(7, 'ต้องระบุเวลาเปิดปิดครบ 7 วัน')
   .refine((days) => days.every((item, index) => item.weekday === index), 'ต้องเรียงวันจากอาทิตย์ (0) ถึงเสาร์ (6)');
 
-// The flat form fields → [{ weekday, state, opensAt, closesAt, closesNextDay }] × 7.
+// The flat form fields → [{ weekday, state, opensAt, closesAt }] × 7.
 function hoursFromForm(body) {
   if (Array.isArray(body?.hours)) return body.hours;
   return Array.from({ length: 7 }, (unused, weekday) => ({
@@ -85,7 +80,6 @@ function hoursFromForm(body) {
     state: body?.[`state${weekday}`] || 'unknown',
     opensAt: body?.[`opens${weekday}`] || null,
     closesAt: body?.[`closes${weekday}`] || null,
-    closesNextDay: ['on', 'true', true].includes(body?.[`next${weekday}`]),
   }));
 }
 

@@ -1008,9 +1008,14 @@ input[type='checkbox'] {
   display: grid;
   gap: 10px;
 }
+/* A fieldset sizes itself to its widest row by default (min-width:
+   min-content), which pushed the hours past the edge of the form. */
+.field-group {
+  min-width: 0;
+}
 .hours-day {
   display: grid;
-  grid-template-columns: 84px minmax(120px, 150px) 1fr auto;
+  grid-template-columns: 84px minmax(110px, 150px) minmax(0, 1fr);
   align-items: center;
   gap: 10px;
 }
@@ -1028,6 +1033,22 @@ input[type='checkbox'] {
 .hours-day input:disabled {
   opacity: 0.45;
 }
+/* Under the times, so the time boxes keep their full width. */
+.hours-note {
+  grid-column: 3;
+  margin-top: -4px;
+  color: var(--klong-deep);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.hours-note:empty { display: none; }
+.hours-tips {
+  margin: 0 0 6px;
+  padding-left: 1.2rem;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+}
+.hours-tips li { margin: 2px 0; }
 .filter-panel {
   display: grid;
   grid-template-columns: minmax(220px, 2fr) repeat(2, minmax(150px, 1fr)) auto auto;
@@ -2130,7 +2151,8 @@ details .stack-form {
     padding-bottom: 10px;
     border-bottom: 1px dashed var(--line);
   }
-  .hours-range {
+  .hours-range,
+  .hours-note {
     grid-column: 1 / -1;
   }
   .category-create,
@@ -2837,4 +2859,136 @@ form[aria-busy='true'] button:not([type]) {
 }
 .photo-preview-tag.is-error {
   background: #a3371a;
+}
+
+/* Photo picker on the submission form (site.js): tiles in order, cover
+   first, each with move / make-cover / remove buttons, and an "add" tile. */
+.photo-picker {
+  border-radius: var(--radius-small);
+  transition: background-color 0.15s;
+}
+.photo-picker.is-file-over {
+  background: var(--klong-tint);
+  outline: 2px dashed var(--klong);
+  outline-offset: 4px;
+}
+.photo-picker-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 12px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.photo-picker-item,
+.photo-picker-add-item {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  min-width: 0;
+}
+.photo-picker-item {
+  overflow: hidden;
+  background: var(--paper-deep);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  cursor: grab;
+}
+.photo-picker-item:first-child {
+  border: 2px solid var(--klong);
+}
+.photo-picker-item.is-dragging { opacity: 0.4; }
+.photo-picker-item.is-drop-target { outline: 3px solid var(--marigold); outline-offset: 2px; }
+.photo-picker-item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+.photo-picker-tag {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  min-width: 24px;
+  padding: 2px 8px;
+  color: var(--ink);
+  background: rgb(255 253 248 / 92%);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+.photo-picker-tag.is-cover {
+  color: #fff;
+  background: var(--klong);
+}
+.photo-picker-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--ink);
+  background: rgb(255 253 248 / 95%);
+  border: 0;
+  border-radius: 999px;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.photo-picker-btn:hover:not(:disabled) { background: #fff; color: var(--klong-deep); }
+.photo-picker-btn:disabled { opacity: 0.35; cursor: default; }
+.photo-picker-btn:focus-visible { outline: 3px solid var(--marigold); outline-offset: 1px; }
+.photo-picker-btn.is-cover-btn {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  width: auto;
+  height: 28px;
+  padding: 0 10px;
+  color: var(--klong-deep);
+  font-size: 0.78rem;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+}
+.photo-picker-btn.is-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  color: #fff;
+  background: rgb(179 66 31 / 90%);
+  font-size: 1.2rem;
+}
+.photo-picker-btn.is-remove:hover { color: #fff; background: var(--brick); }
+.photo-picker-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  color: var(--klong-deep);
+  background: var(--card);
+  border: 2px dashed var(--line-strong);
+  border-radius: var(--radius-small);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.photo-picker-add:hover { background: var(--klong-tint); border-color: var(--klong); }
+.photo-picker-add:focus-visible { outline: 3px solid var(--marigold); outline-offset: 2px; }
+.photo-picker-add-plus { font-size: 1.8rem; line-height: 1; }
+.photo-picker-add-count { color: var(--ink-soft); font-size: 0.8rem; font-weight: 400; }
+.photo-picker-message {
+  margin: 8px 0 0;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+.photo-picker-message.is-error { color: var(--brick); font-weight: 600; }
+@media (max-width: 480px) {
+  .photo-picker-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 }

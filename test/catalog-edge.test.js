@@ -138,7 +138,7 @@ describe('one URL per place', () => {
   });
 });
 
-describe('"closes next day" must really cross midnight', () => {
+describe('"closes next day" follows from the times', () => {
   const body = (day) => ({
     name: 'ร้านทดสอบ',
     categoryId: '1',
@@ -150,19 +150,24 @@ describe('"closes next day" must really cross midnight', () => {
   });
   const hoursIssues = (day) => readSubmission(body(day)).issues.filter((issue) => issue.path[0] === 'hours');
 
-  test('10:00–20:00 with next day is refused with a clear message', () => {
-    const issues = hoursIssues({ opensAt: '10:00', closesAt: '20:00', closesNextDay: true });
-    expect(issues.map((issue) => issue.message)).toContain('เลือก "ปิดวันถัดไป" ได้เฉพาะเมื่อเวลาปิดเลยเที่ยงคืน');
-  });
+  const dayOf = (day) => readSubmission(body(day)).data.hours[5];
 
   test.each([
-    ['18:00', '02:00'],
-    ['00:00', '00:00'],
-  ])('%s–%s with next day is accepted', (opensAt, closesAt) => {
-    expect(hoursIssues({ opensAt, closesAt, closesNextDay: true })).toEqual([]);
+    ['08:00', '00:00', true],
+    ['18:00', '02:00', true],
+    ['00:00', '00:00', true],
+    ['10:00', '20:00', false],
+  ])('%s–%s gives closesNextDay %s without any tick', (opensAt, closesAt, expected) => {
+    expect(hoursIssues({ opensAt, closesAt })).toEqual([]);
+    expect(dayOf({ opensAt, closesAt }).closesNextDay).toBe(expected);
   });
 
-  test('the database refuses the same mistake', async () => {
+  test('a wrong closesNextDay from a client is ignored, not trusted', () => {
+    expect(dayOf({ opensAt: '10:00', closesAt: '20:00', closesNextDay: true }).closesNextDay).toBe(false);
+    expect(dayOf({ opensAt: '18:00', closesAt: '02:00', closesNextDay: false }).closesNextDay).toBe(true);
+  });
+
+  test('the database checks the same rule', async () => {
     const row = (opens, closes) => ({ placeId: first.id, weekday: 5, state: 'open', opensAt: time(opens), closesAt: time(closes), closesNextDay: true });
     await expect(prisma.placeHours.create({ data: row('10:00', '20:00') })).rejects.toThrow(/place_hours_order_check/);
     for (const [opens, closes] of [
@@ -172,6 +177,26 @@ describe('"closes next day" must really cross midnight', () => {
       await prisma.placeHours.create({ data: row(opens, closes) });
       await prisma.placeHours.deleteMany({ where: { placeId: first.id } });
     }
+  });
+});
+
+describe('hours as shown to people', () => {
+  const { hoursLabel, openLabel } = require('../src/views/helpers');
+  const open = (opensAt, closesAt) => ({ state: 'open', opensAt, closesAt });
+
+  test.each([
+    [open('08:30', '19:30'), '08:30–19:30'],
+    [open('08:00', '00:00'), '08:00–เที่ยงคืน'],
+    [open('18:00', '02:00'), '18:00–02:00 (เลยเที่ยงคืน)'],
+    [open('00:00', '00:00'), 'เปิด 24 ชั่วโมง'],
+    [{ state: 'closed' }, 'ปิด'],
+    [{ state: 'unknown' }, 'ยังไม่ระบุ'],
+  ])('%o reads %s', (day, label) => {
+    expect(hoursLabel(day)).toBe(label);
+  });
+
+  test('"open until midnight" says midnight', () => {
+    expect(openLabel({ state: 'open', closesAt: '00:00' })).toBe('เปิดอยู่ ถึง เที่ยงคืน');
   });
 });
 

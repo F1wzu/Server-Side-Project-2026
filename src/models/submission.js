@@ -120,27 +120,54 @@ async function explainNoMatch(tx, userId, id) {
   return new AppError(409, 'STALE_VERSION', 'คำขอนี้ถูกเปลี่ยนแปลงไปแล้ว กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง');
 }
 
-// Edits a returned submission. New photos replace ALL the current ones (cover
-// and extras); with no new photos the current ones stay. Returns the
-// submission and the replaced files that nothing uses any more, so the caller
-// can delete them once this transaction has committed.
-async function updateOwn(userId, id, version, data, newImagePaths = []) {
+const MAX_PHOTOS = 5;
+const photoOrderError = (message) =>
+  new AppError(400, 'VALIDATION_ERROR', 'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง', [{ field: 'photo', message }]);
+
+// The photo list after an edit. Without `order` (old clients, or the form
+// without JavaScript) new photos replace ALL the current ones and no new
+// photos keep them. With `order` (a list of { kind: 'keep' | 'new', index })
+// the member chose exactly which current photos stay, where the new ones go,
+// and the order: the first is the cover. Each new file must appear exactly
+// once, so nothing uploaded is silently dropped.
+function photosAfterEdit(current, newImagePaths, order) {
+  if (!order) return newImagePaths.length ? newImagePaths : current;
+  const seen = new Set();
+  const result = order.map(({ kind, index }) => {
+    const key = `${kind}:${index}`;
+    const path = kind === 'keep' ? current[index] : newImagePaths[index];
+    if (!path || seen.has(key)) throw photoOrderError('ลำดับรูปไม่ถูกต้อง กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง');
+    seen.add(key);
+    return path;
+  });
+  if (newImagePaths.some((unused, index) => !seen.has(`new:${index}`))) {
+    throw photoOrderError('ลำดับรูปไม่ถูกต้อง กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง');
+  }
+  if (result.length > MAX_PHOTOS) throw photoOrderError(`แนบรูปได้ไม่เกิน ${MAX_PHOTOS} รูป`);
+  return result;
+}
+
+// Edits a returned submission; see photosAfterEdit for how the photos change.
+// Returns the submission and the dropped files that nothing uses any more, so
+// the caller can delete them once this transaction has committed.
+async function updateOwn(userId, id, version, data, newImagePaths = [], photoOrder = null) {
   return prisma.$transaction(async (tx) => {
     const name = await categoryName(tx, data.categoryId);
-    const replacing = newImagePaths.length > 0;
     const before = await tx.submission.findUnique({ where: { id }, select: { imagePath: true, extraImagePaths: true } });
+    const current = before ? [before.imagePath, ...before.extraImagePaths].filter(Boolean) : [];
+    const photos = photosAfterEdit(current, newImagePaths, photoOrder);
     const { count } = await tx.submission.updateMany({
       where: { id, userId, status: 'changes_requested', version },
-      data: { ...contentData(data), ...(replacing && { imagePath: newImagePaths[0], extraImagePaths: newImagePaths.slice(1) }), version: { increment: 1 } },
+      data: { ...contentData(data), imagePath: photos[0] ?? null, extraImagePaths: photos.slice(1), version: { increment: 1 } },
     });
     if (count === 0) throw await explainNoMatch(tx, userId, id);
 
     const updated = await tx.submission.findUnique({ where: { id } });
     await tx.submissionEvent.create({ data: { submissionId: id, actorId: userId, action: 'edited', snapshot: snapshotOf(updated, name) } });
-    // Asked after the change, inside the transaction: a replaced file may still
-    // be used elsewhere (e.g. the photo sits in an earlier approved place).
-    const old = replacing ? [before.imagePath, ...before.extraImagePaths].filter(Boolean) : [];
-    return { submission: present(updated), replacedImagePaths: await unusedUploads(tx, old) };
+    // Asked after the change, inside the transaction: a dropped file may still
+    // be used elsewhere (e.g. in this submission's history or an approved place).
+    const dropped = current.filter((path) => !photos.includes(path));
+    return { submission: present(updated), replacedImagePaths: await unusedUploads(tx, dropped) };
   });
 }
 

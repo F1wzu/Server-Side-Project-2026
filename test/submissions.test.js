@@ -148,7 +148,7 @@ describe('creating a submission through the API', () => {
     expect(input.exif.toString('latin1')).toContain('PaiNaiDeeCam');
 
     const before = listUploads();
-    const res = await apiMultipart(alice, 'post', '/api/v1/submissions', validFields({ next5: 'on', state5: 'open', opens5: '18:00', closes5: '02:00' }), jpegPhoto());
+    const res = await apiMultipart(alice, 'post', '/api/v1/submissions', validFields({ state5: 'open', opens5: '18:00', closes5: '02:00' }), jpegPhoto());
     expect(res.status).toBe(201);
     const data = res.body.data;
     expect(data).toMatchObject({ status: 'pending', version: 1, name: 'ร้านกาแฟริมคลอง', categoryId: category.id, latitude: 13.7279, longitude: 100.7782, userId: alice.id });
@@ -306,9 +306,17 @@ describe('validation (API)', () => {
     await expectRefused(validJson({ hours }), 'hours');
   });
 
-  test('closing before opening without "next day" is refused', async () => {
+  test('closing before opening means past midnight, even when the client says otherwise', async () => {
     const hours = closedWeek();
     hours[5] = { weekday: 5, state: 'open', opensAt: '18:00', closesAt: '02:00', closesNextDay: false };
+    const res = await alice.post('/api/v1/submissions', validJson({ hours }));
+    expect(res.status).toBe(201);
+    expect(res.body.data.hours[5].closesNextDay).toBe(true);
+  });
+
+  test('an open day without real times is refused', async () => {
+    const hours = closedWeek();
+    hours[5] = { weekday: 5, state: 'open', opensAt: '25:00', closesAt: '02:00' };
     await expectRefused(validJson({ hours }), 'hours');
   });
 

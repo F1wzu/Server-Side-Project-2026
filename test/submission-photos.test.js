@@ -183,6 +183,91 @@ describe('editing a returned submission', () => {
   });
 });
 
+describe('editing with photoOrder (the photo picker)', () => {
+  async function patchWithOrder(id, version, buffers, photoOrder) {
+    const token = await alice.csrfToken();
+    const req = withFields(alice.agent.patch(`/api/v1/me/submissions/${id}`).set('X-CSRF-Token', token), fields({ version: String(version), photoOrder }));
+    return attachAll(req, buffers);
+  }
+
+  test('keeps, drops and reorders current photos and places new ones', async () => {
+    const created = (await apiPost(jpegs.slice(0, 3))).body.data;
+    const old = [created.imagePath, ...created.extraImagePaths];
+    const returned = await returnToMember(created.id);
+    const res = await patchWithOrder(created.id, returned.version, jpegs.slice(3, 5), 'new:1,keep:2,new:0,keep:0');
+    expect(res.status).toBe(200);
+    const after = [res.body.data.imagePath, ...res.body.data.extraImagePaths];
+    expect(after).toHaveLength(4);
+    expect(after[0]).toMatch(UUID_PATH);
+    expect(old).not.toContain(after[0]);
+    expect(after[1]).toBe(old[2]);
+    expect(old).not.toContain(after[2]);
+    expect(after[3]).toBe(old[0]);
+    // old[1] was dropped but stays: the "submitted" history still shows it.
+    expect(exists(old[1])).toBe(true);
+  });
+
+  test('a dropped photo stays on disk while the history still shows it', async () => {
+    const created = (await apiPost([])).body.data;
+    let returned = await returnToMember(created.id);
+    const first = await patchWithOrder(created.id, returned.version, jpegs.slice(0, 1), 'new:0');
+    const onlyHere = first.body.data.imagePath;
+    expect(onlyHere).toMatch(UUID_PATH);
+    // The "edited" event's snapshot uses it, so it is still kept after dropping.
+    const second = await patchWithOrder(created.id, first.body.data.version, [], '');
+    expect(second.status).toBe(200);
+    expect(second.body.data.imagePath).toBeNull();
+    expect(second.body.data.extraImagePaths).toEqual([]);
+    expect(exists(onlyHere)).toBe(true);
+    returned = await prisma.submission.findUnique({ where: { id: created.id } });
+    expect(returned.imagePath).toBeNull();
+  });
+
+  test('an empty photoOrder removes every photo; without photoOrder nothing changes', async () => {
+    const created = (await apiPost(jpegs.slice(0, 2))).body.data;
+    const returned = await returnToMember(created.id);
+    const res = await patchWithOrder(created.id, returned.version, [], '');
+    expect(res.status).toBe(200);
+    expect(res.body.data.imagePath).toBeNull();
+    expect(res.body.data.extraImagePaths).toEqual([]);
+  });
+
+  test.each([
+    ['a broken token', 'keep:0,oops'],
+    ['an index that does not exist', 'keep:7'],
+    ['a photo listed twice', 'keep:0,keep:0'],
+    ['a new file left out', 'keep:0'],
+  ])('refuses %s with 400 and stores nothing', async (label, order) => {
+    const created = (await apiPost(jpegs.slice(0, 2))).body.data;
+    const returned = await returnToMember(created.id);
+    const before = listUploads();
+    const res = await patchWithOrder(created.id, returned.version, jpegs.slice(2, 3), order);
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    expect(listUploads()).toEqual(before);
+  });
+
+  test('refuses more than 5 photos in total', async () => {
+    const created = (await apiPost(jpegs.slice(0, 4))).body.data;
+    const returned = await returnToMember(created.id);
+    const res = await patchWithOrder(created.id, returned.version, jpegs.slice(4, 6), 'keep:0,keep:1,keep:2,keep:3,new:0,new:1');
+    expect(res.status).toBe(400);
+  });
+
+  test('page form: photoOrder reorders and the error shows on the form', async () => {
+    const created = (await apiPost(jpegs.slice(0, 3))).body.data;
+    const old = [created.imagePath, ...created.extraImagePaths];
+    const returned = await returnToMember(created.id);
+    const ok = await formPost(`/me/submissions/${created.id}`, [], { version: String(returned.version), photoOrder: 'keep:2,keep:1' });
+    expect(ok.status).toBe(303);
+    const row = await prisma.submission.findUnique({ where: { id: created.id } });
+    expect([row.imagePath, ...row.extraImagePaths]).toEqual([old[2], old[1]]);
+    const bad = await formPost(`/me/submissions/${created.id}`, [], { version: String(row.version), photoOrder: 'keep:9' });
+    expect(bad.status).toBe(400);
+    expect(bad.text).toContain('ลำดับรูปไม่ถูกต้อง');
+  });
+});
+
 describe('approval and display', () => {
   test('approval creates place_photos in order; the public gallery is [cover, ...extras]; files are kept', async () => {
     const created = (await apiPost(jpegs.slice(0, 4))).body.data;

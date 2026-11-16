@@ -56,6 +56,26 @@ async function withStoredPhotos(files, work) {
   }
 }
 
+// `photoOrder` from the edit form's photo picker: "keep:0,new:1,keep:2" (a
+// current photo by its place in the list, or a newly uploaded file by its
+// place among the uploads). Missing means "old behaviour" (see the model);
+// an empty string means "no photos at all".
+const ORDER_TOKEN = /^(keep|new):([0-4])$/;
+function readPhotoOrder(body) {
+  const raw = body?.photoOrder;
+  if (raw === undefined || raw === null) return null;
+  const text = Array.isArray(raw) ? raw.join(',') : String(raw);
+  if (text.trim() === '') return [];
+  const tokens = text.split(',').map((token) => token.trim());
+  if (tokens.length > 10 || !tokens.every((token) => ORDER_TOKEN.test(token))) {
+    throw new AppError(400, 'VALIDATION_ERROR', 'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง', [{ field: 'photo', message: 'ลำดับรูปไม่ถูกต้อง กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง' }]);
+  }
+  return tokens.map((token) => {
+    const [, kind, index] = ORDER_TOKEN.exec(token);
+    return { kind, index: Number(index) };
+  });
+}
+
 // Replaced files nothing uses any more; deleted only after the update committed.
 const removeFiles = (paths) => Promise.all(paths.map((path) => storage.remove(path).catch(() => {})));
 
@@ -70,7 +90,6 @@ function formValues(body, submission) {
     state: body[`state${weekday}`] || 'unknown',
     opensAt: body[`opens${weekday}`] || '',
     closesAt: body[`closes${weekday}`] || '',
-    closesNextDay: body[`next${weekday}`] === 'on',
   }));
   return { ...body, hours, imagePath: submission?.imagePath, extraImagePaths: submission?.extraImagePaths ?? [] };
 }
@@ -162,7 +181,7 @@ async function ensureEditable(userId, id) {
   }
 }
 
-// POST /me/submissions/:id (multipart, with an optional new photo)
+// POST /me/submissions/:id (multipart, with optional new photos and photoOrder)
 async function update(req, res) {
   const id = submissionId(req);
   try {
@@ -170,7 +189,8 @@ async function update(req, res) {
     raiseUploadError(req);
     const data = validContent(req.body);
     const { version } = validate(versionSchema, req.body);
-    const { replacedImagePaths } = await withStoredPhotos(req.photoFiles, (imagePaths) => submissionModel.updateOwn(req.user.id, id, version, data, imagePaths));
+    const photoOrder = readPhotoOrder(req.body);
+    const { replacedImagePaths } = await withStoredPhotos(req.photoFiles, (imagePaths) => submissionModel.updateOwn(req.user.id, id, version, data, imagePaths, photoOrder));
     await removeFiles(replacedImagePaths);
     setFlash(req, 'success', 'บันทึกการแก้ไขแล้ว กด "ส่งตรวจสอบอีกครั้ง" เมื่อพร้อม');
     return res.redirect(303, `/me/submissions/${id}`);
@@ -249,7 +269,8 @@ async function apiUpdate(req, res) {
   await ensureEditable(req.user.id, id);
   const data = validContent(req.body);
   const { version } = validate(versionSchema, req.body);
-  const { submission, replacedImagePaths } = await withStoredPhotos(req.photoFiles, (imagePaths) => submissionModel.updateOwn(req.user.id, id, version, data, imagePaths));
+  const photoOrder = readPhotoOrder(req.body);
+  const { submission, replacedImagePaths } = await withStoredPhotos(req.photoFiles, (imagePaths) => submissionModel.updateOwn(req.user.id, id, version, data, imagePaths, photoOrder));
   await removeFiles(replacedImagePaths);
   res.json({ data: submission });
 }
