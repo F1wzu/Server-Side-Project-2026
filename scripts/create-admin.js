@@ -9,7 +9,7 @@
 const readline = require('node:readline');
 const prisma = require('../src/config/db');
 const userModel = require('../src/models/user');
-const { registerSchema } = require('../src/validation/auth');
+const { registerFields } = require('../src/validation/auth');
 
 function ask(question, { hidden = false } = {}) {
   if (!process.stdin.isTTY) {
@@ -33,7 +33,7 @@ function ask(question, { hidden = false } = {}) {
 
 // Checks one field with the same rules as the register form.
 function check(field, value) {
-  const result = registerSchema.shape[field].safeParse(value);
+  const result = registerFields[field].safeParse(value);
   if (!result.success) throw new Error(`${field}: ${result.error.issues[0].message}`);
   return result.data;
 }

@@ -22,7 +22,7 @@
       <% Object.entries(errors).forEach(([field, message]) => { %><li><%= message %></li><% }) %>
     </ul>
     <% } %>
-    <% if (!errors.photo && values && Object.keys(values).length > 1) { %><p class="small-note">ถ้าแนบรูปไว้ กรุณาเลือกรูปอีกครั้ง</p><% } %>
+    <% if (!editing && !errors.photo && values && Object.keys(values).length > 1) { %><p class="small-note">ถ้าแนบรูปไว้ กรุณาเลือกรูปอีกครั้ง</p><% } %>
   </div>
   <% } %>
 
@@ -30,7 +30,8 @@
         action="<%= editing ? '/admin/places/' + place.id : '/admin/places' %>" novalidate>
     <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
 
-    <%- include('../partials/place-fields', { values, errors, categories, bounds, pinRequired: false }) %>
+    <%# When editing, photos are managed on the "รูปภาพ" tab, so the form has no photo field. %>
+    <%- include('../partials/place-fields', { values, errors, categories, bounds, pinRequired: false, photosLink: editing ? '/admin/places/' + place.id + '/photos' : null }) %>
 
     <fieldset class="field-group">
       <legend>การเผยแพร่</legend>

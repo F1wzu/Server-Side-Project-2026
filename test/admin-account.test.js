@@ -40,3 +40,15 @@ describe('createOrPromoteAdmin', () => {
     expect((await member.get('/admin')).status).toBe(200);
   });
 });
+
+// The script checks one field at a time; registerSchema is wrapped and has no
+// `.shape`, which once crashed `npm run admin:create` on every email.
+describe('field rules used by scripts/create-admin.js', () => {
+  const { registerFields } = require('../src/validation/auth');
+  test('email, username and password each have a rule', () => {
+    expect(registerFields.email.safeParse(' Admin@Example.com ').data).toBe('admin@example.com');
+    expect(registerFields.email.safeParse('nope').success).toBe(false);
+    expect(registerFields.username.safeParse('ผู้ดูแล').success).toBe(true);
+    expect(registerFields.password.safeParse('short').success).toBe(false);
+  });
+});

@@ -88,4 +88,9 @@ const deleteAccountSchema = z.object({
   password: z.string({ error: 'กรุณากรอกรหัสผ่าน' }).min(1, 'กรุณากรอกรหัสผ่าน').max(1000, 'รหัสผ่านไม่ถูกต้อง'),
 });
 
-module.exports = { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema, deleteAccountSchema };
+// The single-field rules of sign-up, for scripts that ask one field at a time
+// (scripts/create-admin.js). registerSchema is wrapped by refine/transform,
+// so it has no `.shape` to read them from.
+const registerFields = { username, email, password: newPassword };
+
+module.exports = { registerSchema, registerFields, loginSchema, updateProfileSchema, changePasswordSchema, deleteAccountSchema };

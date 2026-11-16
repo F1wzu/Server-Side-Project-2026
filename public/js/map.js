@@ -52,12 +52,21 @@
     const lngInput = form.elements.namedItem('longitude');
     const bounds = JSON.parse(element.dataset.bounds);
     const area = L.latLngBounds([bounds.minLat, bounds.minLng], [bounds.maxLat, bounds.maxLng]);
-    // Half-step zoom so the district can fill the picker snugly. The picker
-    // sits in the middle of a long form, so the mouse wheel scrolls the page
-    // (the + and − buttons still zoom), and the map cannot zoom out past the
-    // district's surroundings.
+    // Half-step zoom so the district can fill the picker snugly, and no
+    // zooming out past the district's surroundings. The picker sits in the
+    // middle of a long form, so the mouse wheel only zooms once the member
+    // has clicked the map; until then, and again after the pointer leaves
+    // it, the wheel scrolls the page past it.
     const map = L.map(element, { maxBounds: area.pad(0.3), minZoom: 10, zoomSnap: 0.5, scrollWheelZoom: false, ...touchOptions });
     touchHint(element);
+    if (!touch) {
+      map.on('mousedown focus', () => map.scrollWheelZoom.enable());
+      element.addEventListener('mouseleave', () => map.scrollWheelZoom.disable());
+      const hint = document.createElement('p');
+      hint.className = 'map-touch-hint';
+      hint.textContent = 'คลิกที่แผนที่ก่อน แล้วเลื่อนลูกกลิ้งเมาส์เพื่อซูม';
+      element.after(hint);
+    }
     tiles().addTo(map);
     // The district's real border, so a member sees where a pin is accepted
     // (the server checks the same shape). Falls back to the rectangle.

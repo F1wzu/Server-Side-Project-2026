@@ -584,3 +584,20 @@ describe('unpublishing and publishing', () => {
     expect((await prisma.place.findUnique({ where: { id: place.id } })).status).toBe('published');
   });
 });
+
+describe('photo field on the admin place form', () => {
+  test('the edit page has no photo field, only a link to the photos tab', async () => {
+    const place = await makePlace({ imagePath: '/images/places/cafe.svg' });
+    const page = await admin.get(`/admin/places/${place.id}/edit`);
+    expect(page.status).toBe(200);
+    expect(page.text).not.toMatch(/type="file"/);
+    expect(page.text).not.toContain('class="current-photo"');
+    expect(page.text).toContain(`href="/admin/places/${place.id}/photos"`);
+  });
+
+  test('the add page still takes a photo', async () => {
+    const page = await admin.get('/admin/places/new');
+    expect(page.status).toBe(200);
+    expect(page.text).toMatch(/id="photo"[^>]*type="file"/);
+  });
+});
