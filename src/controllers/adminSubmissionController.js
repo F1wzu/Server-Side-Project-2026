@@ -75,8 +75,10 @@ function approve(req, res) {
     res,
     async (id) => {
       const input = validate(approveSchema, req.body);
-      const { placeId } = await adminSubmissionModel.approve(req.user.id, id, input.version, pinFrom(input));
-      return `/places/${placeId}`;
+      // Back to the queue (decideFromForm's default), so the admin can go
+      // straight on to the next request; the new place is linked from the
+      // submission's page and from the places list.
+      await adminSubmissionModel.approve(req.user.id, id, input.version, pinFrom(input));
     },
     'อนุมัติแล้ว สถานที่นี้เผยแพร่บนเว็บไซต์แล้ว'
   );

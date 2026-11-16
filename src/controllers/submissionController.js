@@ -11,11 +11,12 @@ const storage = require('../storage');
 const { setFlash } = require('../middleware/flash');
 const AppError = require('../utils/AppError');
 
-const STATUS_LABELS = { pending: 'รอตรวจสอบ', changes_requested: 'รอแก้ไข', approved: 'อนุมัติแล้ว', rejected: 'ไม่อนุมัติ' };
+const STATUS_LABELS = { draft: 'ฉบับร่าง', pending: 'รอตรวจสอบ', changes_requested: 'รอแก้ไข', approved: 'อนุมัติแล้ว', rejected: 'ไม่อนุมัติ' };
 const ACTION_LABELS = {
   submitted: 'ส่งคำขอ',
   edited: 'บันทึกการแก้ไข',
   resubmitted: 'ส่งตรวจสอบอีกครั้ง',
+  withdrawn: 'ถอนกลับมาเป็นฉบับร่าง',
   returned: 'ผู้ดูแลส่งกลับให้แก้ไข',
   approved: 'อนุมัติและเผยแพร่',
   rejected: 'ผู้ดูแลไม่อนุมัติ',
@@ -164,20 +165,20 @@ async function show(req, res) {
 // GET /me/submissions/:id/edit
 async function editForm(req, res) {
   const submission = await submissionModel.findOwn(req.user.id, submissionId(req));
-  if (submission.status !== 'changes_requested') {
-    setFlash(req, 'error', 'แก้ไขได้เฉพาะคำขอที่ผู้ดูแลส่งกลับให้แก้ไขเท่านั้น');
+  if (!submissionModel.EDITABLE.includes(submission.status)) {
+    setFlash(req, 'error', submission.status === 'pending' ? 'คำขอนี้รอผู้ดูแลตรวจสอบอยู่ กด "ถอนกลับมาแก้ไข" ก่อน แล้วจึงแก้ไขได้' : 'แก้ไขได้เฉพาะฉบับร่าง หรือคำขอที่ผู้ดูแลส่งกลับให้แก้ไขเท่านั้น');
     return res.redirect(303, `/me/submissions/${submission.id}`);
   }
   return renderForm(res, { submission });
 }
 
-// Only a returned submission can be edited. Checked before the form, so a
-// member editing a pending one hears that, not about form errors. (The
-// update itself checks again, in case the status changes in between.)
+// Only a draft or a returned submission can be edited. Checked before the
+// form, so a member editing a pending one hears that, not about form errors.
+// (The update itself checks again, in case the status changes in between.)
 async function ensureEditable(userId, id) {
   const submission = await submissionModel.findOwn(userId, id);
-  if (submission.status !== 'changes_requested') {
-    throw new AppError(409, 'INVALID_STATE', 'แก้ไขหรือส่งใหม่ได้เฉพาะคำขอที่ผู้ดูแลส่งกลับให้แก้ไขเท่านั้น');
+  if (!submissionModel.EDITABLE.includes(submission.status)) {
+    throw new AppError(409, 'INVALID_STATE', 'แก้ไขหรือส่งได้เฉพาะฉบับร่าง หรือคำขอที่ผู้ดูแลส่งกลับให้แก้ไขเท่านั้น');
   }
 }
 
@@ -192,7 +193,7 @@ async function update(req, res) {
     const photoOrder = readPhotoOrder(req.body);
     const { replacedImagePaths } = await withStoredPhotos(req.photoFiles, (imagePaths) => submissionModel.updateOwn(req.user.id, id, version, data, imagePaths, photoOrder));
     await removeFiles(replacedImagePaths);
-    setFlash(req, 'success', 'บันทึกการแก้ไขแล้ว กด "ส่งตรวจสอบอีกครั้ง" เมื่อพร้อม');
+    setFlash(req, 'success', 'บันทึกการแก้ไขแล้ว กด "ส่งให้ผู้ดูแลตรวจสอบ" เมื่อพร้อม');
     return res.redirect(303, `/me/submissions/${id}`);
   } catch (err) {
     if (err.code === 'STALE_VERSION' || err.code === 'INVALID_STATE') {
@@ -211,7 +212,7 @@ async function resubmit(req, res) {
   try {
     const { version } = validate(versionSchema, req.body);
     await submissionModel.resubmit(req.user.id, id, version);
-    setFlash(req, 'success', 'ส่งให้ผู้ดูแลตรวจสอบอีกครั้งแล้ว');
+    setFlash(req, 'success', 'ส่งให้ผู้ดูแลตรวจสอบแล้ว');
   } catch (err) {
     if (!['STALE_VERSION', 'INVALID_STATE', 'VALIDATION_ERROR'].includes(err.code)) throw err;
     setFlash(req, 'error', err.message);
@@ -220,13 +221,29 @@ async function resubmit(req, res) {
 }
 
 // POST /me/submissions/:id/withdraw  (needs `version`)
+// Takes a pending submission back to a draft; nothing is lost.
 async function withdraw(req, res) {
   const id = submissionId(req);
   try {
     const { version } = validate(versionSchema, req.body);
-    const { unusedFiles } = await submissionModel.withdraw(req.user.id, id, version);
+    await submissionModel.withdraw(req.user.id, id, version);
+    setFlash(req, 'success', 'ถอนคำขอกลับมาเป็นฉบับร่างแล้ว แก้ไขแล้วกดส่งได้อีกครั้ง');
+  } catch (err) {
+    if (!['STALE_VERSION', 'INVALID_STATE', 'VALIDATION_ERROR'].includes(err.code)) throw err;
+    setFlash(req, 'error', err.message);
+  }
+  return res.redirect(303, `/me/submissions/${id}`);
+}
+
+// POST /me/submissions/:id/delete  (needs `version`)
+// Deletes a draft or an undecided submission for good, with its history.
+async function remove(req, res) {
+  const id = submissionId(req);
+  try {
+    const { version } = validate(versionSchema, req.body);
+    const { unusedFiles } = await submissionModel.remove(req.user.id, id, version);
     await removeFiles(unusedFiles);
-    setFlash(req, 'success', 'ถอนคำขอแล้ว');
+    setFlash(req, 'success', 'ลบคำขอแล้ว');
     return res.redirect(303, '/me/submissions');
   } catch (err) {
     if (!['STALE_VERSION', 'INVALID_STATE', 'VALIDATION_ERROR'].includes(err.code)) throw err;
@@ -237,10 +254,16 @@ async function withdraw(req, res) {
 
 // ---------- API ----------
 
-// DELETE /api/v1/me/submissions/:id  (needs `version`)
+// POST /api/v1/me/submissions/:id/withdraw  (needs `version`)
 async function apiWithdraw(req, res) {
   const { version } = validate(versionSchema, req.body ?? {});
-  const { unusedFiles } = await submissionModel.withdraw(req.user.id, submissionId(req), version);
+  res.json({ data: await submissionModel.withdraw(req.user.id, submissionId(req), version) });
+}
+
+// DELETE /api/v1/me/submissions/:id  (needs `version`)
+async function apiDelete(req, res) {
+  const { version } = validate(versionSchema, req.body ?? {});
+  const { unusedFiles } = await submissionModel.remove(req.user.id, submissionId(req), version);
   await removeFiles(unusedFiles);
   res.status(204).end();
 }
@@ -281,4 +304,4 @@ async function apiResubmit(req, res) {
   res.json({ data: await submissionModel.resubmit(req.user.id, submissionId(req), version) });
 }
 
-module.exports = { newForm, create, mine, show, editForm, update, resubmit, withdraw, apiCreate, apiMine, apiShow, apiUpdate, apiResubmit, apiWithdraw, STATUS_LABELS, ACTION_LABELS };
+module.exports = { newForm, create, mine, show, editForm, update, resubmit, withdraw, remove, apiDelete, apiCreate, apiMine, apiShow, apiUpdate, apiResubmit, apiWithdraw, STATUS_LABELS, ACTION_LABELS };

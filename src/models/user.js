@@ -145,7 +145,7 @@ async function deleteAccount(id, password) {
     await tx.favorite.deleteMany({ where: { userId: id } });
 
     const undecided = await tx.submission.findMany({
-      where: { userId: id, status: { in: ['pending', 'changes_requested'] } },
+      where: { userId: id, status: { in: ['draft', 'pending', 'changes_requested'] } },
       select: { id: true, imagePath: true, extraImagePaths: true, events: { select: { snapshot: true } } },
     });
     await tx.submission.deleteMany({ where: { id: { in: undecided.map((submission) => submission.id) } } });

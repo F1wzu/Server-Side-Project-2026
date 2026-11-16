@@ -63,6 +63,7 @@ router.get('/me/submissions/:id/edit', requireLogin, submissionController.editFo
 router.post('/me/submissions/:id', requireLogin, memberWriteLimiter, withPhotosForm, submissionController.update);
 router.post('/me/submissions/:id/resubmit', requireLogin, memberWriteLimiter, submissionController.resubmit);
 router.post('/me/submissions/:id/withdraw', requireLogin, memberWriteLimiter, submissionController.withdraw);
+router.post('/me/submissions/:id/delete', requireLogin, memberWriteLimiter, submissionController.remove);
 
 // Accounts
 router.get('/register', redirectIfLoggedIn, authController.showRegister);

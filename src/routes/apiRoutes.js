@@ -60,7 +60,8 @@ router.get('/me/submissions', requireLogin, submissionController.apiMine);
 router.get('/me/submissions/:id', requireLogin, submissionController.apiShow);
 router.patch('/me/submissions/:id', requireLogin, memberWriteLimiter, withPhotos, submissionController.apiUpdate);
 router.post('/me/submissions/:id/resubmit', requireLogin, memberWriteLimiter, submissionController.apiResubmit);
-router.delete('/me/submissions/:id', requireLogin, memberWriteLimiter, submissionController.apiWithdraw);
+router.post('/me/submissions/:id/withdraw', requireLogin, memberWriteLimiter, submissionController.apiWithdraw);
+router.delete('/me/submissions/:id', requireLogin, memberWriteLimiter, submissionController.apiDelete);
 
 // Admin areas. Everything under /admin needs a logged-in admin.
 for (const area of ['submissions', 'places', 'photos', 'moderation', 'users']) {

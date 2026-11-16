@@ -61,27 +61,36 @@
       </div>
       <% } %>
 
-      <% if (submission.status === 'changes_requested') { %>
+      <%
+        const status = submission.status;
+        const hidden = '<input type="hidden" name="_csrf" value="' + csrfToken() + '"><input type="hidden" name="version" value="' + submission.version + '">';
+      %>
+      <% if (status === 'draft' || status === 'changes_requested') { %>
+      <% if (status === 'draft') { %><p class="small-note">ฉบับร่าง: ผู้ดูแลยังไม่เห็นคำขอนี้ แก้ไขได้ตามต้องการ แล้วกดส่งเมื่อพร้อม</p><% } %>
       <div class="form-actions">
         <a class="button button-outline" href="/me/submissions/<%= submission.id %>/edit">แก้ไขข้อมูล</a>
         <form method="post" action="/me/submissions/<%= submission.id %>/resubmit">
-          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-          <input type="hidden" name="version" value="<%= submission.version %>">
-          <button class="button button-primary" type="submit">ส่งตรวจสอบอีกครั้ง</button>
+          <%- hidden %>
+          <button class="button button-primary" type="submit">ส่งให้ผู้ดูแลตรวจสอบ</button>
         </form>
       </div>
-      <% } else if (submission.status === 'pending') { %>
-      <p class="small-note">คำขออยู่ระหว่างรอผู้ดูแลตรวจสอบ ระหว่างนี้แก้ไขไม่ได้</p>
+      <% } else if (status === 'pending') { %>
+      <p class="small-note">คำขออยู่ระหว่างรอผู้ดูแลตรวจสอบ ถ้าต้องการแก้ไข ถอนกลับมาเป็นฉบับร่างได้ ข้อมูล รูป และประวัติยังอยู่ครบ</p>
+      <div class="form-actions">
+        <form method="post" action="/me/submissions/<%= submission.id %>/withdraw">
+          <%- hidden %>
+          <button class="button button-outline" type="submit">ถอนกลับมาแก้ไข</button>
+        </form>
+      </div>
       <% } %>
 
-      <% if (submission.status === 'pending' || submission.status === 'changes_requested') { %>
+      <% if (status === 'draft' || status === 'pending' || status === 'changes_requested') { %>
       <details class="danger-zone">
-        <summary>ถอนคำขอนี้</summary>
-        <p>คำขอ รูป และประวัติของคำขอนี้จะถูกลบถาวร ผู้ดูแลจะไม่เห็นอีก และกู้คืนไม่ได้</p>
-        <form method="post" action="/me/submissions/<%= submission.id %>/withdraw">
-          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-          <input type="hidden" name="version" value="<%= submission.version %>">
-          <button class="button button-danger" type="submit">ยืนยันถอนคำขอ</button>
+        <summary>ลบคำขอนี้</summary>
+        <p>คำขอ รูป และประวัติของคำขอนี้จะถูกลบถาวร กู้คืนไม่ได้ ถ้าแค่ต้องการแก้ไข ไม่ต้องลบ</p>
+        <form method="post" action="/me/submissions/<%= submission.id %>/delete">
+          <%- hidden %>
+          <button class="button button-danger" type="submit">ยืนยันลบถาวร</button>
         </form>
       </details>
       <% } %>

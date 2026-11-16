@@ -28,7 +28,8 @@ function present(submission) {
 // The queue. Pending submissions are shown oldest first, so nobody waits
 // behind newer ones; other lists show the most recently decided first.
 async function list({ status = 'pending', page = 1, pageSize = 20 } = {}) {
-  const where = STATUSES.includes(status) ? { status } : {};
+  // A draft belongs to its member until they send it, so admins never list it.
+  const where = STATUSES.includes(status) ? { status } : { status: { not: 'draft' } };
   const total = await prisma.submission.count({ where });
   const pagination = paginate(total, page, pageSize);
   if (pagination.page > pagination.totalPages) pagination.page = pagination.totalPages;
@@ -56,7 +57,8 @@ async function find(id) {
       events: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], include: { actor: { select: { id: true, username: true } } } },
     },
   });
-  if (!submission) throw AppError.notFound('ไม่พบคำขอนี้');
+  // A draft is still private to its member (they withdrew it), as if it were not there.
+  if (!submission || submission.status === 'draft') throw AppError.notFound('ไม่พบคำขอนี้');
   // Empty for approved / rejected submissions: nothing left to decide.
   const duplicates = await findPossibleDuplicates(submission);
   return { ...present(submission), possibleDuplicates: duplicates };

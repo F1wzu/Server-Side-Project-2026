@@ -110,15 +110,25 @@ async function findOwn(userId, id) {
   return present(submission);
 }
 
+// Who may do what, by status:
+//   draft             - the member took it back: edit, send, or delete it
+//   pending           - waiting for an admin: withdraw it to a draft, or delete it
+//   changes_requested - an admin sent it back: edit, send again, or delete it
+//   approved/rejected - decided: nothing more for the member to do
+const EDITABLE = ['draft', 'changes_requested'];
+const WITHDRAWABLE = ['pending'];
+const DELETABLE = ['draft', 'pending', 'changes_requested'];
+
+const stale = () => new AppError(409, 'STALE_VERSION', 'คำขอนี้ถูกเปลี่ยนแปลงไปแล้ว กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง');
+
 // After a conditional update matched no row: work out why.
-async function explainNoMatch(tx, userId, id) {
+async function explainNoMatch(tx, userId, id, allowed, wrongState) {
   const current = await tx.submission.findUnique({ where: { id }, select: { userId: true, status: true } });
   if (!current || current.userId !== userId) return AppError.notFound('ไม่พบคำขอนี้');
-  if (current.status !== 'changes_requested') {
-    return new AppError(409, 'INVALID_STATE', 'แก้ไขหรือส่งใหม่ได้เฉพาะคำขอที่ผู้ดูแลส่งกลับให้แก้ไขเท่านั้น');
-  }
-  return new AppError(409, 'STALE_VERSION', 'คำขอนี้ถูกเปลี่ยนแปลงไปแล้ว กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง');
+  if (!allowed.includes(current.status)) return new AppError(409, 'INVALID_STATE', wrongState);
+  return stale();
 }
+const NOT_EDITABLE = 'แก้ไขหรือส่งได้เฉพาะฉบับร่าง หรือคำขอที่ผู้ดูแลส่งกลับให้แก้ไขเท่านั้น';
 
 const MAX_PHOTOS = 5;
 const photoOrderError = (message) =>
@@ -147,7 +157,7 @@ function photosAfterEdit(current, newImagePaths, order) {
   return result;
 }
 
-// Edits a returned submission; see photosAfterEdit for how the photos change.
+// Edits a draft or a returned submission; see photosAfterEdit for how the photos change.
 // Returns the submission and the dropped files that nothing uses any more, so
 // the caller can delete them once this transaction has committed.
 async function updateOwn(userId, id, version, data, newImagePaths = [], photoOrder = null) {
@@ -157,10 +167,10 @@ async function updateOwn(userId, id, version, data, newImagePaths = [], photoOrd
     const current = before ? [before.imagePath, ...before.extraImagePaths].filter(Boolean) : [];
     const photos = photosAfterEdit(current, newImagePaths, photoOrder);
     const { count } = await tx.submission.updateMany({
-      where: { id, userId, status: 'changes_requested', version },
+      where: { id, userId, status: { in: EDITABLE }, version },
       data: { ...contentData(data), imagePath: photos[0] ?? null, extraImagePaths: photos.slice(1), version: { increment: 1 } },
     });
-    if (count === 0) throw await explainNoMatch(tx, userId, id);
+    if (count === 0) throw await explainNoMatch(tx, userId, id, EDITABLE, NOT_EDITABLE);
 
     const updated = await tx.submission.findUnique({ where: { id } });
     await tx.submissionEvent.create({ data: { submissionId: id, actorId: userId, action: 'edited', snapshot: snapshotOf(updated, name) } });
@@ -171,14 +181,14 @@ async function updateOwn(userId, id, version, data, newImagePaths = [], photoOrd
   });
 }
 
-// Sends a returned submission back to the admin queue.
+// Sends a draft or a returned submission to the admin queue.
 async function resubmit(userId, id, version) {
   return prisma.$transaction(async (tx) => {
     const { count } = await tx.submission.updateMany({
-      where: { id, userId, status: 'changes_requested', version },
+      where: { id, userId, status: { in: EDITABLE }, version },
       data: { status: 'pending', version: { increment: 1 } },
     });
-    if (count === 0) throw await explainNoMatch(tx, userId, id);
+    if (count === 0) throw await explainNoMatch(tx, userId, id, EDITABLE, NOT_EDITABLE);
 
     const updated = await tx.submission.findUnique({ where: { id }, include: { category: { select: { name: true } } } });
     await tx.submissionEvent.create({
@@ -188,29 +198,41 @@ async function resubmit(userId, id, version) {
   });
 }
 
-// A submission the member may still take back: not yet decided by an admin.
-const WITHDRAWABLE = ['pending', 'changes_requested'];
-
-// Deletes the member's own undecided submission with its history (the
-// events cascade). The status and version are part of the delete's
-// condition, so an admin approving at the same moment wins or loses cleanly:
-// an approved submission is never deleted. Returns the photo files nothing
-// uses any more, for the caller to delete after this has committed.
+// Takes a submission that is waiting for review back to a draft: everything
+// (text, photos, history) is kept, admins stop seeing it, and the member can
+// edit it and send it again. The status and version are part of the update's
+// condition, so an admin deciding at the same moment wins or loses cleanly.
 async function withdraw(userId, id, version) {
+  return prisma.$transaction(async (tx) => {
+    const { count } = await tx.submission.updateMany({
+      where: { id, userId, status: { in: WITHDRAWABLE }, version },
+      data: { status: 'draft', version: { increment: 1 } },
+    });
+    if (count === 0) {
+      throw await explainNoMatch(tx, userId, id, WITHDRAWABLE, 'ถอนกลับได้เฉพาะคำขอที่ยังรอตรวจสอบเท่านั้น');
+    }
+    const updated = await tx.submission.findUnique({ where: { id }, include: { category: { select: { name: true } } } });
+    await tx.submissionEvent.create({
+      data: { submissionId: id, actorId: userId, action: 'withdrawn', snapshot: snapshotOf(updated, updated.category.name) },
+    });
+    return present(updated);
+  });
+}
+
+// Deletes the member's own undecided submission (or draft) with its history
+// (the events cascade). An approved submission is never deleted. Returns the
+// photo files nothing uses any more, for the caller to delete after this has
+// committed.
+async function remove(userId, id, version) {
   return prisma.$transaction(async (tx) => {
     const before = await tx.submission.findFirst({ where: { id, userId }, select: { imagePath: true, extraImagePaths: true } });
     const history = before ? await tx.submissionEvent.findMany({ where: { submissionId: id }, select: { snapshot: true } }) : [];
-    const { count } = await tx.submission.deleteMany({ where: { id, userId, status: { in: WITHDRAWABLE }, version } });
+    const { count } = await tx.submission.deleteMany({ where: { id, userId, status: { in: DELETABLE }, version } });
     if (count === 0) {
-      const current = await tx.submission.findUnique({ where: { id }, select: { userId: true, status: true } });
-      if (!current || current.userId !== userId) throw AppError.notFound('ไม่พบคำขอนี้');
-      if (!WITHDRAWABLE.includes(current.status)) {
-        throw new AppError(409, 'INVALID_STATE', 'ถอนได้เฉพาะคำขอที่ยังรอตรวจสอบหรือรอแก้ไขเท่านั้น');
-      }
-      throw new AppError(409, 'STALE_VERSION', 'คำขอนี้ถูกเปลี่ยนแปลงไปแล้ว กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง');
+      throw await explainNoMatch(tx, userId, id, DELETABLE, 'ลบได้เฉพาะฉบับร่าง คำขอที่รอตรวจสอบ หรือรอแก้ไขเท่านั้น');
     }
     return { unusedFiles: await unusedUploads(tx, [...photoPathsOf(before), ...history.flatMap((event) => photoPathsOf(event.snapshot))]) };
   });
 }
 
-module.exports = { create, listOwn, findOwn, updateOwn, resubmit, withdraw, snapshotOf, WITHDRAWABLE };
+module.exports = { create, listOwn, findOwn, updateOwn, resubmit, withdraw, remove, snapshotOf, EDITABLE, WITHDRAWABLE, DELETABLE };

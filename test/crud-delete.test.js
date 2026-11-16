@@ -1,4 +1,5 @@
-// The three "delete" gaps: a member withdraws an undecided submission, an
+// The three "delete" gaps: a member deletes an undecided submission (or
+// withdraws it to a draft, which keeps everything), an
 // admin permanently deletes a place (only when nobody reviewed it), and a
 // member deletes their own account.
 const fs = require('node:fs');
@@ -75,7 +76,7 @@ afterAll(closeDatabase);
 
 // ---------------------------------------------------------------- withdraw
 
-describe('a member withdraws a submission', () => {
+describe('a member deletes a submission', () => {
   test('a pending one is deleted with its history', async () => {
     const submission = await submit(alice);
     expect((await del(alice, `/api/v1/me/submissions/${submission.id}`, { version: submission.version })).status).toBe(204);
@@ -83,7 +84,7 @@ describe('a member withdraws a submission', () => {
     expect(await prisma.submissionEvent.count({ where: { submissionId: submission.id } })).toBe(0);
   });
 
-  test('a returned one can be withdrawn too', async () => {
+  test('a returned one can be deleted too', async () => {
     const submission = await submit(alice);
     await prisma.submission.update({ where: { id: submission.id }, data: { status: 'changes_requested', reviewNote: 'แก้', version: 2 } });
     expect((await del(alice, `/api/v1/me/submissions/${submission.id}`, { version: 2 })).status).toBe(204);
@@ -96,7 +97,7 @@ describe('a member withdraws a submission', () => {
     expect(fileExists(submission.imagePath)).toBe(false);
   });
 
-  test('an approved one cannot be withdrawn', async () => {
+  test('an approved one cannot be deleted', async () => {
     const submission = await submit(alice);
     await approve(submission);
     const res = await del(alice, `/api/v1/me/submissions/${submission.id}`, { version: 2 });
@@ -112,15 +113,77 @@ describe('a member withdraws a submission', () => {
     expect(await prisma.submission.count()).toBe(1);
   });
 
-  test('the page form withdraws and returns to "my submissions"', async () => {
+  test('the page form deletes and returns to "my submissions"', async () => {
     const submission = await submit(alice);
     const page = await alice.get(`/me/submissions/${submission.id}`);
-    expect(page.text).toContain('ถอนคำขอนี้');
-    const res = await alice.postForm(`/me/submissions/${submission.id}/withdraw`, { version: String(submission.version) });
+    expect(page.text).toContain('ลบคำขอนี้');
+    const res = await alice.postForm(`/me/submissions/${submission.id}/delete`, { version: String(submission.version) });
     expect(res.status).toBe(303);
     expect(res.headers.location).toBe('/me/submissions');
-    expect((await alice.get('/me/submissions')).text).toContain('ถอนคำขอแล้ว');
+    expect((await alice.get('/me/submissions')).text).toContain('ลบคำขอแล้ว');
     expect(await prisma.submission.count()).toBe(0);
+  });
+});
+
+describe('a member withdraws a submission to a draft', () => {
+  test('withdrawing keeps everything: text, photo, history; admins no longer see it', async () => {
+    const submission = await submitWithPhoto(alice);
+    const res = await alice.post(`/api/v1/me/submissions/${submission.id}/withdraw`, { version: submission.version });
+    expect(res.status).toBe(200);
+    expect(res.body.data).toMatchObject({ status: 'draft', version: 2, name: 'ร้านมีรูป', imagePath: submission.imagePath });
+    expect(fileExists(submission.imagePath)).toBe(true);
+    const events = await prisma.submissionEvent.findMany({ where: { submissionId: submission.id }, orderBy: { id: 'asc' } });
+    expect(events.map((event) => event.action)).toEqual(['submitted', 'withdrawn']);
+
+    expect((await admin.get('/api/v1/admin/submissions?status=all')).body.data).toHaveLength(0);
+    expect((await admin.get(`/api/v1/admin/submissions/${submission.id}`)).status).toBe(404);
+    const approve = await admin.post(`/api/v1/admin/submissions/${submission.id}/approve`, { version: 2 });
+    expect(approve.status).not.toBe(201);
+    expect(await prisma.place.count()).toBe(0);
+  });
+
+  test('a draft can be edited, then sent again and approved', async () => {
+    const submission = await submit(alice);
+    await alice.post(`/api/v1/me/submissions/${submission.id}/withdraw`, { version: 1 });
+    const edit = await alice.patch(`/api/v1/me/submissions/${submission.id}`, { ...content('ชื่อที่แก้แล้ว'), version: 2 });
+    expect(edit.status).toBe(200);
+    expect(edit.body.data).toMatchObject({ status: 'draft', name: 'ชื่อที่แก้แล้ว', version: 3 });
+    const sent = await alice.post(`/api/v1/me/submissions/${submission.id}/resubmit`, { version: 3 });
+    expect(sent.body.data).toMatchObject({ status: 'pending', version: 4 });
+    expect(await approve({ id: submission.id, version: 4 })).toEqual(expect.any(Number));
+  });
+
+  test('only a pending one can be withdrawn; old versions and other members are refused', async () => {
+    const submission = await submit(alice);
+    expect((await alice.post(`/api/v1/me/submissions/${submission.id}/withdraw`, { version: 9 })).body.error.code).toBe('STALE_VERSION');
+    expect((await bob.post(`/api/v1/me/submissions/${submission.id}/withdraw`, { version: 1 })).status).toBe(404);
+    await alice.post(`/api/v1/me/submissions/${submission.id}/withdraw`, { version: 1 });
+    const again = await alice.post(`/api/v1/me/submissions/${submission.id}/withdraw`, { version: 2 });
+    expect(again.status).toBe(409);
+    expect(again.body.error.code).toBe('INVALID_STATE');
+  });
+
+  test('a draft can still be deleted for good', async () => {
+    const submission = await submit(alice);
+    await alice.post(`/api/v1/me/submissions/${submission.id}/withdraw`, { version: 1 });
+    expect((await del(alice, `/api/v1/me/submissions/${submission.id}`, { version: 2 })).status).toBe(204);
+    expect(await prisma.submission.count()).toBe(0);
+  });
+
+  test('the page: withdraw button, then the draft page offers edit and send', async () => {
+    const submission = await submit(alice);
+    const url = `/me/submissions/${submission.id}`;
+    expect((await alice.get(url)).text).toContain('ถอนกลับมาแก้ไข');
+    const res = await alice.postForm(`${url}/withdraw`, { version: '1' });
+    expect(res.status).toBe(303);
+    expect(res.headers.location).toBe(url);
+    const page = await alice.get(url);
+    expect(page.text).toContain('ถอนคำขอกลับมาเป็นฉบับร่างแล้ว');
+    expect(page.text).toContain('ฉบับร่าง');
+    expect(page.text).toContain(`href="${url}/edit"`);
+    expect(page.text).toContain(`action="${url}/resubmit"`);
+    expect((await alice.get(`${url}/edit`)).status).toBe(200);
+    expect(await prisma.submission.count()).toBe(1);
   });
 });
 

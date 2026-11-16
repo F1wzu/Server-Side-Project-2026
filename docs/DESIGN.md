@@ -80,14 +80,17 @@ stateDiagram-v2
     pending --> changes_requested: ผู้ดูแลส่งกลับพร้อมเหตุผล
     pending --> rejected: ผู้ดูแลปฏิเสธพร้อมเหตุผล
     changes_requested --> pending: สมาชิกแก้ไขและส่งใหม่
+    pending --> draft: สมาชิกถอนกลับมาแก้ไข (ข้อมูล รูป ประวัติอยู่ครบ)
+    draft --> pending: สมาชิกแก้ไขแล้วส่ง
     approved --> [*]
     rejected --> [*]
 ```
 
 | สถานะ | สมาชิกทำได้ | ผู้ดูแลทำได้ |
 |---|---|---|
-| `pending` (รอตรวจ) | ดู | อนุมัติ (ปรับตำแหน่งหมุดก่อนได้) ส่งกลับ ปฏิเสธ |
-| `changes_requested` (ถูกส่งกลับให้แก้) | ดู แก้ไข ส่งใหม่ | ดู |
+| `draft` (ฉบับร่าง) | ดู แก้ไข ส่ง ลบถาวร | มองไม่เห็น (ไม่อยู่ในรายการ หน้าเดี่ยวตอบ 404) |
+| `pending` (รอตรวจ) | ดู ถอนกลับเป็นฉบับร่าง ลบถาวร | อนุมัติ (ปรับตำแหน่งหมุดก่อนได้) ส่งกลับ ปฏิเสธ |
+| `changes_requested` (ถูกส่งกลับให้แก้) | ดู แก้ไข ส่งใหม่ ลบถาวร | ดู |
 | `approved` (อนุมัติแล้ว) | ดู เปิดหน้าสถานที่ที่เผยแพร่ | ดู |
 | `rejected` (ปฏิเสธ) | ดูเหตุผล | ดู |
 
@@ -257,7 +260,7 @@ Index: `(review_id, status, created_at)`
 | latitude, longitude | decimal(9,6) | **จำเป็น** สมาชิกต้องปักหมุดบนแผนที่ และต้องอยู่ในบริเวณลาดกระบัง |
 | extra_image_paths | varchar(500)[] | รูปที่ 2–5 ของคำขอ (`image_path` คือรูปแรก) ไม่เกิน 4 รายการ และมีได้เฉพาะเมื่อมี `image_path` (CHECK) |
 | hours | jsonb | เจ็ดรายการ หนึ่งรายการต่อหนึ่งวัน |
-| status | enum | `pending`, `changes_requested`, `approved` หรือ `rejected` |
+| status | enum | `draft`, `pending`, `changes_requested`, `approved` หรือ `rejected` |
 | version | integer | เริ่มที่ 1 เพิ่มขึ้นทุกครั้งที่มีการเปลี่ยนแปลง |
 | review_note | varchar(1000) | เหตุผลล่าสุดของผู้ดูแล |
 | place_id | integer | Foreign key → places ห้ามซ้ำ มีค่าเฉพาะเมื่อ `approved` |
@@ -272,7 +275,7 @@ Index: `(status, created_at)`, `(user_id)`
 | id | integer | Primary key |
 | submission_id | integer | Foreign key → submissions |
 | actor_id | integer | Foreign key → users |
-| action | enum | `submitted`, `edited`, `resubmitted`, `returned`, `approved`, `rejected` |
+| action | enum | `submitted`, `edited`, `resubmitted`, `withdrawn`, `returned`, `approved`, `rejected` |
 | note | varchar(1000) | เหตุผล สำหรับ `returned` และ `rejected` และข้อความว่าผู้ดูแลย้ายหมุด สำหรับ `approved` |
 | snapshot | jsonb | เนื้อหาของรายการที่เสนอ ณ ขณะนั้น |
 | created_at | timestamptz | |
@@ -471,9 +474,10 @@ Index: `(status, created_at)` สมาชิกหนึ่งคนมีร�
 | POST | `/submissions` | เสนอสถานที่ ต้องมีพิกัดของหมุด แนบรูปได้ไม่เกิน 5 รูปในช่อง `photos` (หรือช่อง `photo` เดิม 1 รูป) รูปแรกเป็นรูปหลัก ผลลัพธ์มี `imagePath` และ `extraImagePaths` เกิน 5 รูปตอบ 400 ไฟล์ใดเสียตอบ 415 (ข้อความขึ้นต้น "รูปที่ n:") และไม่เก็บรูปใดเลย | 201 |
 | GET | `/me/submissions` | รายการที่ตัวเองเสนอและสถานะ | 200 |
 | GET | `/me/submissions/:id` | รายการที่เสนอหนึ่งรายการ พร้อมประวัติและเหตุผลของผู้ดูแล | 200 |
-| PATCH | `/me/submissions/:id` | แก้ไขรายการที่ถูกส่งกลับ ถ้าไม่ส่ง `photoOrder`: แนบรูปใหม่ รูปเดิมทั้งหมดถูกแทนที่ ไม่แนบ รูปเดิมคงอยู่ ถ้าส่ง `photoOrder` (เช่น `new:1,keep:0,new:0` โดย `keep:n` คือรูปเดิมลำดับที่ n และ `new:n` คือไฟล์ใหม่ลำดับที่ n) รูปจะเป็นตามลำดับนั้น รูปแรกเป็นรูปหลัก รูปเดิมที่ไม่อยู่ในรายการถูกนำออก ค่าว่างคือไม่มีรูป ลำดับผิด ไฟล์ใหม่ที่ไม่อยู่ในรายการ หรือรวมเกิน 5 รูปตอบ 400 | 200 |
-| POST | `/me/submissions/:id/resubmit` | ส่งกลับไปให้ตรวจอีกครั้ง | 200 |
-| DELETE | `/me/submissions/:id` | ถอนคำขอที่ยังรอตรวจสอบหรือรอแก้ไข ต้องส่ง `version` ลบคำขอ ประวัติ และรูปที่ไม่มีที่อื่นใช้ คำขอที่ตัดสินแล้วตอบ 409 `INVALID_STATE` ฉบับเก่าตอบ 409 `STALE_VERSION` | 204 |
+| PATCH | `/me/submissions/:id` | แก้ไขฉบับร่างหรือรายการที่ถูกส่งกลับ ถ้าไม่ส่ง `photoOrder`: แนบรูปใหม่ รูปเดิมทั้งหมดถูกแทนที่ ไม่แนบ รูปเดิมคงอยู่ ถ้าส่ง `photoOrder` (เช่น `new:1,keep:0,new:0` โดย `keep:n` คือรูปเดิมลำดับที่ n และ `new:n` คือไฟล์ใหม่ลำดับที่ n) รูปจะเป็นตามลำดับนั้น รูปแรกเป็นรูปหลัก รูปเดิมที่ไม่อยู่ในรายการถูกนำออก ค่าว่างคือไม่มีรูป ลำดับผิด ไฟล์ใหม่ที่ไม่อยู่ในรายการ หรือรวมเกิน 5 รูปตอบ 400 | 200 |
+| POST | `/me/submissions/:id/resubmit` | ส่งฉบับร่างหรือคำขอที่ถูกส่งกลับไปให้ตรวจ (กลายเป็น `pending`) | 200 |
+| POST | `/me/submissions/:id/withdraw` | ถอนคำขอที่รอตรวจสอบกลับมาเป็นฉบับร่าง `draft` ต้องส่ง `version` ข้อมูล รูป และประวัติอยู่ครบ บันทึกเหตุการณ์ `withdrawn` สถานะอื่นตอบ 409 `INVALID_STATE` | 200 |
+| DELETE | `/me/submissions/:id` | ลบคำขอถาวร (ฉบับร่าง รอตรวจสอบ หรือรอแก้ไข) ต้องส่ง `version` ลบคำขอ ประวัติ และรูปที่ไม่มีที่อื่นใช้ คำขอที่ตัดสินแล้วตอบ 409 `INVALID_STATE` ฉบับเก่าตอบ 409 `STALE_VERSION` | 204 |
 
 ### ผู้ดูแล
 
@@ -545,7 +549,7 @@ Index: `(status, created_at)` สมาชิกหนึ่งคนมีร�
 | `/me/reviews` | รีวิวของตัวเอง | สมาชิก |
 | `/submissions/new` | เสนอสถานที่ | สมาชิก |
 | `/me/submissions` | รายการที่ตัวเองเสนอและสถานะ | สมาชิก |
-| `/me/submissions/:id` | รายละเอียด ประวัติ แก้ไข ส่งใหม่ และถอนคำขอ | สมาชิก |
+| `/me/submissions/:id` | รายละเอียด ประวัติ แก้ไข ส่ง ถอนกลับเป็นฉบับร่าง (`POST …/withdraw`) และลบถาวร (`POST …/delete`) | สมาชิก |
 | `/admin/submissions` | คิวรอตรวจ | ผู้ดูแล |
 | `/admin/submissions/:id` | ตัดสินรายการที่เสนอ | ผู้ดูแล |
 | `/admin/places` | สถานที่ทั้งหมด กรองสถานที่ที่ยังไม่มีหมุด เวลาเปิดปิด หรือรูปได้ | ผู้ดูแล |

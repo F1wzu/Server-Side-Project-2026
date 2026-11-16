@@ -158,6 +158,13 @@
         if (latlng) {
           place(latlng, { pan: true });
           check(latlng);
+        } else if (!latInput.value && !lngInput.value && marker) {
+          // Both boxes emptied (for example by the "clear form" button): no pin.
+          marker.remove();
+          marker = null;
+          warning.hidden = true;
+          element.classList.remove('is-invalid');
+          fitDistrict();
         }
       })
     );

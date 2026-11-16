@@ -34,6 +34,10 @@
 
 
       <div class="form-actions">
+<% if (!editing) { %>
+        <%# Shown by site.js (it needs JavaScript); clears the form to start on another place. %>
+        <button class="button button-ghost form-clear" type="button" data-clear-form hidden>ล้างฟอร์ม</button>
+        <% } %>
         <a class="button button-outline" href="<%= editing ? '/me/submissions/' + submission.id : '/me/submissions' %>">ยกเลิก</a>
         <button class="button button-primary" type="submit"><%= editing ? 'บันทึกการแก้ไข' : 'ส่งให้ผู้ดูแลตรวจสอบ' %></button>
       </div>

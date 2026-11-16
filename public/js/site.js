@@ -389,6 +389,13 @@ document.querySelectorAll('[data-photo-picker]').forEach((picker) => {
     if (!problems.length) announce(`มีรูปทั้งหมด ${items.length} รูป`);
   };
 
+  // The "clear form" button empties the list too.
+  input.form?.addEventListener('form:cleared', () => {
+    items.length = 0;
+    render();
+    say('');
+  });
+
   // Picking again ADDS to the list. The input's own file list is rebuilt
   // from `items` by sync(), so nothing picked earlier is lost.
   input.addEventListener('change', () => {
@@ -540,5 +547,32 @@ document.querySelectorAll('input[type="file"][accept*="image"]:not([data-picker-
       list.append(item);
     });
     announce(files.length ? `เลือกรูปไว้ ${files.length} รูป` : '');
+  });
+});
+
+// "Clear form" on the new-request form: empties everything the member typed
+// or picked (text, category, pin, photos, hours) so they can start on another
+// place, after asking first. Hidden fields (CSRF token) are left alone.
+document.querySelectorAll('[data-clear-form]').forEach((button) => {
+  const form = button.form;
+  if (!form) return;
+  button.hidden = false;
+  button.addEventListener('click', () => {
+    if (!window.confirm('ล้างข้อมูลทั้งหมดในฟอร์มนี้ เพื่อเริ่มกรอกสถานที่ใหม่?')) return;
+    for (const field of form.elements) {
+      if (field.type === 'hidden' || field.type === 'submit' || field.type === 'button' || field.tagName === 'FIELDSET') continue;
+      if (field.type === 'checkbox' || field.type === 'radio') field.checked = false;
+      else if (field.tagName === 'SELECT') field.value = field.name.startsWith('state') ? 'unknown' : field.options[0]?.value ?? '';
+      else field.value = '';
+      field.removeAttribute('aria-invalid');
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    // Old error messages no longer apply to an empty form.
+    document.querySelectorAll('.form-error, .field-error').forEach((message) => message.remove());
+    form.dispatchEvent(new CustomEvent('form:cleared'));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    form.elements.namedItem('name')?.focus({ preventScroll: true });
+    announce('ล้างฟอร์มแล้ว');
   });
 });

@@ -245,12 +245,12 @@ describe('approve', () => {
     expect(await prisma.submissionEvent.count({ where: { submissionId: submission.id } })).toBe(1);
   });
 
-  test('the form on the page approves and goes to the new place', async () => {
+  test('the form on the page approves and goes back to the review queue', async () => {
     const submission = await submit();
     const res = await admin.postForm(`/admin/submissions/${submission.id}/approve`, { version: '1', latitude: '13.7271', longitude: '100.7784' });
     expect(res.status).toBe(303);
-    const place = await prisma.place.findFirst();
-    expect(res.headers.location).toBe(`/places/${place.id}`);
+    expect(await prisma.place.count()).toBe(1);
+    expect(res.headers.location).toBe('/admin/submissions');
     expect((await admin.get(res.headers.location)).text).toContain('อนุมัติแล้ว');
   });
 });

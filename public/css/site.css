@@ -992,6 +992,14 @@ input[type='checkbox'] {
   gap: 12px;
   margin-top: 8px;
 }
+/* "Clear form" sits apart on the left, away from the send button. */
+.form-clear {
+  margin-right: auto;
+  color: var(--brick);
+}
+.form-clear[hidden] {
+  display: none;
+}
 .submission-form {
   display: flex;
   flex-direction: column;
@@ -1798,6 +1806,10 @@ tbody tr:last-child td {
   font-size: 0.86rem;
   font-weight: 600;
   white-space: nowrap;
+}
+.status-draft {
+  color: var(--ink-soft);
+  background: var(--paper-deep);
 }
 .status-pending,
 .status-review-deleted {

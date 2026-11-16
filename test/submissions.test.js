@@ -13,7 +13,7 @@ const { createClient } = require('./support/client');
 const app = createApp();
 
 const UUID_PATH = /^\/uploads\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.webp$/;
-const INVALID_STATE_TEXT = 'แก้ไขหรือส่งใหม่ได้เฉพาะคำขอที่ผู้ดูแลส่งกลับให้แก้ไขเท่านั้น';
+const INVALID_STATE_TEXT = 'แก้ไขหรือส่งได้เฉพาะฉบับร่าง หรือคำขอที่ผู้ดูแลส่งกลับให้แก้ไขเท่านั้น';
 const UNSUPPORTED_TEXT = 'รองรับเฉพาะรูป JPEG, PNG หรือ WebP';
 
 let category;
@@ -557,7 +557,7 @@ describe('editing and resubmitting', () => {
     const editPage = await alice.get(`${url}/edit`);
     expect(editPage.status).toBe(303);
     expect(editPage.headers.location).toBe(url);
-    expect((await alice.get(url)).text).toContain('แก้ไขได้เฉพาะคำขอที่ผู้ดูแลส่งกลับให้แก้ไขเท่านั้น');
+    expect((await alice.get(url)).text).toContain('กด &#34;ถอนกลับมาแก้ไข&#34; ก่อน');
 
     const edit = await formMultipart(alice, url, validFields({ name: 'ชื่อใหม่', version: '1' }));
     expect(edit.status).toBe(303);
@@ -616,7 +616,7 @@ describe('editing and resubmitting', () => {
 
     const resubmit = await alice.postForm(`${url}/resubmit`, { version: '3' });
     expect(resubmit.status).toBe(303);
-    expect((await alice.get(url)).text).toContain('ส่งให้ผู้ดูแลตรวจสอบอีกครั้งแล้ว');
+    expect((await alice.get(url)).text).toContain('ส่งให้ผู้ดูแลตรวจสอบแล้ว');
     expect(await prisma.submission.findUnique({ where: { id: created.id } })).toMatchObject({ status: 'pending', version: 4 });
   });
 
@@ -699,7 +699,7 @@ describe('editing and resubmitting', () => {
     expect(fs.existsSync(storedFile(oldPath))).toBe(true); // history still shows it
   });
 
-  test('the detail page shows the note, the history, and the buttons only when returned', async () => {
+  test('the detail page shows the note, the history, and the right buttons for each status', async () => {
     const created = await createViaApi(alice);
     const url = `/me/submissions/${created.id}`;
 
@@ -707,7 +707,8 @@ describe('editing and resubmitting', () => {
     expect(pending.status).toBe(200);
     expect(pending.text).toContain('รอตรวจสอบ');
     expect(pending.text).toContain('ส่งคำขอ'); // "submitted" in the timeline
-    expect(pending.text).toContain('ระหว่างนี้แก้ไขไม่ได้');
+    expect(pending.text).toContain('ถอนกลับมาแก้ไข');
+    expect(pending.text).toContain(`action="${url}/withdraw"`);
     expect(pending.text).not.toContain(`href="${url}/edit"`);
     expect(pending.text).not.toContain(`action="${url}/resubmit"`);
 
