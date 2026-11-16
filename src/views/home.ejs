@@ -45,7 +45,10 @@
         <p class="eyebrow">เลือกมาให้แล้ว</p>
         <h2 id="featured-heading">ทีมงานชวนไป</h2>
       </div>
-      <a class="text-link" href="/places">ดูสถานที่ทั้งหมด <%- icon('arrow', 16) %></a>
+      <span class="section-links">
+        <% if (locals.currentUser?.role === 'admin') { %><a class="text-link" href="/admin/featured">แก้ไขรายการนี้</a><% } %>
+        <a class="text-link" href="/places">ดูสถานที่ทั้งหมด <%- icon('arrow', 16) %></a>
+      </span>
     </div>
     <% if (featured.length) { %>
     <div class="card-grid spotlight-grid">

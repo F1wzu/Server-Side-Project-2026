@@ -1,0 +1,131 @@
+<%- include('../partials/head') %>
+<%
+  const full = picks.length >= limit;
+  const hidden = (pick) => pick.status !== 'published';
+%>
+<div class="container page-content">
+  <%- include('../partials/admin-nav') %>
+  <div class="page-heading">
+    <h1>ทีมงานชวนไป</h1>
+    <p>สถานที่แนะนำบนหน้าแรก <%= limit %> แห่ง อันดับ 1 เป็นการ์ดใหญ่ทางซ้าย</p>
+  </div>
+
+  <div class="form-actions featured-top-actions">
+    <a class="button button-outline" href="/#featured-heading"><%- icon('external', 18) %>ดูบนหน้าแรก</a>
+  </div>
+
+  <section class="panel featured-admin" aria-labelledby="picks-heading">
+    <h2 id="picks-heading" class="sr-only">รายการที่เลือกไว้</h2>
+    <ol class="featured-list" data-featured-sortable>
+      <% picks.forEach((pick, index) => { const extra = index >= limit; %>
+      <li class="featured-item<%= index === 0 ? ' is-lead' : '' %><%= extra || hidden(pick) ? ' is-muted' : '' %>" data-place-id="<%= pick.id %>">
+        <%# Drag handle: shown by site.js (dragging needs JavaScript; the arrows work without it). %>
+        <span class="drag-handle" data-drag-handle title="ลากเพื่อจัดลำดับ" aria-hidden="true" hidden>⠿</span>
+        <span class="featured-rank" aria-hidden="true"><%= index + 1 %></span>
+        <span class="featured-thumb tone-<%= categoryKind(pick.category) %>">
+          <% if (pick.imagePath) { %>
+          <img src="<%= pick.imagePath %>" alt="" loading="lazy" data-fallback="<%= photoFallback(pick.category) %>">
+          <% } else { %>
+          <%- icon(categoryIcon(pick.category), 22) %>
+          <% } %>
+        </span>
+        <span class="featured-info">
+          <a class="featured-name" href="/places/<%= pick.id %>"><%= pick.name %></a>
+          <span class="meta">
+            <%= pick.category.name %>
+            <% if (index === 0) { %> · <strong class="featured-tag">การ์ดใหญ่</strong><% } %>
+            <% if (hidden(pick)) { %> · <span class="featured-warn">ซ่อนอยู่ จึงไม่แสดงบนหน้าแรก</span><% } %>
+            <% if (extra) { %> · <span class="featured-warn">เกิน <%= limit %> แห่ง จึงไม่แสดง</span><% } %>
+          </span>
+        </span>
+        <span class="featured-actions">
+          <% if (index > 0) { %>
+          <form method="post" action="/admin/featured/<%= pick.id %>/move">
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+            <input type="hidden" name="direction" value="up">
+            <button class="icon-btn" type="submit" aria-label="เลื่อน <%= pick.name %> ขึ้น" title="เลื่อนขึ้น">↑</button>
+          </form>
+          <% } else { %><span class="icon-btn is-placeholder" aria-hidden="true"></span><% } %>
+          <% if (index < picks.length - 1) { %>
+          <form method="post" action="/admin/featured/<%= pick.id %>/move">
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+            <input type="hidden" name="direction" value="down">
+            <button class="icon-btn" type="submit" aria-label="เลื่อน <%= pick.name %> ลง" title="เลื่อนลง">↓</button>
+          </form>
+          <% } else { %><span class="icon-btn is-placeholder" aria-hidden="true"></span><% } %>
+          <% if (index > 0) { %>
+          <form method="post" action="/admin/featured/<%= pick.id %>/move">
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+            <input type="hidden" name="direction" value="first">
+            <button class="text-button" type="submit">ตั้งเป็นการ์ดใหญ่</button>
+          </form>
+          <% } %>
+          <form method="post" action="/admin/featured/<%= pick.id %>/remove" data-confirm="“<%= pick.name %>” จะไม่แสดงในส่วนทีมงานชวนไปอีก (สถานที่ยังอยู่ตามเดิม)" data-confirm-title="นำออกจากรายการแนะนำ?" data-confirm-button="นำออก">
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+            <button class="text-button featured-remove" type="submit">นำออก<span class="sr-only"> <%= pick.name %></span></button>
+          </form>
+        </span>
+      </li>
+      <% }) %>
+      <% for (let slot = picks.length; slot < limit; slot += 1) { %>
+      <li class="featured-item is-empty">
+        <span class="drag-handle is-placeholder" aria-hidden="true"></span>
+        <span class="featured-rank" aria-hidden="true"><%= slot + 1 %></span>
+        <span class="featured-empty-text">ช่องว่าง<%= slot === 0 ? ' (การ์ดใหญ่)' : '' %></span>
+      </li>
+      <% } %>
+    </ol>
+
+    <p class="meta featured-drag-hint" data-drag-hint hidden>ลากที่ ⠿ เพื่อย้ายตำแหน่ง ลำดับจะบันทึกทันที</p>
+    <% if (full) { %>
+    <p class="small-note">ครบ <%= limit %> แห่งแล้ว นำออกหนึ่งแห่งก่อนจึงจะเพิ่มใหม่ได้</p>
+    <% } else { %>
+    <%# Every place that can be added, each with its own "add" button. The
+        search box and category filter (site.js) narrow the list as you type;
+        without JavaScript the whole list shows and the buttons still work. %>
+    <div class="featured-picker" data-featured-picker>
+      <h3 class="featured-picker-title">เพิ่มสถานที่ <span class="meta">(ต่อท้ายรายการ)</span></h3>
+      <div class="featured-filters" data-featured-filters hidden>
+        <div class="field">
+          <label for="featured-search">ค้นหาชื่อ หมวดหมู่ หรือที่อยู่</label>
+          <input id="featured-search" type="search" placeholder="เช่น คาเฟ่ ฉลองกรุง" autocomplete="off" data-featured-search>
+        </div>
+        <div class="field">
+          <label for="featured-category">หมวดหมู่</label>
+          <select id="featured-category" data-featured-category>
+            <option value="">ทุกหมวดหมู่</option>
+            <% [...new Map(candidates.map((place) => [place.category.id, place.category.name]))].sort((a, b) => a[1].localeCompare(b[1], 'th')).forEach(([categoryId, name]) => { %>
+            <option value="<%= categoryId %>"><%= name %></option>
+            <% }) %>
+          </select>
+        </div>
+      </div>
+      <p class="meta featured-count" data-featured-count aria-live="polite"><%= candidates.length %> สถานที่ที่เพิ่มได้</p>
+      <ul class="featured-candidates">
+        <% candidates.forEach((place) => { %>
+        <li class="featured-candidate" data-name="<%= (place.name + ' ' + place.category.name + ' ' + (place.address || '')).toLowerCase() %>" data-category="<%= place.category.id %>">
+          <span class="featured-thumb tone-<%= categoryKind(place.category) %>">
+            <% if (place.imagePath) { %>
+            <img src="<%= place.imagePath %>" alt="" loading="lazy" data-fallback="<%= photoFallback(place.category) %>">
+            <% } else { %>
+            <%- icon(categoryIcon(place.category), 20) %>
+            <% } %>
+          </span>
+          <span class="featured-info">
+            <span class="featured-name"><%= place.name %></span>
+            <span class="meta"><%= place.category.name %></span>
+          </span>
+          <form method="post" action="/admin/featured">
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+            <input type="hidden" name="placeId" value="<%= place.id %>">
+            <button class="button button-small button-outline" type="submit"><%- icon('plus', 16) %>เพิ่ม<span class="sr-only"> <%= place.name %></span></button>
+          </form>
+        </li>
+        <% }) %>
+      </ul>
+      <p class="meta featured-none" data-featured-none hidden>ไม่พบสถานที่ที่ตรงกับการค้นหา</p>
+    </div>
+    <% } %>
+  </section>
+</div>
+<%- include('../partials/foot') %>

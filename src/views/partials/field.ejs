@@ -1,5 +1,7 @@
 <%# One labelled form field with its hint and error.
-    Expects: name, label, type, and optionally value, error, hint, autocomplete.
+    Expects: name, label, type, and optionally value, error, hint, autocomplete,
+    and inputName: the name sent with the form when it differs from `name`
+    (which is the element's id; two forms on one page may send the same name).
     A password field also gets a show/hide button (an eye that is closed while
     the password is hidden and opens when it is shown; CSS picks the icon
     from aria-pressed). It is rendered `hidden`
@@ -10,7 +12,7 @@
   <% if (type === 'password') { %><div class="password-wrap"><% } %>
   <input
     id="<%= name %>"
-    name="<%= name %>"
+    name="<%= locals.inputName || name %>"
     type="<%= type %>"
     value="<%= locals.value ?? '' %>"
     <% if (locals.autocomplete) { %>autocomplete="<%= autocomplete %>"<% } %>

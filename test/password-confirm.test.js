@@ -188,8 +188,8 @@ describe('show/hide button on password fields', () => {
     const client = createClient(app);
     await client.register();
     const { text } = await client.get('/me');
-    for (const name of ['currentPassword', 'newPassword', 'confirmNewPassword', 'password']) expect(text).toContain(toggleFor(name));
-    expect(count(text, 'data-password-toggle')).toBe(4);
+    for (const name of ['currentPassword', 'newPassword', 'confirmNewPassword', 'sessionsPassword', 'password']) expect(text).toContain(toggleFor(name));
+    expect(count(text, 'data-password-toggle')).toBe(5);
     expect(text).not.toContain('aria-controls="username"');
     expect(text).toContain('<script src="/js/password.js" defer></script>');
   });

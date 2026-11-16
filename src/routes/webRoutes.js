@@ -74,13 +74,14 @@ router.post('/logout', authController.logout);
 router.get('/me', requireLogin, authController.profile);
 router.post('/me', requireLogin, authController.updateProfile);
 router.post('/me/password', requireLogin, passwordChangeLimiter, authController.changePassword);
+router.post('/me/logout-others', requireLogin, passwordChangeLimiter, authController.logoutOthers);
 router.post('/me/delete', requireLogin, passwordChangeLimiter, authController.deleteAccount);
 
 // Admin
 router.get('/admin', requireLogin, requireAdmin, adminController.dashboard);
 
 // Admin areas. Everything under /admin needs a logged-in admin.
-for (const area of ['submissions', 'places', 'photos', 'moderation', 'users']) {
+for (const area of ['submissions', 'places', 'featured', 'photos', 'moderation', 'users']) {
   router.use('/admin', requireLogin, requireAdmin, require(`./admin/${area}`).web);
 }
 

@@ -1660,6 +1660,115 @@ input[type='checkbox'] {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
 }
+/* Admin tools: a full-width strip under the member cards. */
+.account-admin {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  background: var(--klong-tint);
+  border-color: color-mix(in srgb, var(--klong) 25%, transparent);
+  transition: transform 0.15s, border-color 0.15s;
+}
+.account-admin:hover {
+  border-color: var(--klong);
+  transform: translateY(-2px);
+}
+.account-admin .account-icon {
+  flex: none;
+  color: #fff;
+  background: var(--klong);
+}
+.account-admin-text {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.account-admin-text strong {
+  font-size: 1.15rem;
+  color: var(--klong-deep);
+}
+.account-admin-text span {
+  color: var(--ink-soft);
+  font-size: 0.93rem;
+}
+.account-admin-arrow {
+  flex: none;
+  color: var(--klong);
+}
+/* Account settings: one panel, one row per setting. */
+.account-settings {
+  margin-top: 1.5rem;
+}
+.account-settings-title {
+  margin: 0 0 4px;
+  font-size: 1.2rem;
+}
+.settings-row {
+  display: grid;
+  gap: 12px 32px;
+  padding: 20px 0;
+  border-top: 1px solid var(--line);
+}
+.settings-row:first-of-type {
+  border-top: 0;
+}
+.settings-label h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+.settings-label .meta {
+  margin: 0;
+}
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+/* "Change password": a button first; the boxes appear when it is opened. */
+.settings-reveal > summary {
+  justify-self: start;
+  width: fit-content;
+  list-style: none;
+  cursor: pointer;
+}
+.settings-reveal > summary::-webkit-details-marker {
+  display: none;
+}
+/* With JavaScript the open form has its own "cancel" button (site.js), so
+   the opening button hides; without it, the button stays as the toggle. */
+.settings-reveal.has-cancel[open] > summary {
+  display: none;
+}
+.settings-reveal[open] > summary {
+  margin-bottom: 12px;
+}
+.settings-actions {
+  gap: 10px;
+}
+.settings-reveal > form {
+  animation: settings-open 0.18s ease-out;
+}
+@keyframes settings-open {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-reveal > form { animation: none; }
+}
+.settings-single .field > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+@media (min-width: 700px) {
+  .settings-row {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+}
 .account-card {
   display: block;
   transition:
@@ -3082,4 +3191,242 @@ form[aria-busy='true'] button:not([type]) {
 }
 @media (prefers-reduced-motion: reduce) {
   .confirm-dialog[open] { animation: none; }
+}
+
+/* Admin: "ทีมงานชวนไป" picks (/admin/featured). One row per slot, in the
+   order they appear on the home page; the first is the large card. */
+.featured-top-actions {
+  justify-content: flex-start;
+  margin-bottom: 16px;
+}
+.featured-list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+.featured-item {
+  display: grid;
+  grid-template-columns: 22px 32px 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+}
+.featured-item.is-lead {
+  border: 2px solid var(--klong);
+  background: var(--klong-tint);
+}
+.featured-item.is-muted {
+  opacity: 0.7;
+}
+.featured-item.is-empty {
+  grid-template-columns: 22px 32px 1fr;
+  min-height: 74px;
+  background: transparent;
+  border-style: dashed;
+  color: var(--ink-soft);
+}
+.featured-rank {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--paper-deep);
+  font-weight: 700;
+}
+.is-lead .featured-rank {
+  color: #fff;
+  background: var(--klong);
+}
+.featured-thumb {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 54px;
+  overflow: hidden;
+  color: var(--tone);
+  background: var(--tone-tint);
+  border-radius: 8px;
+}
+.featured-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.featured-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.featured-name {
+  overflow: hidden;
+  color: var(--ink);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.featured-info .meta {
+  margin: 0;
+  font-size: 0.85rem;
+}
+.featured-tag {
+  color: var(--klong-deep);
+}
+.featured-warn {
+  color: var(--brick);
+  font-weight: 600;
+}
+.featured-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px 10px;
+}
+.featured-actions form {
+  margin: 0;
+}
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+.icon-btn:hover {
+  border-color: var(--klong);
+  color: var(--klong-deep);
+}
+.icon-btn.is-placeholder {
+  visibility: hidden;
+}
+.featured-remove {
+  color: var(--brick);
+}
+.featured-empty-text {
+  font-size: 0.92rem;
+}
+.featured-picker-title {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+}
+.featured-picker-title .meta {
+  font-weight: 400;
+}
+.featured-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.featured-filters[hidden] {
+  display: none;
+}
+.featured-count {
+  margin: 0 0 8px;
+}
+/* A scrolling list, so 30+ places do not push the page down. */
+.featured-candidates {
+  display: grid;
+  gap: 6px;
+  max-height: 420px;
+  margin: 0;
+  padding: 2px;
+  overflow-y: auto;
+  list-style: none;
+}
+.featured-candidate {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+}
+.featured-candidate[hidden] {
+  display: none;
+}
+.featured-candidate:hover {
+  border-color: var(--klong);
+}
+.featured-candidate .featured-thumb {
+  width: 56px;
+  height: 42px;
+}
+.featured-candidate form {
+  margin: 0;
+}
+@media (max-width: 640px) {
+  .featured-filters {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .featured-item {
+    grid-template-columns: 22px 32px 60px minmax(0, 1fr);
+  }
+  .featured-thumb {
+    width: 60px;
+    height: 45px;
+  }
+  .featured-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+.section-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+}
+
+/* Dragging the picks (site.js). The handle takes the pointer itself
+   (touch-action: none) so a finger drags the row instead of scrolling. */
+.drag-handle {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 40px;
+  color: var(--ink-soft);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.drag-handle[hidden],
+.drag-handle.is-placeholder {
+  visibility: hidden;
+  display: grid;
+}
+.featured-item.is-dragging {
+  position: relative;
+  z-index: 2;
+  border-color: var(--klong);
+  box-shadow: var(--shadow-lift);
+  cursor: grabbing;
+}
+.featured-item.is-dragging .drag-handle {
+  cursor: grabbing;
+}
+.featured-list.is-saving {
+  opacity: 0.6;
+  pointer-events: none;
+}
+.featured-drag-hint {
+  margin: -8px 0 16px;
 }

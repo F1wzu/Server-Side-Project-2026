@@ -28,6 +28,11 @@
       <h2>สถานที่ที่เผยแพร่ <strong><%= publishedPlaces %></strong></h2>
       <p>เพิ่ม แก้ไข ตั้งเวลาเปิดปิด ปักหมุด และยกเลิกการเผยแพร่</p>
     </a>
+    <a class="panel account-card" href="/admin/featured">
+      <span class="account-icon"><%- icon('heart', 24) %></span>
+      <h2>ทีมงานชวนไป <strong><%= featuredShown %>/<%= featuredLimit %></strong></h2>
+      <p>เลือกและเรียงสถานที่แนะนำบนหน้าแรก</p>
+    </a>
     <a class="panel account-card" href="/admin/reviews">
       <span class="account-icon"><%- icon('star', 24) %></span>
       <h2>รีวิว</h2>

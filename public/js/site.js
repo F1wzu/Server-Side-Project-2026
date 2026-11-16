@@ -664,3 +664,122 @@ document.querySelectorAll('[data-clear-form]').forEach((button) => {
     announce('ล้างฟอร์มแล้ว');
   });
 });
+
+// A settings section opened from a button (the account page's "change
+// password") gets a "cancel" button that closes it again and empties what
+// was typed, then puts focus back on the opening button.
+document.querySelectorAll('details.settings-reveal').forEach((details) => {
+  const summary = details.querySelector('summary');
+  const form = details.querySelector('form');
+  const actions = form?.querySelector('.settings-actions');
+  if (!summary || !actions) return;
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'button button-outline';
+  cancel.textContent = 'ยกเลิก';
+  cancel.addEventListener('click', () => {
+    form.querySelectorAll('input:not([type="hidden"])').forEach((input) => (input.value = ''));
+    details.open = false;
+    summary.focus();
+  });
+  actions.prepend(cancel);
+  details.classList.add('has-cancel');
+  // Opening moves focus to the first box, ready to type.
+  details.addEventListener('toggle', () => {
+    if (details.open) form.querySelector('input:not([type="hidden"])')?.focus();
+  });
+});
+
+// Admin "ทีมงานชวนไป": the list of places to add narrows as the admin types
+// a name (or part of the address) or picks a category.
+document.querySelectorAll('[data-featured-picker]').forEach((picker) => {
+  const filters = picker.querySelector('[data-featured-filters]');
+  const search = picker.querySelector('[data-featured-search]');
+  const category = picker.querySelector('[data-featured-category]');
+  const count = picker.querySelector('[data-featured-count]');
+  const none = picker.querySelector('[data-featured-none]');
+  const items = [...picker.querySelectorAll('.featured-candidate')];
+  if (!filters || !search || !category) return;
+  filters.hidden = false;
+  const update = () => {
+    const words = search.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    let shown = 0;
+    items.forEach((item) => {
+      const match = (!category.value || item.dataset.category === category.value) && words.every((word) => item.dataset.name.includes(word));
+      item.hidden = !match;
+      if (match) shown += 1;
+    });
+    count.textContent = `${shown} สถานที่ที่เพิ่มได้`;
+    none.hidden = shown > 0;
+  };
+  search.addEventListener('input', update);
+  category.addEventListener('change', update);
+});
+
+// Admin "ทีมงานชวนไป": drag a pick by its handle to a new place in the list.
+// Pointer events, so it works with a mouse and with a finger. On release the
+// whole order is saved through the API (PUT /api/v1/admin/featured) and the
+// page reloads to show the new numbers and buttons. The arrow buttons stay
+// for keyboards and for browsers without JavaScript.
+document.querySelectorAll('[data-featured-sortable]').forEach((list) => {
+  const rows = () => [...list.querySelectorAll('.featured-item[data-place-id]')];
+  if (rows().length < 2) return;
+  const token = list.querySelector('input[name="_csrf"]')?.value;
+  list.querySelectorAll('[data-drag-handle]').forEach((handle) => (handle.hidden = false));
+  const hint = document.querySelector('[data-drag-hint]');
+  if (hint) hint.hidden = false;
+
+  let dragging = null;
+  let before = '';
+  const order = () => rows().map((row) => Number(row.dataset.placeId));
+
+  list.addEventListener('pointerdown', (event) => {
+    const handle = event.target.closest('[data-drag-handle]');
+    if (!handle) return;
+    event.preventDefault();
+    dragging = handle.closest('.featured-item');
+    before = order().join(',');
+    dragging.classList.add('is-dragging');
+    handle.setPointerCapture(event.pointerId);
+  });
+
+  list.addEventListener('pointermove', (event) => {
+    if (!dragging) return;
+    // Move the row past whichever neighbour the pointer is now over.
+    const others = rows().filter((row) => row !== dragging);
+    const after = others.find((row) => {
+      const box = row.getBoundingClientRect();
+      return event.clientY < box.top + box.height / 2;
+    });
+    if (after) {
+      if (dragging.nextElementSibling !== after) list.insertBefore(dragging, after);
+    } else {
+      const last = others[others.length - 1];
+      if (last && last.nextElementSibling !== dragging) last.after(dragging);
+    }
+  });
+
+  const finish = async () => {
+    if (!dragging) return;
+    dragging.classList.remove('is-dragging');
+    dragging = null;
+    const placeIds = order();
+    if (placeIds.join(',') === before) return;
+    list.classList.add('is-saving');
+    try {
+      const response = await fetch('/api/v1/admin/featured', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+        credentials: 'same-origin',
+        body: JSON.stringify({ placeIds }),
+      });
+      if (!response.ok) throw new Error('save failed: ' + response.status);
+      announce('บันทึกลำดับแล้ว');
+    } catch {
+      window.alert('บันทึกลำดับไม่สำเร็จ กรุณาลองอีกครั้ง');
+    }
+    window.location.reload();
+  };
+  list.addEventListener('pointerup', finish);
+  list.addEventListener('pointercancel', finish);
+});

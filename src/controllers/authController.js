@@ -2,7 +2,7 @@
 // Page handlers render or redirect; API handlers answer JSON. Both call the
 // same functions in models/user.js, so every rule is written once.
 const userModel = require('../models/user');
-const { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema, deleteAccountSchema } = require('../validation/auth');
+const { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema, deleteAccountSchema, confirmPasswordSchema } = require('../validation/auth');
 const storage = require('../storage');
 const { validate, errorsByField } = require('../utils/validate');
 const safeRedirect = require('../utils/safeRedirect');
@@ -73,8 +73,8 @@ async function logout(req, res) {
 }
 
 // The profile page holds three small forms; each gets its own errors.
-function renderProfile(res, { status = 200, username, usernameErrors = {}, passwordErrors = {}, deleteErrors = {} } = {}) {
-  res.status(status).render('me', { title: 'บัญชีของฉัน', username, usernameErrors, passwordErrors, deleteErrors });
+function renderProfile(res, { status = 200, username, usernameErrors = {}, passwordErrors = {}, sessionsErrors = {}, deleteErrors = {} } = {}) {
+  res.status(status).render('me', { title: 'บัญชีของฉัน', username, usernameErrors, passwordErrors, sessionsErrors, deleteErrors });
 }
 
 // Deletes the account (see userModel.deleteAccount), then its photo files.
@@ -157,6 +157,33 @@ async function changePassword(req, res) {
   }
 }
 
+// Logs out every other device and keeps this one: this browser gets a new
+// session (with the new session version), the rest are deleted. A wrong
+// password is marked like on the password form, so the same throttle counts it.
+async function endOtherDevices(req, res, flash) {
+  const userId = req.user.id;
+  const { password } = validate(confirmPasswordSchema, req.body);
+  try {
+    await userModel.endSessionsWithPassword(userId, password);
+  } catch (err) {
+    if (err.details?.[0]?.field === 'password') res.locals.wrongCurrentPassword = true;
+    throw err;
+  }
+  await startSession(req, userId, flash);
+  await userModel.endOtherSessions(userId, req.sessionID);
+}
+
+// POST /me/logout-others
+async function logoutOthers(req, res) {
+  try {
+    await endOtherDevices(req, res, { type: 'success', text: 'ออกจากระบบอุปกรณ์อื่นทั้งหมดแล้ว อุปกรณ์นี้ยังเข้าสู่ระบบอยู่' });
+    return res.redirect(303, '/me');
+  } catch (err) {
+    if (!isFormError(err)) throw err;
+    return renderProfile(res, { status: err.status, username: req.user.username, sessionsErrors: errorsByField(err) });
+  }
+}
+
 // ---------- API ----------
 
 // GET /api/v1/auth/csrf
@@ -203,6 +230,12 @@ async function apiChangePassword(req, res) {
   res.status(204).end();
 }
 
+// POST /api/v1/me/logout-others  (needs `password`)
+async function apiLogoutOthers(req, res) {
+  await endOtherDevices(req, res);
+  res.status(204).end();
+}
+
 // DELETE /api/v1/me  (needs `password`)
 async function apiDeleteAccount(req, res) {
   await deleteOwnAccount(req, res);
@@ -211,6 +244,8 @@ async function apiDeleteAccount(req, res) {
 }
 
 module.exports = {
+  logoutOthers,
+  apiLogoutOthers,
   showRegister,
   register,
   showLogin,

@@ -25,37 +25,73 @@
       <h2>คำขอของฉัน</h2>
       <p>ติดตามสถานที่ที่คุณแนะนำ</p>
     </a>
-    <% if (currentUser.role === 'admin') { %>
-    <a class="panel account-card" href="/admin">
-      <span class="account-icon"><%- icon('shield', 24) %></span>
-      <h2>งานผู้ดูแล</h2>
-      <p>ตรวจคำขอ จัดการสถานที่ รีวิว และหมวดหมู่</p>
-    </a>
-    <% } %>
   </div>
 
-  <div class="account-forms">
-    <section class="panel" aria-labelledby="username-heading">
-      <h2 id="username-heading">แก้ไขชื่อที่แสดง</h2>
-      <form method="post" action="/me" class="stack-form" novalidate>
-        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-        <%- include('partials/field', { name: 'username', label: 'ชื่อที่แสดง', type: 'text', value: username, error: usernameErrors.username, hint: 'ชื่อที่จะแสดงคู่กับรีวิวของคุณ (3–50 ตัวอักษร)', autocomplete: 'nickname' }) %>
-        <button type="submit" class="button button-primary">บันทึกชื่อ</button>
-      </form>
-    </section>
+  <% if (currentUser.role === 'admin') { %>
+  <%# Its own strip under the member cards: a different area, not a fourth card. %>
+  <a class="panel account-admin" href="/admin">
+    <span class="account-icon"><%- icon('shield', 24) %></span>
+    <span class="account-admin-text">
+      <strong>งานผู้ดูแล</strong>
+      <span>ตรวจคำขอ จัดการสถานที่ รีวิว และหมวดหมู่</span>
+    </span>
+    <span class="account-admin-arrow" aria-hidden="true"><%- icon('arrow', 20) %></span>
+  </a>
+  <% } %>
 
-    <section class="panel" aria-labelledby="password-heading">
-      <h2 id="password-heading">เปลี่ยนรหัสผ่าน</h2>
-      <p class="meta">เมื่อเปลี่ยนแล้ว อุปกรณ์อื่นที่เข้าสู่ระบบด้วยบัญชีนี้จะถูกออกจากระบบ</p>
-      <form method="post" action="/me/password" class="stack-form" novalidate>
+  <%# One settings panel: each setting is a row (what it is on the left, the
+      form on the right), so the two forms never sit side by side at
+      different heights. %>
+  <section class="panel account-settings" aria-labelledby="settings-heading">
+    <h2 id="settings-heading" class="account-settings-title">ตั้งค่าบัญชี</h2>
+
+    <div class="settings-row">
+      <div class="settings-label">
+        <h3 id="username-heading">ชื่อที่แสดง</h3>
+        <p class="meta">ชื่อที่จะแสดงคู่กับรีวิวของคุณ</p>
+      </div>
+      <%# One box under a heading that already names it: its label is kept for screen readers only. %>
+      <form method="post" action="/me" class="stack-form settings-single" novalidate aria-labelledby="username-heading">
         <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-        <%- include('partials/field', { name: 'currentPassword', label: 'รหัสผ่านเดิม', type: 'password', error: passwordErrors.currentPassword, autocomplete: 'current-password' }) %>
-        <%- include('partials/field', { name: 'newPassword', label: 'รหัสผ่านใหม่', type: 'password', error: passwordErrors.newPassword, hint: 'อย่างน้อย 8 ตัวอักษร', autocomplete: 'new-password' }) %>
-        <%- include('partials/field', { name: 'confirmNewPassword', label: 'ยืนยันรหัสผ่านใหม่', type: 'password', error: passwordErrors.confirmNewPassword, autocomplete: 'new-password' }) %>
-        <button type="submit" class="button button-primary">เปลี่ยนรหัสผ่าน</button>
+        <%- include('partials/field', { name: 'username', label: 'ชื่อที่แสดง', type: 'text', value: username, error: usernameErrors.username, hint: '3–50 ตัวอักษร', autocomplete: 'nickname' }) %>
+        <div class="settings-actions"><button type="submit" class="button button-primary">บันทึกชื่อ</button></div>
       </form>
-    </section>
-  </div>
+    </div>
+
+    <div class="settings-row">
+      <div class="settings-label">
+        <h3 id="password-heading">รหัสผ่าน</h3>
+        <p class="meta">เมื่อเปลี่ยนแล้ว อุปกรณ์อื่นที่เข้าสู่ระบบด้วยบัญชีนี้จะถูกออกจากระบบ</p>
+      </div>
+      <%# Closed until the member asks for it (opens again by itself when the
+          last attempt had a mistake, so the error is shown). Works without JavaScript. %>
+      <details class="settings-reveal"<%- Object.keys(passwordErrors).length ? ' open' : '' %>>
+        <summary class="button button-outline">เปลี่ยนรหัสผ่าน</summary>
+        <form method="post" action="/me/password" class="stack-form" novalidate aria-labelledby="password-heading">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <%- include('partials/field', { name: 'currentPassword', label: 'รหัสผ่านเดิม', type: 'password', error: passwordErrors.currentPassword, autocomplete: 'current-password' }) %>
+          <%- include('partials/field', { name: 'newPassword', label: 'รหัสผ่านใหม่', type: 'password', error: passwordErrors.newPassword, hint: 'อย่างน้อย 8 ตัวอักษร', autocomplete: 'new-password' }) %>
+          <%- include('partials/field', { name: 'confirmNewPassword', label: 'ยืนยันรหัสผ่านใหม่', type: 'password', error: passwordErrors.confirmNewPassword, autocomplete: 'new-password' }) %>
+          <div class="settings-actions"><button type="submit" class="button button-primary">เปลี่ยนรหัสผ่าน</button></div>
+        </form>
+      </details>
+    </div>
+
+    <div class="settings-row">
+      <div class="settings-label">
+        <h3 id="sessions-heading">อุปกรณ์ที่เข้าสู่ระบบ</h3>
+        <p class="meta">ออกจากระบบทุกเครื่อง ยกเว้นเครื่องนี้</p>
+      </div>
+      <details class="settings-reveal"<%- Object.keys(sessionsErrors).length ? ' open' : '' %>>
+        <summary class="button button-outline">ออกจากระบบอุปกรณ์อื่น</summary>
+        <form method="post" action="/me/logout-others" class="stack-form" novalidate aria-labelledby="sessions-heading">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <%- include('partials/field', { name: 'sessionsPassword', inputName: 'password', label: 'ยืนยันด้วยรหัสผ่าน', type: 'password', error: sessionsErrors.password, autocomplete: 'current-password' }) %>
+          <div class="settings-actions"><button type="submit" class="button button-primary">ออกจากระบบอุปกรณ์อื่น</button></div>
+        </form>
+      </details>
+    </div>
+  </section>
 
   <form class="logout-form" action="/logout" method="post">
     <input type="hidden" name="_csrf" value="<%= csrfToken() %>">

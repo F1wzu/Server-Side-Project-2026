@@ -83,6 +83,19 @@ async function changePassword(id, { currentPassword, newPassword }) {
   await prisma.user.update({ where: { id }, data: { passwordHash, sessionVersion: { increment: 1 } } });
 }
 
+// "Log out other devices": checks the password, then raises the session
+// version, which ends every session made before this moment (see
+// middleware/auth.js). The caller gives this browser a fresh session with the
+// new version and deletes the other session rows.
+async function endSessionsWithPassword(id, password) {
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) throw AppError.notFound();
+  if (!(await bcrypt.compare(password, user.passwordHash))) {
+    throw new AppError(400, 'VALIDATION_ERROR', 'รหัสผ่านไม่ถูกต้อง', [{ field: 'password', message: 'รหัสผ่านไม่ถูกต้อง' }]);
+  }
+  await prisma.user.update({ where: { id }, data: { sessionVersion: { increment: 1 } } });
+}
+
 // Logs the account out everywhere except the session that is kept.
 // Used after a password change, so a stolen session stops working.
 function endOtherSessions(id, keepSessionId) {
@@ -164,4 +177,4 @@ function emailExists(email) {
   return prisma.user.findUnique({ where: { email }, select: { id: true } }).then(Boolean);
 }
 
-module.exports = { register, authenticate, findById, findForSession, updateUsername, changePassword, endOtherSessions, createOrPromoteAdmin, emailExists, deleteAccount, DELETED_NAME };
+module.exports = { register, authenticate, findById, findForSession, updateUsername, changePassword, endSessionsWithPassword, endOtherSessions, createOrPromoteAdmin, emailExists, deleteAccount, DELETED_NAME };

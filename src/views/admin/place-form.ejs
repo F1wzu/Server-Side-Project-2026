@@ -48,6 +48,7 @@
           <label for="featuredOrder">ลำดับแนะนำบนหน้าแรก (1-999)</label>
           <input id="featuredOrder" name="featuredOrder" inputmode="numeric" maxlength="3" value="<%= values.featuredOrder ?? '' %>" placeholder="เว้นว่างถ้าไม่แนะนำ" <%- errors.featuredOrder ? 'aria-invalid="true"' : '' %>>
           <% if (errors.featuredOrder) { %><p class="field-error"><%= errors.featuredOrder %></p><% } %>
+          <small>จัดลำดับทั้งหมดได้ง่ายกว่าที่หน้า <a class="text-link" href="/admin/featured">ทีมงานชวนไป</a></small>
         </div>
       </div>
       <% if (editing) { %><p class="meta">คะแนนรีวิวคำนวณจากรีวิวของสมาชิก แก้ไขที่นี่ไม่ได้</p><% } %>
