@@ -10,11 +10,16 @@ const { storePhotos } = require('../utils/photo');
 const storage = require('../storage');
 const { setFlash } = require('../middleware/flash');
 const AppError = require('../utils/AppError');
+const { TEMPLATES, KEYS, templatePath, templateKeyOf } = require('../utils/placeTemplates');
 
 const PHOTO_NOT_FOUND = 'ไม่พบรูปนี้';
 
 const directionSchema = z.object({
   direction: z.enum(['up', 'down'], { error: 'ทิศทางต้องเป็น up หรือ down' }),
+});
+
+const templateSchema = z.object({
+  template: z.enum(KEYS, { error: 'กรุณาเลือกภาพประกอบ' }),
 });
 
 // The id from the URL, or a 404.
@@ -81,8 +86,22 @@ function formAction(work, successText) {
 async function show(req, res) {
   const place = await adminPlaceModel.findById(placeId(req)); // 404 when unknown
   const count = (place.imagePath ? 1 : 0) + place.photos.length;
-  res.render('admin/place-photos', { title: `รูปภาพ ${place.name}`, place, count, max: placePhotoModel.MAX_PHOTOS });
+  res.render('admin/place-photos', {
+    title: `รูปภาพ ${place.name}`,
+    place,
+    count,
+    max: placePhotoModel.MAX_PHOTOS,
+    templates: TEMPLATES.map((template) => ({ ...template, path: templatePath(template.key) })),
+    currentTemplate: templateKeyOf(place.imagePath),
+  });
 }
+
+// The chosen illustration's path; the key is checked against the fixed list.
+const chosenTemplate = (body) => templatePath(validate(templateSchema, body).template);
+
+const useTemplate = formAction(async (req, id) => {
+  await placePhotoModel.useTemplate(id, chosenTemplate(req.body));
+}, 'ตั้งภาพประกอบเป็นรูปหลักแล้ว');
 
 const add = formAction(async (req, id) => {
   await addUploaded(id, req.photoFiles ?? []);
@@ -146,4 +165,25 @@ async function apiRemoveCover(req, res) {
   res.json({ data: result.gallery });
 }
 
-module.exports = { show, add, makeCover, move, remove, removeCover, apiAdd, apiMakeCover, apiMove, apiRemove, apiRemoveCover };
+// PUT /api/v1/admin/places/:id/cover/template  { template: 'cafe' | ... }
+async function apiUseTemplate(req, res) {
+  const id = placeId(req);
+  const result = await placePhotoModel.useTemplate(id, chosenTemplate(req.body));
+  res.json({ data: result.gallery });
+}
+
+module.exports = {
+  show,
+  add,
+  makeCover,
+  move,
+  remove,
+  removeCover,
+  useTemplate,
+  apiAdd,
+  apiMakeCover,
+  apiMove,
+  apiRemove,
+  apiRemoveCover,
+  apiUseTemplate,
+};

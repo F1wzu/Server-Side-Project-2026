@@ -1,4 +1,6 @@
 // Functions and labels available to every EJS template (added in app.js).
+const { fallbackFor } = require('../utils/placeTemplates');
+
 const paths = {
   pin: '<path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
   search: '<circle cx="10.8" cy="10.8" r="7.3"/><path d="m16 16 5 5"/>',
@@ -58,6 +60,8 @@ const kinds = {
 };
 const categoryKind = (category) => kinds[category?.name]?.[0] || 'other';
 const categoryIcon = (category) => kinds[category?.name]?.[1] || 'pin';
+// The illustration a photo falls back to when it cannot be loaded (public/js/site.js).
+const photoFallback = (category) => fallbackFor(categoryKind(category));
 
 const weekdayLabels = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
 
@@ -91,4 +95,4 @@ function mapsUrl(place) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.name} ${place.address}`)}`;
 }
 
-module.exports = { icon, isIllustration, categoryKind, categoryIcon, weekdayLabels, date, rating, hoursLabel, distanceLabel, openLabel, mapsUrl };
+module.exports = { icon, isIllustration, categoryKind, categoryIcon, photoFallback, weekdayLabels, date, rating, hoursLabel, distanceLabel, openLabel, mapsUrl };

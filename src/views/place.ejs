@@ -44,14 +44,14 @@
         <div class="gallery-strip" data-gallery-strip tabindex="0" role="region" aria-label="รูปของ <%= place.name %> <%= place.gallery.length %> รูป เลื่อนซ้ายขวาเพื่อดู">
           <% place.gallery.forEach((path, index) => { %>
           <figure class="detail-image gallery-slide tone-<%= categoryKind(place.category) %>" id="photo-<%= index + 1 %>">
-            <img src="<%= path %>" alt="<%= isIllustration(path) ? 'ภาพประกอบหมวด' + place.category.name : place.name + ' รูปที่ ' + (index + 1) %>"<%- index ? ' loading="lazy"' : '' %>>
+            <img src="<%= path %>" alt="<%= isIllustration(path) ? 'ภาพประกอบหมวด' + place.category.name : place.name + ' รูปที่ ' + (index + 1) %>"<%- index ? ' loading="lazy"' : '' %> data-fallback="<%= photoFallback(place.category) %>">
             <span class="image-note" aria-hidden="true"><%= index + 1 %> / <%= place.gallery.length %></span>
           </figure>
           <% }) %>
         </div>
         <ol class="gallery-thumbs" aria-label="เลือกรูป">
           <% place.gallery.forEach((path, index) => { %>
-          <li><a href="#photo-<%= index + 1 %>" data-gallery-thumb<%- index ? '' : ' aria-current="true"' %>><img src="<%= path %>" alt="" loading="lazy"><span class="sr-only">รูปที่ <%= index + 1 %> จาก <%= place.gallery.length %></span></a></li>
+          <li><a href="#photo-<%= index + 1 %>" data-gallery-thumb<%- index ? '' : ' aria-current="true"' %>><img src="<%= path %>" alt="" loading="lazy" data-fallback="<%= photoFallback(place.category) %>"><span class="sr-only">รูปที่ <%= index + 1 %> จาก <%= place.gallery.length %></span></a></li>
           <% }) %>
         </ol>
       </div>
@@ -61,7 +61,7 @@
         <img src="<%= place.imagePath %>" alt="ภาพประกอบหมวด<%= place.category.name %> ไม่ใช่ภาพถ่ายของสถานที่จริง">
         <span class="image-note" aria-hidden="true">ภาพประกอบ</span>
         <% } else if (place.imagePath) { %>
-        <img src="<%= place.imagePath %>" alt="<%= place.name %>">
+        <img src="<%= place.imagePath %>" alt="<%= place.name %>" data-fallback="<%= photoFallback(place.category) %>">
         <% } else { %>
         <span class="image-placeholder"><%- icon(categoryIcon(place.category), 48) %></span>
         <% } %>

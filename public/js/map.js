@@ -52,8 +52,11 @@
     const lngInput = form.elements.namedItem('longitude');
     const bounds = JSON.parse(element.dataset.bounds);
     const area = L.latLngBounds([bounds.minLat, bounds.minLng], [bounds.maxLat, bounds.maxLng]);
-    // Half-step zoom so the district can fill the picker snugly.
-    const map = L.map(element, { maxBounds: area.pad(0.3), zoomSnap: 0.5, ...touchOptions });
+    // Half-step zoom so the district can fill the picker snugly. The picker
+    // sits in the middle of a long form, so the mouse wheel scrolls the page
+    // (the + and − buttons still zoom), and the map cannot zoom out past the
+    // district's surroundings.
+    const map = L.map(element, { maxBounds: area.pad(0.3), minZoom: 10, zoomSnap: 0.5, scrollWheelZoom: false, ...touchOptions });
     touchHint(element);
     tiles().addTo(map);
     // The district's real border, so a member sees where a pin is accepted

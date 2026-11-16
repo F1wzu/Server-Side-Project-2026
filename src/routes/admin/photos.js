@@ -32,11 +32,13 @@ web.post('/places/:id/photos/:photoId/cover', controller.makeCover);
 web.post('/places/:id/photos/:photoId/move', controller.move);
 web.post('/places/:id/photos/:photoId/delete', controller.remove);
 web.post('/places/:id/cover/delete', controller.removeCover);
+web.post('/places/:id/cover/template', controller.useTemplate);
 
 api.post('/places/:id/photos', withPhotosApi, controller.apiAdd);
 api.post('/places/:id/photos/:photoId/cover', controller.apiMakeCover);
 api.post('/places/:id/photos/:photoId/move', controller.apiMove);
 api.delete('/places/:id/photos/:photoId', controller.apiRemove);
 api.delete('/places/:id/cover', controller.apiRemoveCover);
+api.put('/places/:id/cover/template', controller.apiUseTemplate);
 
 module.exports = { web, api };

@@ -33,6 +33,25 @@
     <% } %>
   </section>
 
+  <section class="panel" aria-labelledby="template-heading">
+    <h2 id="template-heading">ใช้ภาพประกอบเป็นรูปหลัก</h2>
+    <p class="meta">ยังไม่มีรูปจริง หรือรูปเดิมแสดงไม่ได้ เลือกภาพประกอบที่ใกล้กับสถานที่นี้ได้<% if (place.imagePath && !currentTemplate) { %> รูปหลักเดิมจะย้ายไปอยู่ท้าย "รูปอื่น" ไม่ถูกลบ<% } %></p>
+    <form method="post" action="/admin/places/<%= place.id %>/cover/template" class="stack-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <fieldset class="template-picker">
+        <legend class="sr-only">ภาพประกอบ</legend>
+        <% templates.forEach((template) => { %>
+        <label class="template-option">
+          <input type="radio" name="template" value="<%= template.key %>" required<%= template.key === currentTemplate ? ' checked' : '' %>>
+          <img src="<%= template.path %>" alt="" loading="lazy">
+          <span><%= template.label %><% if (template.key === currentTemplate) { %> · ใช้อยู่<% } %></span>
+        </label>
+        <% }) %>
+      </fieldset>
+      <button class="button button-primary" type="submit">ใช้ภาพที่เลือกเป็นรูปหลัก</button>
+    </form>
+  </section>
+
   <section class="panel" aria-labelledby="others-heading">
     <h2 id="others-heading">รูปอื่น</h2>
     <% if (others.length === 0) { %>

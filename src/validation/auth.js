@@ -38,32 +38,44 @@ const acceptPolicy = z.preprocess(
 // controller fills in '' when it is missing), and whenever it is sent it
 // must match. `field` is the confirm field, `source` the one it repeats.
 const confirmation = z.string({ error: 'กรุณายืนยันรหัสผ่านอีกครั้ง' }).optional();
-const checkConfirmation = (field, source) => (value, ctx) => {
-  if (value[field] === undefined) return;
-  if (value[field] === '') ctx.addIssue({ code: 'custom', path: [field], message: 'กรุณายืนยันรหัสผ่านอีกครั้ง' });
-  else if (value[field] !== value[source]) ctx.addIssue({ code: 'custom', path: [field], message: 'รหัสผ่านทั้งสองช่องไม่ตรงกัน' });
+// Zod normally skips object-level checks while any field has an error, so a
+// mismatch only showed up on a second submit (after the member had retyped
+// both passwords). `when` runs the check whenever the confirm field itself is
+// a string, so every problem is listed on the first try.
+const withConfirmation = (schema, field, source) => {
+  const when = ({ value }) => value !== null && typeof value === 'object' && typeof value[field] === 'string';
+  return schema
+    .refine((value) => value[field] !== '', { path: [field], message: 'กรุณายืนยันรหัสผ่านอีกครั้ง', when })
+    .refine((value) => value[field] === '' || value[field] === value[source], {
+      path: [field],
+      message: 'รหัสผ่านทั้งสองช่องไม่ตรงกัน',
+      when,
+    });
 };
 
 // The confirm field is dropped after the check, so it never reaches the model.
-const registerSchema = z
-  .object({ username, email, password: newPassword, acceptPolicy, confirmPassword: confirmation })
-  .superRefine(checkConfirmation('confirmPassword', 'password'))
-  .transform(({ confirmPassword, ...account }) => account);
+const registerSchema = withConfirmation(
+  z.object({ username, email, password: newPassword, acceptPolicy, confirmPassword: confirmation }),
+  'confirmPassword',
+  'password'
+).transform(({ confirmPassword, ...account }) => account);
 
 const updateProfileSchema = z.object({ username });
 
-const changePasswordSchema = z
-  .object({
-    currentPassword: z.string({ error: 'กรุณากรอกรหัสผ่านเดิม' }).min(1, 'กรุณากรอกรหัสผ่านเดิม').max(1000, 'รหัสผ่านเดิมไม่ถูกต้อง'),
-    newPassword,
-    confirmNewPassword: confirmation,
-  })
-  .refine((value) => value.newPassword !== value.currentPassword, {
-    path: ['newPassword'],
-    message: 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม',
-  })
-  .superRefine(checkConfirmation('confirmNewPassword', 'newPassword'))
-  .transform(({ confirmNewPassword, ...passwords }) => passwords);
+const changePasswordSchema = withConfirmation(
+  z
+    .object({
+      currentPassword: z.string({ error: 'กรุณากรอกรหัสผ่านเดิม' }).min(1, 'กรุณากรอกรหัสผ่านเดิม').max(1000, 'รหัสผ่านเดิมไม่ถูกต้อง'),
+      newPassword,
+      confirmNewPassword: confirmation,
+    })
+    .refine((value) => value.newPassword !== value.currentPassword, {
+      path: ['newPassword'],
+      message: 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม',
+    }),
+  'confirmNewPassword',
+  'newPassword'
+).transform(({ confirmNewPassword, ...passwords }) => passwords);
 
 // Login does not repeat the password rules: any wrong value gets the same answer.
 const loginSchema = z.object({

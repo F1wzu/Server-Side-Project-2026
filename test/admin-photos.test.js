@@ -514,3 +514,86 @@ describe('where the gallery shows', () => {
     expect(all.body.data.find((p) => p.id === withCover.id).hasPhoto).toBe(true);
   });
 });
+
+describe('ready-made illustration as the cover', () => {
+  const templateUrl = (placeId) => `/api/v1/admin/places/${placeId}/cover/template`;
+
+  test('a place without photos gets the chosen illustration as its cover', async () => {
+    const place = await makePlace();
+    const res = await admin.put(templateUrl(place.id), { template: 'cafe' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.cover).toBe('/images/places/cafe.svg');
+    expect(await dbCover(place.id)).toBe('/images/places/cafe.svg');
+  });
+
+  test('a real cover moves to the end of the gallery instead of being deleted', async () => {
+    const { place } = await placeWithPhotos(1);
+    const oldCover = await dbCover(place.id);
+    const res = await admin.put(templateUrl(place.id), { template: 'temple' });
+    expect(res.status).toBe(200);
+    expect(await dbCover(place.id)).toBe('/images/places/temple.svg');
+    const photos = await dbPhotos(place.id);
+    expect(photos.map((photo) => photo.position)).toEqual([0, 1]);
+    expect(photos[1].imagePath).toBe(oldCover);
+    expect(uploadExists(oldCover)).toBe(true);
+  });
+
+  test('swapping one illustration for another adds nothing to the gallery', async () => {
+    const place = await makePlace({ imagePath: '/images/places/park.svg' });
+    expect((await admin.put(templateUrl(place.id), { template: 'nature' })).status).toBe(200);
+    expect(await dbCover(place.id)).toBe('/images/places/nature.svg');
+    expect(await dbPhotos(place.id)).toHaveLength(0);
+  });
+
+  test('a full gallery with a real cover is refused, nothing changes', async () => {
+    const { place } = await placeWithPhotos(9);
+    const cover = await dbCover(place.id);
+    const res = await admin.put(templateUrl(place.id), { template: 'cafe' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    expect(await dbCover(place.id)).toBe(cover);
+  });
+
+  test.each([['../secret'], ['CAFE'], [''], [null]])('an unknown template (%p) is refused with 400', async (template) => {
+    const place = await makePlace();
+    const res = await admin.put(templateUrl(place.id), { template });
+    expect(res.status).toBe(400);
+    expect(await dbCover(place.id)).toBeNull();
+  });
+
+  test('a member gets 403, an unknown place 404', async () => {
+    const place = await makePlace();
+    expect((await alice.put(templateUrl(place.id), { template: 'cafe' })).status).toBe(403);
+    expect((await admin.put(templateUrl(999999), { template: 'cafe' })).status).toBe(404);
+  });
+
+  test('the page shows the picker with the current choice; the form redirects with a flash', async () => {
+    const place = await makePlace({ imagePath: '/images/places/market.svg' });
+    const page = await admin.get(`/admin/places/${place.id}/photos`);
+    expect(page.text).toContain(`action="/admin/places/${place.id}/cover/template"`);
+    expect(page.text).toMatch(/value="market" required checked/);
+    expect((page.text.match(/name="template"/g) || []).length).toBe(11);
+
+    const res = await admin.postForm(`/admin/places/${place.id}/cover/template`, { template: 'dining' });
+    expect(res.status).toBe(303);
+    expect(res.headers.location).toBe(`/admin/places/${place.id}/photos`);
+    expect(await dbCover(place.id)).toBe('/images/places/dining.svg');
+    const after = await admin.get(`/admin/places/${place.id}/photos`);
+    expect(after.text).toContain('ตั้งภาพประกอบเป็นรูปหลักแล้ว');
+  });
+
+  test('every template file exists', () => {
+    const { TEMPLATES, templatePath } = require('../src/utils/placeTemplates');
+    for (const { key } of TEMPLATES) expect(fs.existsSync(path.join(__dirname, '..', 'public', templatePath(key)))).toBe(true);
+  });
+});
+
+describe('a broken place photo falls back to an illustration', () => {
+  test('cards and the place page carry a fallback picture for the category', async () => {
+    const place = await makePlace({ imagePath: '/uploads/missing-on-this-computer.webp' });
+    const page = await createClient(app).get(`/places/${place.id}`);
+    expect(page.text).toContain('data-fallback="/images/places/cafe.svg"');
+    const list = await createClient(app).get('/places');
+    expect(list.text).toContain('data-fallback="/images/places/cafe.svg"');
+  });
+});

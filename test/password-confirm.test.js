@@ -55,6 +55,13 @@ describe('sign-up form asks for the password twice', () => {
     expect(await prisma.user.count()).toBe(0);
   });
 
+  test('a mismatch is reported together with other errors, not on a second submit', async () => {
+    const res = await rawForm(createClient(app), '/register', { ...account, confirmPassword: 'password124' });
+    expect(res.status).toBe(400);
+    expect(res.text).toContain('id="acceptPolicy-error"');
+    expect(res.text).toContain('รหัสผ่านทั้งสองช่องไม่ตรงกัน');
+  });
+
   test('matching passwords create the account, and that password logs in', async () => {
     const res = await rawForm(createClient(app), '/register', { ...account, acceptPolicy: 'on', confirmPassword: 'password123' });
     expect(res.status).toBe(303);
@@ -81,6 +88,13 @@ describe('sign-up through the API', () => {
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
     expect(res.body.error.details.map((detail) => detail.field)).toContain('confirmPassword');
     expect(await prisma.user.count()).toBe(0);
+  });
+
+  test('a mismatch is listed alongside a short password and a bad email', async () => {
+    const res = await createClient(app).post('/api/v1/auth/register', { ...account, email: 'nope', password: 'short', acceptPolicy: true, confirmPassword: 'other' });
+    expect(res.status).toBe(400);
+    const fields = res.body.error.details.map((detail) => detail.field);
+    expect(fields).toEqual(expect.arrayContaining(['email', 'password', 'confirmPassword']));
   });
 });
 

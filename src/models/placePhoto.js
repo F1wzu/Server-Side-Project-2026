@@ -10,6 +10,7 @@
 const prisma = require('../config/db');
 const AppError = require('../utils/AppError');
 const { unusedUploads } = require('./photoUsage');
+const { isUpload } = require('../storage/paths');
 
 const MAX_PHOTOS = 10;
 // Higher than any real position (the table allows 0..32767, we use <= 9).
@@ -133,4 +134,21 @@ async function removeCover(placeId) {
   });
 }
 
-module.exports = { add, makeCover, move, remove, removeCover, MAX_PHOTOS };
+// Makes a ready-made illustration the cover. A real photo that was the cover
+// is not thrown away: it moves to the end of the gallery, where the admin can
+// still delete it. The illustration then counts as one of the 10 photos.
+async function useTemplate(placeId, templatePath) {
+  return change(placeId, async (tx) => {
+    const { cover, photos } = await readGallery(tx, placeId);
+    if (cover === templatePath) return [];
+    if (isUpload(cover) && photos.length + 2 > MAX_PHOTOS) {
+      const message = `รูปเต็ม ${MAX_PHOTOS} รูปแล้ว ลบรูปอื่นก่อนจึงจะใช้ภาพประกอบได้`;
+      throw new AppError(400, 'VALIDATION_ERROR', message, [{ field: 'template', message }]);
+    }
+    await tx.place.update({ where: { id: placeId }, data: { imagePath: templatePath } });
+    if (isUpload(cover)) await tx.placePhoto.create({ data: { placeId, imagePath: cover, position: photos.length } });
+    return [];
+  });
+}
+
+module.exports = { add, makeCover, move, remove, removeCover, useTemplate, MAX_PHOTOS };

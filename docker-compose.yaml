@@ -1,8 +1,16 @@
-# PostgreSQL for local development.
-#   docker compose up -d      start the database
-#   docker compose down       stop it (data is kept)
-#   docker compose down -v    stop it and delete the data
-# The password comes from POSTGRES_PASSWORD in .env.
+# Two ways to use this file.
+#
+# 1. Only PostgreSQL, while the app runs with `npm run dev` (the usual way):
+#      docker compose up -d      start the database
+#      docker compose down       stop it (data is kept)
+#      docker compose down -v    stop it and delete the data
+#
+# 2. The whole site in containers, app + PostgreSQL (nothing but Docker needed):
+#      docker compose --profile app up -d --build    build and start, then open http://localhost:3000
+#      docker compose --profile app logs -f app      watch the app's log
+#      docker compose --profile app down             stop both (data is kept)
+#
+# POSTGRES_PASSWORD and SESSION_SECRET come from .env.
 services:
   db:
     image: postgres:17-alpine
@@ -24,5 +32,41 @@ services:
       timeout: 3s
       retries: 10
 
+  # The site itself, built from the Dockerfile. It only starts when the "app"
+  # profile is asked for, so plain `docker compose up -d` still means "just
+  # the database".
+  app:
+    profiles: ["app"]
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        # Wait until PostgreSQL accepts connections, not merely until it starts.
+        condition: service_healthy
+    environment:
+      # This is a local demonstration over plain http. In production the app
+      # insists on an https address and only sets the login cookie over https,
+      # so nobody could log in here.
+      NODE_ENV: development
+      PORT: 3000
+      # "db" is the database container's name on the network Compose creates;
+      # inside a container, localhost would mean the app container itself.
+      DATABASE_URL: postgresql://painaidee:${POSTGRES_PASSWORD}@db:5432/painaidee_dev
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      # Photos stay in the uploads volume below, whatever .env says for
+      # `npm run dev`; the Cloudinary key is deliberately not passed in.
+      STORAGE_DRIVER: local
+    ports:
+      # Reachable from this computer only. Set APP_PORT in .env if 3000 is taken
+      # (for example by `npm run dev`).
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    volumes:
+      - uploads:/app/storage/uploads
+    # Create or update the tables, load the starting places into an empty
+    # database (a second run adds nothing), then start the site. `exec` hands
+    # the stop signal to node so it shuts down cleanly.
+    command: ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && exec node src/server.js"]
+
 volumes:
   db-data:
+  uploads:

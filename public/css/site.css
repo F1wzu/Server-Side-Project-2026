@@ -922,6 +922,16 @@ textarea {
   resize: vertical;
   line-height: 1.6;
 }
+/* The browser's own arrow sits almost on the right border; draw our own with
+   room around it. (img-src allows data: in the CSP.) */
+select:not([multiple]) {
+  appearance: none;
+  padding-right: 44px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%234f5c57' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 14px;
+}
 input:not([type='checkbox']):focus,
 select:focus,
 textarea:focus {
@@ -1003,6 +1013,12 @@ input[type='checkbox'] {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+/* Time boxes have a wide built-in minimum; let them share the row so the
+   closing time does not stick out of the card on a phone. */
+.hours-range input {
+  flex: 1 1 0;
+  min-width: 0;
 }
 .hours-day input:disabled {
   opacity: 0.45;
@@ -2284,6 +2300,31 @@ form[aria-busy='true'] button:not([type]) {
   display: inline;
   margin-left: 8px;
 }
+/* Admin place list: short yes/no cells stay on one line, and the actions are
+   one row of equal pill buttons instead of links wrapping around a button. */
+.cell-nowrap {
+  white-space: nowrap;
+}
+.row-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+}
+.row-actions .button-small {
+  min-height: 36px;
+  padding: 4px 12px;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+.row-actions .inline-form {
+  margin-left: 0;
+}
+@media (pointer: coarse) {
+  .row-actions .button-small {
+    min-height: 44px;
+  }
+}
 
 /* ---------- Star rating input (partials/star-input.ejs) ---------- */
 .star-input {
@@ -2537,6 +2578,53 @@ form[aria-busy='true'] button:not([type]) {
   display: none;
 }
 .photo-admin-actions form { margin: 0; }
+/* Ready-made illustrations to choose as the cover: a grid of radio cards. */
+.template-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.template-option {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-small);
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-align: center;
+}
+.template-option img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+}
+/* The radio stays in the tab order (arrow keys move between options) but
+   the whole card shows the choice. */
+.template-option input {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--klong);
+}
+.template-option:has(input:checked) {
+  background: var(--klong-tint);
+  border-color: var(--klong);
+  font-weight: 600;
+}
+.template-option:has(input:focus-visible) {
+  outline: 3px solid var(--klong-deep);
+  outline-offset: 2px;
+}
 .photo-admin-delete {
   color: var(--brick);
 }

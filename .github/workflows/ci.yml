@@ -60,3 +60,68 @@ jobs:
       # Fails the job on a known high or critical problem in a package the
       # running app uses (development tools are not deployed, so not checked).
       - run: npm audit --omit=dev --audit-level=high
+
+  # Builds the container image and proves it runs: the tables are created
+  # with the image's own Prisma tool, the app is started, and /healthz must
+  # answer (it answers 200 only when the app can reach its database).
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: painaidee
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: painaidee_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U painaidee"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # Throwaway values for this job only; nothing here is a real secret.
+    env:
+      DATABASE_URL: postgresql://painaidee:ci-only-password@localhost:5432/painaidee_dev
+      SESSION_SECRET: ci-only-session-secret-that-is-at-least-32-characters
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image
+        run: docker build -t painaidee .
+
+      # --network host: inside the container, localhost:5432 is the job's database.
+      - name: Create the tables and load the starting places
+        run: >-
+          docker run --rm --network host
+          -e DATABASE_URL -e SESSION_SECRET
+          painaidee sh -c "npx prisma migrate deploy && npx prisma db seed"
+
+      - name: Start the app
+        run: >-
+          docker run -d --name app --network host
+          -e NODE_ENV=development -e DATABASE_URL -e SESSION_SECRET
+          painaidee
+
+      - name: Wait for the app to answer
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/healthz; then exit 0; fi
+            sleep 2
+          done
+          echo "The app did not answer in time"
+          exit 1
+
+      - name: The pages load and the image runs as an unprivileged user
+        run: |
+          curl -fsS -o /dev/null http://localhost:3000/
+          curl -fsS http://localhost:3000/api/v1/places?pageSize=1 | grep -q '"total":30'
+          test "$(docker exec app whoami)" = "node"
+
+      - name: Show the app's log if anything failed
+        if: failure()
+        run: docker logs app

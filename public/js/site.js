@@ -32,18 +32,28 @@ document.addEventListener('keydown', (event) => {
 });
 
 // A broken image becomes a neutral placeholder instead of a broken-image icon.
-document.querySelectorAll('img').forEach((img) =>
-  img.addEventListener(
-    'error',
-    () => {
-      const placeholder = document.createElement('span');
-      placeholder.className = 'image-placeholder';
-      placeholder.textContent = 'ยังไม่สามารถแสดงภาพได้';
-      img.replaceWith(placeholder);
-    },
-    { once: true }
-  )
-);
+// A place photo first falls back to its category's illustration (for
+// example a photo saved on another computer before cloud storage was used).
+const replaceBroken = (img) => {
+  const fallback = img.dataset.fallback;
+  if (fallback && img.getAttribute('src') !== fallback) {
+    img.alt = '';
+    img.src = fallback;
+    return;
+  }
+  const placeholder = document.createElement('span');
+  placeholder.className = 'image-placeholder';
+  placeholder.textContent = 'ยังไม่สามารถแสดงภาพได้';
+  img.replaceWith(placeholder);
+};
+document.querySelectorAll('img').forEach((img) => {
+  // An image can fail before this deferred script runs; its error event is gone.
+  // (An SVG without width/height can load fine yet report naturalWidth 0, so those are skipped.)
+  const src = img.getAttribute('src') || '';
+  if (src && !src.endsWith('.svg') && img.complete && img.naturalWidth === 0) replaceBroken(img);
+  // Not `once`: after a switch to the fallback, a failing fallback still ends as the placeholder.
+  img.addEventListener('error', () => replaceBroken(img));
+});
 
 // Opening-hours editor: time inputs are only active on days marked "open".
 document.querySelectorAll('[data-hours-day]').forEach((row) => {

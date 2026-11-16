@@ -74,9 +74,9 @@ redirect) และ handler ของ API (JSON) ทั้งสองเรี�
 ### โครงสร้างโฟลเดอร์
 
 ```
-docker-compose.yaml      PostgreSQL สำหรับพัฒนาบนเครื่อง
+docker-compose.yaml      PostgreSQL สำหรับพัฒนา และแอปใน container (profile app)
 docker/                  สคริปต์สร้างฐานข้อมูลทดสอบใน Docker
-Dockerfile               image สำหรับระบบจริง (ขั้นที่ 8)
+Dockerfile               image ของแอป (ใช้กับ Docker Compose และโฮสต์)
 prisma.config.js         ค่าตั้งของ Prisma command-line
 prisma/
   schema.prisma          ตาราง
@@ -279,7 +279,11 @@ flowchart LR
 - `GET /healthz` ตรวจฐานข้อมูลแล้วตอบ 200 หรือ 503
 - ปิดอย่างนุ่มนวล: หยุดรับคำขอใหม่ ทำคำขอที่ค้างให้เสร็จ ปิดการเชื่อมต่อ
 - migration รันเป็นขั้นตอนหนึ่งของการขึ้นระบบ ไม่รันตอนแอปเริ่มทำงาน
-- มี `Dockerfile` เพื่อให้แอปทำงานเหมือนกันบนทุกโฮสต์
+- มี `Dockerfile` เพื่อให้แอปทำงานเหมือนกันบนทุกโฮสต์: สร้างสองขั้น (ติดตั้งแพ็กเกจ แล้วคัดลอกเฉพาะที่ต้องใช้)
+  รันด้วยผู้ใช้ `node` ที่ไม่ใช่ root มี `HEALTHCHECK` เรียก `/healthz` และไม่มีความลับอยู่ใน image
+  (`.dockerignore` กัน `.env` ออก ค่าตั้งส่งเข้าเป็น environment variable)
+- `docker compose --profile app up -d --build` รันแอปกับ PostgreSQL เป็น container สองตัวบนเครื่อง
+  และ CI สร้าง image แล้วเปิดแอปจริงทุกครั้งที่ push (job `docker` ใน `.github/workflows/ci.yml`)
 - การสำรองฐานข้อมูลมาจากผู้ให้บริการ PostgreSQL
 - โฮสต์ที่แนะนำ (เรื่อง B และ C ที่ยังไม่ตัดสินใน PLAN.md): Render สำหรับแอป
   Neon สำหรับ PostgreSQL และ Cloudinary สำหรับรูป
