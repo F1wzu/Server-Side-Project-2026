@@ -350,6 +350,8 @@ model PlaceReport {
   resolvedById Int?         @map("resolved_by")
   createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   resolvedAt   DateTime?    @map("resolved_at") @db.Timestamptz(6)
+  // The admin's reason when closing (what was fixed, or why nothing was done).
+  resolutionNote String?    @map("resolution_note") @db.VarChar(500)
 
   place      Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
   user       User  @relation("ReportAuthor", fields: [userId], references: [id], onDelete: Restrict)

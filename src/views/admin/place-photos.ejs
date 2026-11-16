@@ -105,10 +105,15 @@
       <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
       <div class="field">
         <label for="photos">เลือกรูป (เพิ่มได้อีก <%= max - count %> รูป)</label>
-        <input id="photos" type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple required data-max-files="<%= Math.min(max - count, 9) %>">
-        <small>JPEG, PNG หรือ WebP ไม่เกิน 5 MB ต่อรูป เลือกได้หลายรูปพร้อมกัน</small>
+        <%# site.js turns this into the same picker as the request form: add in
+            rounds, preview, remove and reorder before uploading. New photos go
+            after the existing ones (when the place has no cover yet, the first
+            one becomes the cover, so the picker labels it that way). %>
+        <div class="photo-picker" data-photo-picker data-max="<%= Math.min(max - count, 9) %>"<%- place.imagePath ? '' : ' data-cover-first' %>></div>
+        <input id="photos" type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple required data-max-files="<%= Math.min(max - count, 9) %>" aria-describedby="photos-hint">
+        <small id="photos-hint">JPEG, PNG หรือ WebP ไม่เกิน 5 MB ต่อรูป กดเพิ่มรูปได้หลายครั้ง ลากหรือกด ‹ เพื่อเรียงลำดับก่อนอัปโหลด</small>
       </div>
-      <button class="button button-primary" type="submit">อัปโหลดรูป</button>
+      <button class="button button-primary" type="submit" data-photo-submit>อัปโหลด</button>
     </form>
   </section>
   <% } else { %>

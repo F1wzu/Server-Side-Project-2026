@@ -51,6 +51,7 @@ async function listAll({ status = 'open', placeId = null, page = 1, pageSize = 2
       status: true,
       createdAt: true,
       resolvedAt: true,
+      resolutionNote: true,
       place: { select: { id: true, name: true } },
       user: { select: { id: true, username: true } },
       resolvedBy: { select: { id: true, username: true } },
@@ -59,12 +60,12 @@ async function listAll({ status = 'open', placeId = null, page = 1, pageSize = 2
   return { data: rows, pagination: { page: current, pageSize, total, totalPages } };
 }
 
-// Closes an open report. The update itself only matches an open row, so
+// Closes an open report, with the admin's reason (`note`). The update itself only matches an open row, so
 // two admins closing the same report cannot both succeed.
-async function close(adminId, reportId, status) {
+async function close(adminId, reportId, status, note = null) {
   const { count } = await prisma.placeReport.updateMany({
     where: { id: reportId, status: 'open' },
-    data: { status, resolvedById: adminId, resolvedAt: new Date() },
+    data: { status, resolvedById: adminId, resolvedAt: new Date(), resolutionNote: note },
   });
   if (count === 0) {
     const exists = await prisma.placeReport.findUnique({ where: { id: reportId }, select: { id: true } });
@@ -73,7 +74,7 @@ async function close(adminId, reportId, status) {
   }
   return prisma.placeReport.findUnique({
     where: { id: reportId },
-    select: { id: true, placeId: true, reason: true, details: true, status: true, createdAt: true, resolvedAt: true },
+    select: { id: true, placeId: true, reason: true, details: true, status: true, createdAt: true, resolvedAt: true, resolutionNote: true },
   });
 }
 

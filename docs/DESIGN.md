@@ -308,6 +308,7 @@ Index: `(status, created_at)`, `(user_id)`
 | status | enum | `open` (รอตรวจ), `resolved` (แก้ไขแล้ว) หรือ `dismissed` (ไม่ดำเนินการ) |
 | resolved_by | integer | Foreign key → users มีค่าเมื่อไม่ใช่ `open` |
 | created_at, resolved_at | timestamptz | |
+| resolution_note | varchar(500) | ไม่บังคับ เหตุผลของผู้ดูแลตอนปิดรายการ (แก้อะไรไป หรือทำไมไม่ดำเนินการ) |
 
 Index: `(status, created_at)` สมาชิกหนึ่งคนมีรายงานที่ยัง `open` ได้หนึ่งรายการต่อสถานที่
 
@@ -510,7 +511,7 @@ Index: `(status, created_at)` สมาชิกหนึ่งคนมีร�
 | PATCH | `/admin/categories/:id` | เปลี่ยนชื่อหมวดหมู่ | 200 |
 | DELETE | `/admin/categories/:id` | ลบหมวดหมู่ที่ไม่มีการใช้งาน | 204 |
 | GET | `/admin/reports` | รายการแจ้งข้อมูลผิด กรองด้วย `status` และ `placeId` (สถานที่ที่ไม่มีอยู่ตอบ 404) | 200 |
-| POST | `/admin/reports/:id/resolve` | ปิดรายงานเป็น `resolved` หรือ `dismissed` | 200 |
+| POST | `/admin/reports/:id/resolve` | ปิดรายงานเป็น `resolved` หรือ `dismissed` พร้อม `note` (เหตุผลของผู้ดูแล ไม่เกิน 500 ตัวอักษร ไม่บังคับเมื่อ `resolved` บังคับเมื่อ `dismissed` ไม่ระบุตอบ 400) ผลลัพธ์มี `resolutionNote` | 200 |
 | GET | `/admin/users` | สมาชิกทั้งหมด ใหม่สุดก่อน หน้าละ 20 ค้นด้วย `q` (ส่วนหนึ่งของชื่อหรืออีเมล ไม่สนตัวพิมพ์) กรองด้วย `status` = `all` (ค่าเริ่มต้น) `suspended` `active` ค่าที่ไม่รู้จักถูกละไว้ แต่ละแถว `{ id, username, email, role, createdAt, suspension: { reason, until, at } | null, reviews, removed, submissions }` (`reviews` = รีวิวที่ยังแสดง `removed` = รีวิวและคำตอบกลับที่ผู้ดูแลนำออก) บัญชีที่ลบแล้วไม่อยู่ในรายการ | 200 |
 | GET | `/admin/users/:id` | สมาชิกหนึ่งคน ฟิลด์เดียวกับรายการ และ `events` (ประวัติการระงับ ใหม่สุดก่อน แต่ละรายการ `{ id, action, note, until, createdAt, actor: { id, username } }`) ไม่มีหรือบัญชีที่ลบแล้วตอบ 404 | 200 |
 | POST | `/admin/users/:id/suspend` | ระงับสมาชิก `{ reason, days? }` `days` 1–365 ไม่ส่งหรือว่าง = จนกว่าจะยกเลิก บันทึกลง `user_moderation_events` ใน transaction เดียวกัน เป้าหมายเป็นผู้ดูแล (รวมตัวเอง) หรือถูกระงับอยู่แล้วตอบ 409 `INVALID_STATE` การระงับที่หมดเวลาแล้วระงับใหม่ได้ | 200 |

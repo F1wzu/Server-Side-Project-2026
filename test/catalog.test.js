@@ -282,7 +282,8 @@ describe('map page', () => {
   test('lists the pinned places and loads the map from this site', async () => {
     const res = await request(app).get('/map');
     expect(res.status).toBe(200);
-    expect(res.text).toMatch(/แสดง <strong>3<\/strong> จาก 14 สถานที่/);
+    expect(res.text).toContain('data-map-count aria-live="polite">3 สถานที่<');
+    expect(res.text).not.toContain('สถานที่ที่เหลือยังค้นหาได้');
     expect(res.text).toContain('data-endpoint="/api/v1/places/map"');
     expect(res.text).toContain('<script src="/vendor/leaflet/leaflet.js" defer></script>');
     expect(res.text).toContain('ค ข้ามคืนวันศุกร์');

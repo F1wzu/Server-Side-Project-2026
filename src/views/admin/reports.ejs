@@ -42,10 +42,10 @@
         <tr>
           <% if (!place) { %><th scope="col">สถานที่</th><% } %>
           <th scope="col">ผู้แจ้ง</th>
-          <th scope="col">เหตุผล</th>
+          <th scope="col">เหตุผลที่แจ้ง</th>
           <th scope="col">รายละเอียด</th>
           <th scope="col">วันที่แจ้ง</th>
-          <th scope="col">การดำเนินการ</th>
+          <th scope="col">การดำเนินการและเหตุผลของผู้ดูแล</th>
         </tr>
       </thead>
       <tbody>
@@ -53,21 +53,27 @@
         <tr>
           <% if (!place) { %><td data-label="สถานที่"><a href="/admin/places/<%= report.place.id %>/reports"><%= report.place.name %></a></td><% } %>
           <td data-label="ผู้แจ้ง"><%= report.user.username %></td>
-          <td data-label="เหตุผล"><%= reasonLabels[report.reason] %></td>
+          <td data-label="เหตุผลที่แจ้ง"><%= reasonLabels[report.reason] %></td>
           <td data-label="รายละเอียด" class="preserve-lines"><%= report.details || '-' %></td>
           <td data-label="วันที่แจ้ง" class="table-date"><%= date(report.createdAt) %></td>
           <td data-label="การดำเนินการ">
             <% if (report.status === 'open') { %>
-            <form action="/admin/reports/<%= report.id %>/resolve" method="post">
+            <form class="report-close" action="/admin/reports/<%= report.id %>/resolve" method="post">
               <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
               <input type="hidden" name="filter" value="<%= status %>">
               <% if (place) { %><input type="hidden" name="placeId" value="<%= place.id %>"><% } %>
-              <button class="button button-outline button-small" type="submit" name="status" value="resolved">แก้ไขแล้ว</button>
-              <button class="text-button" type="submit" name="status" value="dismissed">ไม่ดำเนินการ</button>
+              <label class="sr-only" for="note-<%= report.id %>">เหตุผลของผู้ดูแล</label>
+              <textarea id="note-<%= report.id %>" name="note" rows="2" maxlength="500" placeholder="เหตุผล เช่น แก้คำอธิบายแล้ว (จำเป็นถ้าไม่ดำเนินการ)"></textarea>
+              <div class="report-close-actions">
+                <button class="button button-outline button-small" type="submit" name="status" value="resolved">แก้ไขแล้ว</button>
+                <%# Two equal outcomes, so two buttons of the same kind. %>
+                <button class="button button-outline button-small" type="submit" name="status" value="dismissed">ไม่ดำเนินการ</button>
+              </div>
             </form>
             <% } else { %>
             <span class="status"><%= statusLabels[report.status] %></span>
             <% if (report.resolvedBy) { %><span class="meta">โดย <%= report.resolvedBy.username %></span><% } %>
+            <% if (report.resolutionNote) { %><p class="report-note preserve-lines"><strong>เหตุผล:</strong> <%= report.resolutionNote %></p><% } %>
             <% } %>
           </td>
         </tr>

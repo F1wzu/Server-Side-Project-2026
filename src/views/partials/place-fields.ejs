@@ -91,7 +91,7 @@
   <% if (multiPhoto) { %>
   <%# site.js turns this into a picker (add more, remove, reorder). Without
       JavaScript the plain file input below still works: new photos replace the old. %>
-  <div class="photo-picker" data-photo-picker data-max="5">
+  <div class="photo-picker" data-photo-picker data-max="5" data-cover-first data-photo-order>
     <% if (currentPhotos.length) { %>
     <ul class="photo-grid" data-current-photos aria-label="รูปที่แนบไว้ในคำขอนี้">
       <% currentPhotos.forEach((src, index) => { %>

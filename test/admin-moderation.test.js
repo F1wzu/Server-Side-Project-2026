@@ -411,7 +411,7 @@ describe('admin reports', () => {
     const r1 = await report(alice, place.id);
     const r2 = await report(bob, place.id);
     await admin.post(`/api/v1/admin/reports/${r1.id}/resolve`, { status: 'resolved' });
-    await admin.post(`/api/v1/admin/reports/${r2.id}/resolve`, { status: 'dismissed' });
+    await admin.post(`/api/v1/admin/reports/${r2.id}/resolve`, { status: 'dismissed', note: 'ข้อมูลถูกต้องอยู่แล้ว' });
     await report(alice, place.id, { reason: 'moved' });
 
     expect((await admin.get('/api/v1/admin/reports')).body.meta.total).toBe(1);
@@ -433,7 +433,34 @@ describe('admin reports', () => {
     expect(row.resolvedAt).toBeInstanceOf(Date);
 
     const dismissed = await report(bob, place.id);
-    expect((await admin.post(`/api/v1/admin/reports/${dismissed.id}/resolve`, { status: 'dismissed' })).body.data.status).toBe('dismissed');
+    expect((await admin.post(`/api/v1/admin/reports/${dismissed.id}/resolve`, { status: 'dismissed', note: 'ข้อมูลถูกต้องอยู่แล้ว' })).body.data.status).toBe('dismissed');
+  });
+
+  test("the admin's reason: optional when fixed, required for 'no action', saved and shown", async () => {
+    const fixed = await report(bob, place.id);
+    const res = await admin.post(`/api/v1/admin/reports/${fixed.id}/resolve`, { status: 'resolved', note: 'แก้คำอธิบายแล้ว' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.resolutionNote).toBe('แก้คำอธิบายแล้ว');
+
+    const noNote = await report(bob, place.id);
+    expect((await admin.post(`/api/v1/admin/reports/${noNote.id}/resolve`, { status: 'resolved' })).body.data.resolutionNote).toBeNull();
+
+    const ignored = await report(bob, place.id);
+    const refused = await admin.post(`/api/v1/admin/reports/${ignored.id}/resolve`, { status: 'dismissed', note: '   ' });
+    expect(refused.status).toBe(400);
+    expect(refused.body.error.details[0]).toMatchObject({ field: 'note', message: 'กรุณาระบุเหตุผลที่ไม่ดำเนินการ' });
+    expect((await prisma.placeReport.findUnique({ where: { id: ignored.id } })).status).toBe('open');
+
+    // The page form: a missing reason is shown as a message, and the saved one in the list.
+    const form = await admin.postForm(`/admin/reports/${ignored.id}/resolve`, { status: 'dismissed', filter: 'all' });
+    expect(form.status).toBe(303);
+    expect((await admin.get('/admin/reports?status=all')).text).toContain('กรุณาระบุเหตุผลที่ไม่ดำเนินการ');
+    await admin.postForm(`/admin/reports/${ignored.id}/resolve`, { status: 'dismissed', filter: 'all', note: 'ซ้ำกับรายการก่อน' });
+    const list = (await admin.get('/admin/reports?status=dismissed')).text;
+    expect(list).toContain('ซ้ำกับรายการก่อน');
+    expect(list).toContain('เหตุผลที่แจ้ง');
+    await report(bob, place.id); // an open one, so the list shows the close form
+    expect((await admin.get('/admin/reports')).text).toContain('name="note"');
   });
 
   test('the status must be resolved or dismissed (400)', async () => {
@@ -449,7 +476,7 @@ describe('admin reports', () => {
   test('a closed report cannot be closed again (409); unknown ids are 404', async () => {
     const r = await report(alice, place.id);
     await admin.post(`/api/v1/admin/reports/${r.id}/resolve`, { status: 'resolved' });
-    const again = await admin.post(`/api/v1/admin/reports/${r.id}/resolve`, { status: 'dismissed' });
+    const again = await admin.post(`/api/v1/admin/reports/${r.id}/resolve`, { status: 'dismissed', note: 'ข้อมูลถูกต้องอยู่แล้ว' });
     expect(again.status).toBe(409);
     expect(again.body.error.code).toBe('INVALID_STATE');
     expect((await prisma.placeReport.findUnique({ where: { id: r.id } })).status).toBe('resolved');
@@ -511,7 +538,7 @@ describe('admin reports', () => {
     await other.registerAdmin({ username: 'admin2', email: 'admin2@example.com' });
     const results = await Promise.all([
       admin.post(`/api/v1/admin/reports/${r.id}/resolve`, { status: 'resolved' }),
-      other.post(`/api/v1/admin/reports/${r.id}/resolve`, { status: 'dismissed' }),
+      other.post(`/api/v1/admin/reports/${r.id}/resolve`, { status: 'dismissed', note: 'ข้อมูลถูกต้องอยู่แล้ว' }),
     ]);
     expect(results.map((x) => x.status).sort()).toEqual([200, 409]);
     expect((await prisma.placeReport.findUnique({ where: { id: r.id } })).resolvedById).not.toBeNull();
@@ -531,7 +558,7 @@ describe('admin reports', () => {
 
   test('the form closes the report and redirects back to the same filter', async () => {
     const r = await report(alice, place.id);
-    const res = await admin.postForm(`/admin/reports/${r.id}/resolve`, { status: 'dismissed', filter: 'all' });
+    const res = await admin.postForm(`/admin/reports/${r.id}/resolve`, { status: 'dismissed', filter: 'all', note: 'ข้อมูลถูกต้องอยู่แล้ว' });
     expect(res.status).toBe(303);
     expect(res.headers.location).toBe('/admin/reports?status=all');
     expect((await prisma.placeReport.findUnique({ where: { id: r.id } })).status).toBe('dismissed');

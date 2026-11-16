@@ -25,10 +25,16 @@
     hint.textContent = 'ใช้สองนิ้วเพื่อเลื่อนและซูมแผนที่';
     element.after(hint);
   };
+  // The category's icon inside the pin (white on the category colour), so
+  // categories can be told apart without relying on colour alone. The icons
+  // come from a <template> in the page head (partials/head.ejs).
+  const pinIcons = new Map(
+    [...(document.getElementById('map-pin-icons')?.content.querySelectorAll('[data-kind]') ?? [])].map((span) => [span.dataset.kind, span.innerHTML])
+  );
   const pin = (kind, active = false) =>
     L.divIcon({
       className: '',
-      html: `<span class="map-pin tone-${kind}${active ? ' is-active' : ''}"></span>`,
+      html: `<span class="map-pin tone-${kind}${active ? ' is-active' : ''}"><span class="map-pin-icon">${pinIcons.get(kind) ?? pinIcons.get('other') ?? ''}</span></span>`,
       iconSize: [30, 30],
       iconAnchor: [15, 34],
       popupAnchor: [0, -34],

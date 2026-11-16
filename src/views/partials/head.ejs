@@ -39,6 +39,8 @@
   <script src="/vendor/markercluster/leaflet.markercluster.js" defer></script>
   <% } %>
   <script src="/js/map.js" defer></script>
+  <%# The category icons for map pins, drawn from the same set as the cards. %>
+  <template id="map-pin-icons"><% pinIcons().forEach(([kind, name]) => { %><span data-kind="<%= kind %>"><%- icon(name, 16) %></span><% }) %></template>
   <% } %>
 </head>
 <body>

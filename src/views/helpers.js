@@ -58,6 +58,9 @@ const kinds = {
   ช็อปปิง: ['shop', 'bag'],
   เรียนรู้และพิพิธภัณฑ์: ['learn', 'book'],
 };
+// Each colour kind with its icon, for the map pins (partials/head.ejs puts
+// them in a <template> that public/js/map.js copies into each pin).
+const pinIcons = () => [...Object.values(kinds), ['other', 'pin']];
 const categoryKind = (category) => kinds[category?.name]?.[0] || 'other';
 const categoryIcon = (category) => kinds[category?.name]?.[1] || 'pin';
 // The illustration a photo falls back to when it cannot be loaded (public/js/site.js).
@@ -108,4 +111,4 @@ function mapsUrl(place) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.name} ${place.address}`)}`;
 }
 
-module.exports = { icon, isIllustration, categoryKind, categoryIcon, photoFallback, weekdayLabels, date, dateTime, rating, hoursLabel, distanceLabel, openLabel, mapsUrl };
+module.exports = { icon, isIllustration, categoryKind, categoryIcon, pinIcons, photoFallback, weekdayLabels, date, dateTime, rating, hoursLabel, distanceLabel, openLabel, mapsUrl };

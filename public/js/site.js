@@ -223,6 +223,15 @@ document.querySelectorAll('[data-photo-picker]').forEach((picker) => {
   }
   input.dataset.pickerReady = '';
   const max = Number(picker.dataset.max) || 5;
+  // data-cover-first: the first photo becomes the cover (the request form).
+  // Without it (the admin's "add photos"), new photos go after the existing
+  // ones, so they are simply numbered in upload order.
+  const coverFirst = picker.hasAttribute('data-cover-first');
+  // data-photo-order: also send photoOrder (the edit form, which keeps photos).
+  const sendOrder = picker.hasAttribute('data-photo-order');
+  // The form's upload button, if marked, shows how many photos are ready.
+  const submit = input.form?.querySelector('[data-photo-submit]');
+  const submitText = submit?.textContent.trim();
   const MAX_BYTES = 5 * 1024 * 1024;
   const TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
@@ -234,17 +243,20 @@ document.querySelectorAll('[data-photo-picker]').forEach((picker) => {
   const order = document.createElement('input');
   order.type = 'hidden';
   order.name = 'photoOrder';
-  input.form?.append(order);
+  if (sendOrder) input.form?.append(order);
 
   // The real input stays in the form (it carries the files) but is hidden;
   // the "add" tile opens it.
   // (hidden, not visually-hidden: a hidden input is still sent with the form
   // and click() still opens the file dialog.)
   input.hidden = true;
+  // A hidden required box would block the form without saying why; the
+  // upload button is disabled instead until a photo is picked.
+  input.required = false;
 
   const list = document.createElement('ol');
   list.className = 'photo-picker-list';
-  list.setAttribute('aria-label', 'รูปที่จะแนบ เรียงตามลำดับ รูปแรกเป็นรูปหลัก');
+  list.setAttribute('aria-label', coverFirst ? 'รูปที่จะแนบ เรียงตามลำดับ รูปแรกเป็นรูปหลัก' : 'รูปที่จะอัปโหลด เรียงตามลำดับ');
   const message = document.createElement('p');
   message.className = 'photo-picker-message';
   message.hidden = true;
@@ -279,6 +291,11 @@ document.querySelectorAll('[data-photo-picker]').forEach((picker) => {
     });
     input.files = transfer.files;
     order.value = tokens.join(',');
+    if (submit) {
+      const ready = transfer.files.length;
+      submit.disabled = !sendOrder && ready === 0;
+      submit.textContent = !sendOrder && ready ? `${submitText} ${ready} รูป` : submitText;
+    }
   };
 
   const addTile = document.createElement('button');
@@ -301,7 +318,7 @@ document.querySelectorAll('[data-photo-picker]').forEach((picker) => {
     render();
     const target = list.children[to]?.querySelector(focusSelector);
     (target && !target.disabled ? target : list.children[to]?.querySelector('.is-remove'))?.focus();
-    announce(to === 0 ? 'ตั้งเป็นรูปหลักแล้ว' : `ย้ายไปเป็นรูปที่ ${to + 1}`);
+    announce(to === 0 && coverFirst ? 'ตั้งเป็นรูปหลักแล้ว' : `ย้ายไปเป็นรูปที่ ${to + 1}`);
   };
 
   function render() {
@@ -312,12 +329,20 @@ document.querySelectorAll('[data-photo-picker]').forEach((picker) => {
       li.draggable = true;
       const img = document.createElement('img');
       if (item.src) img.src = item.src;
-      img.alt = index === 0 ? 'รูปหลัก' : `รูปที่ ${index + 1}`;
+      img.alt = index === 0 && coverFirst ? 'รูปหลัก' : `รูปที่ ${index + 1}`;
       // Two plain choices per photo: remove it, or make it the cover. The
       // order of the other photos matters little, so it has no buttons of its
       // own (a mouse can still drag tiles to reorder them).
       li.append(img);
-      if (index === 0) {
+      if (!coverFirst) {
+        // Numbered in upload order; "‹" moves a photo one place earlier
+        // (a mouse can also drag tiles).
+        const tag = document.createElement('span');
+        tag.className = 'photo-picker-tag';
+        tag.textContent = String(index + 1);
+        li.append(tag);
+        if (index > 0) li.append(button(`ย้ายรูปที่ ${index + 1} ไปก่อนหน้า`, '‹ ย้ายก่อน', () => move(index, index - 1, '.is-cover-btn'), 'is-cover-btn'));
+      } else if (index === 0) {
         const tag = document.createElement('span');
         tag.className = 'photo-picker-tag is-cover';
         tag.textContent = 'รูปหลัก';

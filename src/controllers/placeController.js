@@ -110,8 +110,8 @@ async function show(req, res) {
 
 // GET /map
 async function map(req, res) {
-  const [places, total] = await Promise.all([placeModel.forMap(), placeModel.countPublished()]);
-  res.render('map', { title: 'แผนที่ลาดกระบัง', places, total, withMap: true, withClusters: true });
+  const places = await placeModel.forMap();
+  res.render('map', { title: 'แผนที่ลาดกระบัง', places, withMap: true, withClusters: true });
 }
 
 // ---------- API ----------

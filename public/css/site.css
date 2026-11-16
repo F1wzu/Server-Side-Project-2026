@@ -1563,17 +1563,32 @@ input[type='checkbox'] {
   box-shadow: 0 2px 6px rgb(31 42 39 / 35%);
   transform: rotate(-45deg);
 }
-.map-pin::after {
+/* The category icon, turned upright again (the pin itself is rotated). */
+.map-pin-icon {
+  display: grid;
+  place-items: center;
+  color: #fff;
+  transform: rotate(45deg);
+}
+.map-pin-icon svg {
+  display: block;
+  stroke-width: 2.1;
+}
+/* No icon (e.g. the template is missing): fall back to the white dot. */
+.map-pin-icon:empty {
   width: 8px;
   height: 8px;
   background: #fff;
   border-radius: 50%;
-  content: '';
 }
 .map-pin.is-active {
   width: 38px;
   height: 38px;
   margin: -4px 0 0 -4px;
+}
+.map-pin.is-active .map-pin-icon svg {
+  width: 20px;
+  height: 20px;
 }
 .leaflet-container {
   font-family: var(--font-text);
@@ -3441,4 +3456,50 @@ form[aria-busy='true'] button:not([type]) {
 }
 .featured-drag-hint {
   margin: -8px 0 16px;
+}
+
+/* Clickable controls are not text: a quick double-click on a fold-open
+   toggle (e.g. "ตอบกลับ" under a review), a button, a tick-box label or a
+   menu tab should not highlight its words. Reviews, descriptions and other
+   reading text stay selectable. */
+summary,
+button,
+.button,
+.text-button,
+/* Labels that are clicked to tick a box or pick an option. */
+.toggle,
+.checkbox-label,
+.radio-row,
+.template-option,
+.star-input label,
+/* Menus and tabs that are clicked, not read. */
+.site-nav,
+.admin-nav,
+.tabs,
+.pagination {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Admin reports: the reason box beside the close buttons, and the admin's
+   reason under a closed report. */
+.report-close {
+  display: grid;
+  gap: 6px;
+  min-width: 220px;
+}
+.report-close textarea {
+  min-height: 0;
+  font-size: 0.88rem;
+}
+.report-close-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+.report-note {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
 }

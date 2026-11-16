@@ -242,8 +242,8 @@ async function closeReportFromForm(req, res) {
   const backPlaceId = parseId(req.body?.placeId);
   try {
     const id = idFrom(req.params.id, 'รายการแจ้ง');
-    const { status } = validate(closeReportSchema, req.body);
-    await reportModel.close(req.user.id, id, status);
+    const { status, note } = validate(closeReportSchema, req.body);
+    await reportModel.close(req.user.id, id, status, note);
     setFlash(req, 'success', status === 'resolved' ? 'ปิดรายการแล้ว (แก้ไขแล้ว)' : 'ปิดรายการแล้ว (ไม่ดำเนินการ)');
   } catch (err) {
     flashError(req, err);
@@ -263,8 +263,8 @@ async function apiReports(req, res) {
 // POST /api/v1/admin/reports/:id/resolve
 async function apiCloseReport(req, res) {
   const id = idFrom(req.params.id, 'รายการแจ้ง');
-  const { status } = validate(closeReportSchema, req.body);
-  res.json({ data: await reportModel.close(req.user.id, id, status) });
+  const { status, note } = validate(closeReportSchema, req.body);
+  res.json({ data: await reportModel.close(req.user.id, id, status, note) });
 }
 
 module.exports = {
