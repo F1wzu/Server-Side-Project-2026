@@ -126,6 +126,18 @@ if (formError) {
 // Save or remove a favourite through the JSON API without reloading the page:
 // PUT and DELETE /api/v1/me/favorites/:placeId. If the request fails for any reason the
 // ordinary form post takes over, so the action is never lost.
+// Plays a CSS animation class once, even if it is already on the element
+// (removed when the animation ends, so the next tap can play it again).
+function replay(element, className) {
+  element.classList.remove('is-pressing', 'is-saved-pop', 'is-removed-pop');
+  void element.offsetWidth; // restart the animation
+  element.classList.add(className);
+  const done = () => element.classList.remove(className);
+  element.addEventListener('animationend', done, { once: true });
+  // Backstop: a hidden tab or "reduce motion" may never send animationend.
+  setTimeout(done, 800);
+}
+
 document.querySelectorAll('form[data-favorite]').forEach((form) => {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -133,6 +145,8 @@ document.querySelectorAll('form[data-favorite]').forEach((form) => {
     const saving = action.value === 'save';
     const button = form.querySelector('button');
     button.disabled = true;
+    // A small squish at once, so the tap feels answered even on a slow connection.
+    replay(button, 'is-pressing');
     try {
       const response = await fetch('/api/v1/me/favorites/' + form.dataset.place, {
         method: saving ? 'PUT' : 'DELETE',
@@ -159,6 +173,8 @@ document.querySelectorAll('form[data-favorite]').forEach((form) => {
         if (label) label.textContent = saving ? 'บันทึกแล้ว' : 'บันทึกสถานที่';
       }
       announce(saving ? 'บันทึกสถานที่แล้ว' : 'นำออกจากรายการที่บันทึกแล้ว');
+      // Then the result: a bounce when saved, a soft shrink when removed.
+      replay(button, saving ? 'is-saved-pop' : 'is-removed-pop');
       button.disabled = false;
     } catch {
       HTMLFormElement.prototype.submit.call(form);
@@ -435,8 +451,9 @@ document.querySelectorAll('input[type="file"][data-max-files]:not([data-picker-r
 });
 
 // Two guards on every ordinary form.
-// 1. A form marked data-confirm deletes something for good, so it asks first.
-//    (Without JavaScript the button still works; it just does not ask.)
+// 1. A form marked data-confirm deletes something for good, so it asks first
+//    in the site's popup (data-confirm-title / data-confirm-button set its
+//    words). Without JavaScript the button still works; it just does not ask.
 // 2. A form that is already on its way is not sent a second time by a double
 //    tap, which matters most on a slow connection.
 // This runs after the page's other submit handlers (the map's pin check, the
@@ -449,10 +466,24 @@ document.addEventListener('submit', (event) => {
     event.preventDefault();
     return;
   }
-  if (form.dataset.confirm && !window.confirm(form.dataset.confirm)) {
+  // Ask in the site's popup first. The submit is held back; after "yes" the
+  // form is sent again (with the same button) and this check lets it through.
+  if (form.dataset.confirm && !form.dataset.confirmed) {
     event.preventDefault();
+    const submitter = event.submitter;
+    confirmDialog({
+      title: form.dataset.confirmTitle || 'ยืนยันการลบ?',
+      message: form.dataset.confirm,
+      confirmText: form.dataset.confirmButton || 'ลบ',
+      danger: true,
+    }).then((sure) => {
+      if (!sure) return;
+      form.dataset.confirmed = 'true';
+      form.requestSubmit(submitter && submitter.form === form ? submitter : undefined);
+    });
     return;
   }
+  delete form.dataset.confirmed;
   // Marked, not disabled: a disabled submit button would drop its own
   // name=value from the request the browser is about to send.
   form.setAttribute('aria-busy', 'true');
@@ -550,6 +581,57 @@ document.querySelectorAll('input[type="file"][accept*="image"]:not([data-picker-
   });
 });
 
+// A confirmation popup in the site's own style, instead of the browser's
+// plain confirm(). Built on <dialog>, which keeps keyboard focus inside while
+// open and closes on Escape. Resolves true only when the action button is
+// pressed; the safe "cancel" button gets focus first, so an accidental Enter
+// does nothing harmful. Falls back to confirm() where <dialog> is missing.
+function confirmDialog({ title, message, confirmText, cancelText = 'ยกเลิก', danger = false }) {
+  const dialog = document.createElement('dialog');
+  if (typeof dialog.showModal !== 'function') return Promise.resolve(window.confirm(message));
+  dialog.className = 'confirm-dialog';
+  dialog.setAttribute('aria-labelledby', 'confirm-dialog-title');
+  dialog.setAttribute('aria-describedby', 'confirm-dialog-message');
+  const heading = document.createElement('h2');
+  heading.id = 'confirm-dialog-title';
+  heading.textContent = title;
+  const text = document.createElement('p');
+  text.id = 'confirm-dialog-message';
+  text.textContent = message;
+  const actions = document.createElement('div');
+  actions.className = 'confirm-dialog-actions';
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'button button-outline';
+  cancel.textContent = cancelText;
+  const ok = document.createElement('button');
+  ok.type = 'button';
+  ok.className = danger ? 'button button-danger' : 'button button-primary';
+  ok.textContent = confirmText;
+  actions.append(cancel, ok);
+  dialog.append(heading, text, actions);
+  document.body.append(dialog);
+
+  return new Promise((resolve) => {
+    let result = false;
+    cancel.addEventListener('click', () => dialog.close());
+    ok.addEventListener('click', () => {
+      result = true;
+      dialog.close();
+    });
+    // A click on the dimmed backdrop (outside the box) also cancels.
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+    dialog.addEventListener('close', () => {
+      dialog.remove();
+      resolve(result);
+    });
+    dialog.showModal();
+    cancel.focus();
+  });
+}
+
 // "Clear form" on the new-request form: empties everything the member typed
 // or picked (text, category, pin, photos, hours) so they can start on another
 // place, after asking first. Hidden fields (CSRF token) are left alone.
@@ -557,8 +639,14 @@ document.querySelectorAll('[data-clear-form]').forEach((button) => {
   const form = button.form;
   if (!form) return;
   button.hidden = false;
-  button.addEventListener('click', () => {
-    if (!window.confirm('ล้างข้อมูลทั้งหมดในฟอร์มนี้ เพื่อเริ่มกรอกสถานที่ใหม่?')) return;
+  button.addEventListener('click', async () => {
+    const sure = await confirmDialog({
+      title: 'ล้างฟอร์มนี้?',
+      message: 'ข้อมูลที่กรอกไว้ทั้งหมด รวมถึงหมุด รูป และเวลาเปิดปิด จะถูกล้าง เพื่อเริ่มกรอกสถานที่ใหม่ ย้อนกลับไม่ได้',
+      confirmText: 'ล้างฟอร์ม',
+      danger: true,
+    });
+    if (!sure) return;
     for (const field of form.elements) {
       if (field.type === 'hidden' || field.type === 'submit' || field.type === 'button' || field.tagName === 'FIELDSET') continue;
       if (field.type === 'checkbox' || field.type === 'radio') field.checked = false;

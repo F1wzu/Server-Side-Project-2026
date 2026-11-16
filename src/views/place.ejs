@@ -105,7 +105,7 @@
               <button class="button button-primary" type="submit">บันทึกการแก้ไข</button>
             </form>
           </details>
-          <form class="remove-review" method="post" action="/reviews/<%= ownReview.id %>/delete" data-confirm="ลบรีวิวของคุณใช่ไหม">
+          <form class="remove-review" method="post" action="/reviews/<%= ownReview.id %>/delete" data-confirm="รีวิวและคะแนนของคุณจะถูกลบ และคะแนนเฉลี่ยของสถานที่จะคำนวณใหม่" data-confirm-title="ลบรีวิวของคุณ?" data-confirm-button="ลบรีวิว">
             <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
             <input type="hidden" name="next" value="/places/<%= place.id %>#reviews">
             <button class="text-button" type="submit">ลบรีวิวของฉัน</button>

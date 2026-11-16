@@ -24,7 +24,7 @@
       <img src="<%= place.imagePath %>" alt="รูปหลักของ <%= place.name %>">
       <figcaption class="meta">รูปหลัก</figcaption>
     </figure>
-    <form method="post" action="/admin/places/<%= place.id %>/cover/delete" class="photo-admin-actions" data-confirm="ลบรูปหลักใช่ไหม ลบแล้วกู้คืนไม่ได้">
+    <form method="post" action="/admin/places/<%= place.id %>/cover/delete" class="photo-admin-actions" data-confirm="รูปหลักของสถานที่นี้จะถูกลบ ลบแล้วกู้คืนไม่ได้" data-confirm-title="ลบรูปหลัก?" data-confirm-button="ลบรูปหลัก">
       <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
       <button class="button button-small button-danger" type="submit">ลบรูปหลัก</button>
     </form>
@@ -86,7 +86,7 @@
               <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
               <button class="button button-small button-outline" type="submit" aria-label="ตั้งรูปที่ <%= index + firstOther %> เป็นรูปหลัก">ตั้งเป็นรูปหลัก</button>
             </form>
-            <form method="post" action="/admin/places/<%= place.id %>/photos/<%= photo.id %>/delete" data-confirm="ลบรูปนี้ใช่ไหม ลบแล้วกู้คืนไม่ได้">
+            <form method="post" action="/admin/places/<%= place.id %>/photos/<%= photo.id %>/delete" data-confirm="รูปนี้จะถูกลบออกจากแกลเลอรี ลบแล้วกู้คืนไม่ได้" data-confirm-title="ลบรูปนี้?" data-confirm-button="ลบรูป">
               <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
               <button class="text-button photo-admin-delete" type="submit" aria-label="ลบรูปที่ <%= index + firstOther %>">ลบ</button>
             </form>

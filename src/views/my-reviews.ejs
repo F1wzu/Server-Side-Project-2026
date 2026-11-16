@@ -54,7 +54,7 @@
       </details>
       <% } %>
       <% if (review.status === 'active') { %>
-      <form class="remove-review" method="post" action="/reviews/<%= review.id %>/delete" data-confirm="ลบรีวิวของคุณใช่ไหม">
+      <form class="remove-review" method="post" action="/reviews/<%= review.id %>/delete" data-confirm="รีวิวและคะแนนของคุณจะถูกลบ และคะแนนเฉลี่ยของสถานที่จะคำนวณใหม่" data-confirm-title="ลบรีวิวของคุณ?" data-confirm-button="ลบรีวิว">
         <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
         <button class="text-button" type="submit">ลบรีวิวของฉัน</button>
       </form>

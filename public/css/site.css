@@ -2508,28 +2508,32 @@ form[aria-busy='true'] button:not([type]) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* No circle behind the heart, but the tap area stays 44px for phones. */
   width: 44px;
   height: 44px;
   padding: 0;
-  color: var(--ink-soft);
-  background: var(--card);
-  border: 1px solid var(--line-strong);
+  color: #fff;
+  background: none;
+  border: 0;
   border-radius: 999px;
-  box-shadow: 0 1px 3px rgb(31 42 39 / 18%);
   cursor: pointer;
+  /* The heart sits straight on the photo; a soft shadow keeps it visible on
+     light pictures as well as dark ones. */
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 55%)) drop-shadow(0 0 6px rgb(0 0 0 / 25%));
+  transition: transform 0.12s ease;
+}
+.card-save-button svg {
+  stroke-width: 2.4;
 }
 .card-save-button:hover {
-  color: var(--brick);
-  border-color: var(--brick);
+  transform: scale(1.12);
 }
 .card-save-button[aria-pressed='true'] {
   color: var(--brick);
-  background: var(--brick-tint);
-  border-color: var(--brick);
 }
 /* The card clips overflow, so the focus ring is drawn inside the button's edge. */
 .card-save-button:focus-visible {
-  outline: 3px solid var(--klong-deep);
+  outline: 3px solid #fff;
   outline-offset: -4px;
 }
 .card-save-button:disabled {
@@ -2539,6 +2543,42 @@ form[aria-busy='true'] button:not([type]) {
 /* A saved heart is filled; the SVG uses stroke, so fill it with the current colour. */
 .card-save-button[aria-pressed='true'] svg {
   fill: currentColor;
+  stroke: #fff;
+}
+/* Tapping the heart (classes set by site.js): squish on press, then a bounce
+   when saved, or a soft shrink when removed. The place page's
+   "บันทึกสถานที่" button gets the same bounce on its heart icon. */
+.card-save-button.is-pressing svg,
+.button.is-pressing svg {
+  animation: heart-press 0.18s ease-out;
+}
+.card-save-button.is-saved-pop svg,
+.button.is-saved-pop svg {
+  animation: heart-pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+.card-save-button.is-removed-pop svg,
+.button.is-removed-pop svg {
+  animation: heart-shrink 0.3s ease-out;
+}
+@keyframes heart-press {
+  50% { transform: scale(0.82); }
+}
+@keyframes heart-pop {
+  0% { transform: scale(0.8); }
+  40% { transform: scale(1.35); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+@keyframes heart-shrink {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.75); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-save-button { transition: none; }
+  .card-save-button:hover { transform: none; }
+  .card-save-button svg,
+  .button svg { animation: none !important; }
 }
 
 /* ---------- Replies under a review ---------- */
@@ -3003,4 +3043,43 @@ form[aria-busy='true'] button:not([type]) {
 .photo-picker-message.is-error { color: var(--brick); font-weight: 600; }
 @media (max-width: 480px) {
   .photo-picker-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+}
+
+/* Confirmation popup (confirmDialog in site.js). */
+.confirm-dialog {
+  width: min(420px, calc(100% - 32px));
+  padding: 24px;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lift);
+}
+.confirm-dialog[open] {
+  animation: confirm-in 0.16s ease-out;
+}
+.confirm-dialog::backdrop {
+  background: rgb(31 42 39 / 45%);
+}
+.confirm-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+}
+.confirm-dialog p {
+  margin: 0 0 20px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+.confirm-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+@keyframes confirm-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confirm-dialog[open] { animation: none; }
 }

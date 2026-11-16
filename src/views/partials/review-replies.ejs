@@ -29,7 +29,7 @@
             <button class="button button-primary button-small" type="submit">บันทึก</button>
           </form>
         </details>
-        <form method="post" action="/replies/<%= reply.id %>/delete" data-confirm="ลบความเห็นตอบกลับนี้ใช่ไหม">
+        <form method="post" action="/replies/<%= reply.id %>/delete" data-confirm="ความเห็นตอบกลับของคุณจะถูกลบ" data-confirm-title="ลบความเห็นนี้?" data-confirm-button="ลบความเห็น">
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
           <input type="hidden" name="next" value="<%= back %>">
           <button class="text-button" type="submit">ลบ<span class="sr-only">ความเห็นตอบกลับของฉัน</span></button>
