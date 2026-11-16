@@ -10,7 +10,7 @@
     <p>ดูสมาชิกและกิจกรรมของแต่ละคน สมาชิกที่ถูกระงับยังเข้าสู่ระบบและอ่านข้อมูลได้ แต่เขียนหรือแก้ไขอะไรไม่ได้ กดชื่อสมาชิกเพื่อระงับหรือยกเลิกการระงับ</p>
   </div>
 
-  <form class="filter-panel" method="get" action="/admin/users">
+  <form class="filter-panel member-search" method="get" action="/admin/users">
     <div class="field search-field">
       <label for="q">ค้นหาจากชื่อผู้ใช้หรืออีเมล</label>
       <input id="q" name="q" type="search" value="<%= search.q %>" maxlength="200">

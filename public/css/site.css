@@ -256,6 +256,7 @@ ol {
 }
 .plain-list {
   list-style: none;
+  padding-left: 0;
 }
 
 /* ---------- Buttons ---------- */
@@ -1096,6 +1097,12 @@ input[type='checkbox'] {
 .filter-panel.review-search {
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   margin-bottom: 14px;
+}
+/* Member search on the admin members page: one field and a button, with
+   room before the status tabs underneath. */
+.filter-panel.member-search {
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: 16px;
 }
 .review-search .search-field {
   grid-column: 1 / -1;

@@ -28,7 +28,7 @@ const KIND_LABELS = {
 const GROUP_LABELS = {
   all: 'ทั้งหมด',
   members: 'สมาชิก',
-  submissions: 'คำขอแนะนำ',
+  submissions: 'คำขอ',
   places: 'สถานที่',
   reviews: 'รีวิว',
   reports: 'การแจ้ง',
