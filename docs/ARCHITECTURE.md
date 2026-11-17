@@ -233,8 +233,8 @@ flowchart LR
 | `PORT` | port ที่รอรับคำขอ |
 | `DATABASE_URL` | connection string ของ PostgreSQL |
 | `SESSION_SECRET` | ใช้ลงนามคุกกี้ session อย่างน้อย 32 ตัวอักษร |
-| `PUBLIC_ORIGIN` | ที่อยู่ HTTPS สาธารณะ จำเป็นบนระบบจริง |
-| `TRUST_PROXY` | ตั้งเมื่อแอปอยู่หลัง proxy ของโฮสต์ |
+| `PUBLIC_ORIGIN` | ที่อยู่ HTTPS สาธารณะ จำเป็นบนระบบจริง (บน Render ใช้ `RENDER_EXTERNAL_URL` แทนได้) |
+| `TRUST_PROXY` | ตั้งเมื่อแอปอยู่หลัง proxy ของโฮสต์ บังคับบนระบบจริง (Render ใช้ `1`) |
 | `STORAGE_DRIVER` | `local` หรือ `cloud` |
 | `CLOUDINARY_URL` | บัญชี Cloudinary (`cloudinary://KEY:SECRET@CLOUD`) จำเป็นเมื่อ `STORAGE_DRIVER=cloud` |
 | `TEST_DATABASE_URL` | ฐานข้อมูลแยกที่ Jest ใช้ |
@@ -278,15 +278,17 @@ flowchart LR
 
 - `GET /healthz` ตรวจฐานข้อมูลแล้วตอบ 200 หรือ 503
 - ปิดอย่างนุ่มนวล: หยุดรับคำขอใหม่ ทำคำขอที่ค้างให้เสร็จ ปิดการเชื่อมต่อ
-- migration รันเป็นขั้นตอนหนึ่งของการขึ้นระบบ ไม่รันตอนแอปเริ่มทำงาน
+- migration รันเป็นขั้นตอนหนึ่งของการขึ้นระบบ ไม่รันตอนแอปเริ่มทำงาน: Render แบบ Free ไม่มี Pre-Deploy Command
+  จึงรัน `npm run db:deploy:shared` จากเครื่องก่อน push (แบบเสียเงินใช้ `node scripts/migrate-shared.js` เป็น Pre-Deploy Command)
+- บนระบบจริงแอปไม่ยอมเริ่มถ้าไม่ได้ตั้ง `TRUST_PROXY` และใช้ `RENDER_EXTERNAL_URL` เป็น `PUBLIC_ORIGIN` เมื่อไม่ได้ตั้งเอง
 - มี `Dockerfile` เพื่อให้แอปทำงานเหมือนกันบนทุกโฮสต์: สร้างสองขั้น (ติดตั้งแพ็กเกจ แล้วคัดลอกเฉพาะที่ต้องใช้)
   รันด้วยผู้ใช้ `node` ที่ไม่ใช่ root มี `HEALTHCHECK` เรียก `/healthz` และไม่มีความลับอยู่ใน image
   (`.dockerignore` กัน `.env` ออก ค่าตั้งส่งเข้าเป็น environment variable)
 - `docker compose --profile app up -d --build` รันแอปกับ PostgreSQL เป็น container สองตัวบนเครื่อง
   และ CI สร้าง image แล้วเปิดแอปจริงทุกครั้งที่ push (job `docker` ใน `.github/workflows/ci.yml`)
 - การสำรองฐานข้อมูลมาจากผู้ให้บริการ PostgreSQL
-- โฮสต์ที่แนะนำ (เรื่อง B และ C ที่ยังไม่ตัดสินใน PLAN.md): Render สำหรับแอป
-  Neon สำหรับ PostgreSQL และ Cloudinary สำหรับรูป
+- โฮสต์ที่ใช้: Render สำหรับแอป (Docker, ภูมิภาค Singapore) Neon สำหรับ PostgreSQL และ Cloudinary สำหรับรูป
+  ขั้นตอนทั้งหมดอยู่ใน [DEPLOY.md](DEPLOY.md)
 
 ## 12. การทดสอบ
 

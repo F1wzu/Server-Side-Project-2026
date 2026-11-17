@@ -1,0 +1,64 @@
+<%# Banner 3: Hua Takhe old market on Khlong Prawet Burirom. Two rows of two-storey wooden shophouses face the canal,
+    a footbridge arches over the middle (the part a phone still shows) and vendors sell from boats underneath. %>
+<circle cx="1190" cy="96" r="50" fill="#f1b95a"/>
+<path d="M0 196q120-26 260-8t300-6 320 4 300-10 260 6v118H0Z" fill="#cfe2da"/>
+<g fill="#9fc4b8">
+  <ellipse cx="640" cy="196" rx="60" ry="30"/><ellipse cx="720" cy="186" rx="56" ry="34"/><ellipse cx="800" cy="196" rx="58" ry="28"/>
+</g>
+<%- include('scene-plane', { x: 320, y: 60 }) %>
+<% const rows = [[30, '#bf4b2c'], [890, '#0e5a52']]; const unit = 104; %>
+<% rows.forEach(([rx, roof]) => { const end = rx + unit * 5; %>
+<g>
+  <%# One continuous low roof over the row, as the old market's tin roofs run shop to shop. %>
+  <path d="M<%= rx - 12 %> 130l26-22H<%= end - 14 %>l26 22Z" fill="<%= roof %>"/>
+  <rect x="<%= rx %>" y="130" width="<%= unit * 5 %>" height="92" fill="#c08a5c"/>
+  <% for (let i = 0; i < 5; i++) { const ux = rx + i * unit; %>
+  <%# Plank lines, upper shutters, a balcony rail, then an open shop front under an awning. %>
+  <path d="<% for (let px = ux + 7; px < ux + unit; px += 9) { %>M<%= px %> 130v40<% } %>" stroke="#8a6248" stroke-width="1.500" opacity=".5"/>
+  <rect x="<%= ux + 16 %>" y="138" width="30" height="24" fill="#0e5a52" opacity=".55"/>
+  <rect x="<%= ux + 58 %>" y="138" width="30" height="24" fill="#6b4a3a" opacity=".8"/>
+  <path d="M<%= ux %> 170h<%= unit %>" stroke="#6b4a3a" stroke-width="4"/>
+  <rect x="<%= ux + 8 %>" y="184" width="<%= unit - 16 %>" height="38" fill="#6b4a3a" opacity=".85"/>
+  <path d="M<%= ux + 4 %> 174h<%= unit - 8 %>l6 12H<%= ux - 2 %>Z" fill="<%= i % 2 ? '#f4e3c8' : '#e8a33d' %>"/>
+  <rect x="<%= ux + 16 %>" y="208" width="30" height="10" fill="#e8a33d"/>
+  <rect x="<%= ux + 54 %>" y="210" width="32" height="8" fill="#bf4b2c"/>
+  <path d="M<%= ux %> 130v92" stroke="#8a6248" stroke-width="3"/>
+  <% } %>
+  <path d="<% for (let px = rx + 10; px < end; px += 52) { %>M<%= px %> 222v26<% } %>" stroke="#6b4a3a" stroke-width="5"/>
+  <rect x="<%= rx - 8 %>" y="218" width="<%= unit * 5 + 16 %>" height="7" fill="#8a6248"/>
+</g>
+<% }) %>
+<%# Footbridge: deck and handrail follow the same arch; posts are placed on both curves. %>
+<g>
+  <path d="M0 232h1440v68H0Z" fill="#0e5a52"/>
+  <path d="M532 222Q720 150 908 222" fill="none" stroke="#8a6248" stroke-width="10"/>
+  <path d="M532 204Q720 132 908 204" fill="none" stroke="#6b4a3a" stroke-width="4"/>
+  <path d="<% for (let t = 0.1; t < 0.95; t += 0.1) { const bx = 532 + 376 * t; const k = 144 * t * (1 - t); %>M<%= bx.toFixed(1) %> <%= (222 - k).toFixed(1) %>V<%= (204 - k).toFixed(1) %><% } %>" stroke="#6b4a3a" stroke-width="3"/>
+</g>
+<%# String of red lanterns across the canal above the bridge. %>
+<g>
+  <path d="M550 128Q720 168 890 128" fill="none" stroke="#6b4a3a" stroke-width="1.500"/>
+  <% for (let t = 0.15; t < 0.9; t += 0.14) { const lx = 550 + 340 * t; const ly = 128 + 80 * t * (1 - t); %>
+  <ellipse cx="<%= lx.toFixed(1) %>" cy="<%= (ly + 8).toFixed(1) %>" rx="7" ry="9" fill="#bf4b2c"/>
+  <% } %>
+</g>
+<g fill="none" stroke="#faf5ea" stroke-width="2.500" stroke-linecap="round" opacity=".5">
+  <path d="M40 262q24-12 48 0t48 0 48 0"/>
+  <path d="M380 286q24-12 48 0t48 0"/>
+  <path d="M1010 284q24-12 48 0t48 0 48 0"/>
+  <path d="M1270 260q24-12 48 0t48 0"/>
+</g>
+<%# Vendor boats: a straw-hatted seller with baskets of fruit and vegetables. %>
+<% [[620, '#bf4b2c', '#e8a33d'], [1080, '#9fc4b8', '#0e5a52']].forEach(([bx, fruitA, fruitB]) => { %>
+<g>
+  <path d="M<%= bx %> 262h170l-22 20H<%= bx + 28 %>Z" fill="#f1b95a"/>
+  <path d="M<%= bx + 170 %> 262l30-14" stroke="#f1b95a" stroke-width="5" stroke-linecap="round"/>
+  <path d="M<%= bx + 72 %> 262v-14q10-8 20 0v14Z" fill="#bf4b2c"/>
+  <circle cx="<%= bx + 82 %>" cy="242" r="6" fill="#6b4a3a"/>
+  <path d="M<%= bx + 64 %> 241l18-13 18 13Z" fill="#d9c9ac"/>
+  <path d="M<%= bx + 20 %> 262h32l-3-8h-26Z" fill="#8a6248"/>
+  <circle cx="<%= bx + 28 %>" cy="251" r="4.500" fill="<%= fruitA %>"/><circle cx="<%= bx + 36 %>" cy="249" r="4.500" fill="<%= fruitB %>"/><circle cx="<%= bx + 44 %>" cy="251" r="4.500" fill="<%= fruitA %>"/>
+  <path d="M<%= bx + 110 %> 262h32l-3-8h-26Z" fill="#8a6248"/>
+  <circle cx="<%= bx + 118 %>" cy="251" r="4.500" fill="<%= fruitB %>"/><circle cx="<%= bx + 126 %>" cy="249" r="4.500" fill="<%= fruitA %>"/><circle cx="<%= bx + 134 %>" cy="251" r="4.500" fill="<%= fruitB %>"/>
+</g>
+<% }) %>

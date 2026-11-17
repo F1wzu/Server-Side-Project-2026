@@ -1,0 +1,64 @@
+<%# Banner 1: Lat Krabang station on the Airport Rail Link. The elevated line runs the full width so it shows at any screen size;
+    Suvarnabhumi's long terminal and control tower sit faintly in the distance on the right. %>
+<circle cx="1220" cy="96" r="50" fill="#f1b95a"/>
+<path d="M0 200q120-30 260-10t300-6 300 4 300-12 280 8v116H0Z" fill="#cfe2da"/>
+<%# Raised so the terminal roof shows above the viaduct deck. %>
+<g fill="#9fc4b8" transform="translate(0 -34)">
+  <path d="M1040 206v-34h400v34Z"/>
+  <path d="M1030 174q100-30 210-14t210-8v10q-105 12-210 6t-210 14Z"/>
+  <rect x="1096" y="96" width="14" height="80"/>
+  <path d="M1082 98h42l-6-20h-30Z"/>
+</g>
+<g fill="#9fc4b8">
+  <circle cx="110" cy="200" r="26"/><circle cx="140" cy="206" r="20"/>
+  <circle cx="1000" cy="204" r="24"/><circle cx="1360" cy="206" r="22"/>
+</g>
+<%- include('scene-plane', { x: 320, y: 60 }) %>
+<%# Station canopy over the platform, behind the train. %>
+<g>
+  <path d="M540 132q180-36 360 0v9H540Z" fill="#bf4b2c"/>
+  <path d="M566 141v31M720 141v31M874 141v31" stroke="#6b4a3a" stroke-width="5"/>
+</g>
+<%# Four-car train; the last car carries the sloped nose. %>
+<g>
+  <% const cars = [300, 508, 716]; %>
+  <% cars.forEach((cx) => { %>
+  <rect x="<%= cx %>" y="140" width="200" height="30" rx="5" fill="#faf5ea"/>
+  <% }) %>
+  <path d="M924 140h176q30 0 40 30H924Z" fill="#faf5ea"/>
+  <path d="M300 160h200M508 160h200M716 160h200M924 160h212" stroke="#bf4b2c" stroke-width="5"/>
+  <g fill="#0e5a52" opacity=".7">
+    <% [300, 508, 716, 924].forEach((cx) => { for (let i = 0; i < 7; i++) { %><rect x="<%= cx + 10 + i * 26 %>" y="145" width="18" height="10" rx="2"/><% } }) %>
+    <path d="M1108 145h6q14 2 20 12h-26Z"/>
+  </g>
+  <path d="M300 170h840" stroke="#6b4a3a" stroke-width="4"/>
+</g>
+<%# Viaduct deck and pillars in front of the hills, carrying the train. %>
+<g>
+  <rect x="0" y="172" width="1440" height="14" fill="#e9dcc4"/>
+  <rect x="0" y="184" width="1440" height="4" fill="#cbb994"/>
+  <% for (let px = 60; px < 1440; px += 180) { %>
+  <path d="M<%= px - 6 %> 188h34l-6 10v34h-22v-34Z" fill="#d9c9ac"/>
+  <% } %>
+</g>
+<%# Station hall under the tracks. %>
+<g>
+  <rect x="600" y="188" width="240" height="44" fill="#faf5ea"/>
+  <g fill="#0e5a52" opacity=".55">
+    <% for (let wx = 612; wx <= 788; wx += 44) { %><rect x="<%= wx %>" y="196" width="40" height="28"/><% } %>
+  </g>
+</g>
+<path d="M0 228h1440v8H0Z" fill="#d9c9ac"/>
+<path d="M0 236h1440v64H0Z" fill="#0e5a52"/>
+<path d="M0 270h1440" stroke="#faf5ea" stroke-width="3" stroke-dasharray="26 22" opacity=".5"/>
+<%# A red car and a songthaew on the road below. %>
+<g>
+  <path d="M190 258h96v-12l-14-10h-58l-14 10Z" fill="#bf4b2c"/>
+  <path d="M216 244l8-6h40l8 6Z" fill="#faf5ea" opacity=".8"/>
+  <circle cx="212" cy="260" r="7" fill="#0a3f3a"/><circle cx="266" cy="260" r="7" fill="#0a3f3a"/>
+</g>
+<g>
+  <path d="M1060 284h120v-32h-84l-14 10h-22Z" fill="#e8a33d"/>
+  <path d="M1110 256h64v14h-64Z" fill="#faf5ea" opacity=".8"/>
+  <circle cx="1084" cy="286" r="7" fill="#0a3f3a"/><circle cx="1160" cy="286" r="7" fill="#0a3f3a"/>
+</g>

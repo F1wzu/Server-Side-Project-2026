@@ -53,6 +53,13 @@ const schema = z
     if (value.NODE_ENV === 'production' && !value.PUBLIC_ORIGIN?.startsWith('https://')) {
       ctx.addIssue({ code: 'custom', path: ['PUBLIC_ORIGIN'], message: 'is required in production and must start with https://' });
     }
+    // In production the app always sits behind the host's HTTPS proxy. Without
+    // TRUST_PROXY, Express thinks every request is plain http and never sends
+    // the secure login cookie, so logging in silently fails. Refuse to start
+    // instead of letting that happen on the live site.
+    if (value.NODE_ENV === 'production' && (!value.TRUST_PROXY || value.TRUST_PROXY === 'false')) {
+      ctx.addIssue({ code: 'custom', path: ['TRUST_PROXY'], message: 'is required in production (use 1 behind one proxy, e.g. Render); without it nobody can log in' });
+    }
     if (value.STORAGE_DRIVER === 'cloud' && !value.CLOUDINARY_URL) {
       ctx.addIssue({ code: 'custom', path: ['CLOUDINARY_URL'], message: 'is required when STORAGE_DRIVER=cloud' });
     }
@@ -66,6 +73,12 @@ const schema = z
   });
 
 function parseEnv(source) {
+  // Render tells every service its own public address (RENDER_EXTERNAL_URL,
+  // e.g. https://name.onrender.com). Use it when PUBLIC_ORIGIN is not set, so
+  // the address does not have to be typed in by hand and cannot drift.
+  if (!source.PUBLIC_ORIGIN && source.RENDER_EXTERNAL_URL) {
+    source = { ...source, PUBLIC_ORIGIN: source.RENDER_EXTERNAL_URL };
+  }
   const result = schema.safeParse(source);
   if (!result.success) {
     const lines = result.error.issues.map((issue) => `  - ${issue.path.join('.') || 'settings'} ${issue.message}`);

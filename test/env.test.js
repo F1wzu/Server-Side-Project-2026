@@ -44,7 +44,23 @@ describe('configuration', () => {
   test('production requires an https PUBLIC_ORIGIN', () => {
     expect(() => parseEnv({ ...valid, NODE_ENV: 'production' })).toThrow(/PUBLIC_ORIGIN/);
     expect(() => parseEnv({ ...valid, NODE_ENV: 'production', PUBLIC_ORIGIN: 'http://example.com' })).toThrow(/PUBLIC_ORIGIN/);
-    expect(parseEnv({ ...valid, NODE_ENV: 'production', PUBLIC_ORIGIN: 'https://example.com' }).isProduction).toBe(true);
+    expect(parseEnv({ ...valid, NODE_ENV: 'production', PUBLIC_ORIGIN: 'https://example.com', TRUST_PROXY: '1' }).isProduction).toBe(true);
+  });
+
+  test('production requires TRUST_PROXY, or the secure login cookie is never set', () => {
+    const prod = { ...valid, NODE_ENV: 'production', PUBLIC_ORIGIN: 'https://example.com' };
+    expect(() => parseEnv(prod)).toThrow(/TRUST_PROXY is required in production/);
+    expect(() => parseEnv({ ...prod, TRUST_PROXY: 'false' })).toThrow(/TRUST_PROXY is required in production/);
+    expect(() => parseEnv({ ...prod, TRUST_PROXY: '1' })).not.toThrow();
+    // Development needs no proxy.
+    expect(() => parseEnv(valid)).not.toThrow();
+  });
+
+  test("on Render, PUBLIC_ORIGIN defaults to the service's own address", () => {
+    const render = { ...valid, NODE_ENV: 'production', TRUST_PROXY: '1', RENDER_EXTERNAL_URL: 'https://painaidee.onrender.com' };
+    expect(parseEnv(render).PUBLIC_ORIGIN).toBe('https://painaidee.onrender.com');
+    // A PUBLIC_ORIGIN set by hand (a custom domain) wins.
+    expect(parseEnv({ ...render, PUBLIC_ORIGIN: 'https://example.com' }).PUBLIC_ORIGIN).toBe('https://example.com');
   });
 
   test('tests use the separate test database, never the development one', () => {

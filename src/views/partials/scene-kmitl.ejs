@@ -1,0 +1,76 @@
+<%# Banner 2: the KMITL campus, drawn from reference photos. What makes it read as KMITL:
+    the orange-brick faculty buildings striped with white floor bands and green roof edges, the white tower with a glass column
+    and an orange panel, the covered white skywalk with its orange truss, and the tall Thai flag over the lawn. No people, by request.
+    No lettering anywhere: the banner carries no words. %>
+<circle cx="1300" cy="96" r="50" fill="#f1b95a"/>
+<path d="M0 198q110-28 240-10t300-8 320 6 300-10 280 6v118H0Z" fill="#cfe2da"/>
+<g fill="#9fc4b8">
+  <ellipse cx="60" cy="200" rx="60" ry="28"/><ellipse cx="660" cy="204" rx="50" ry="24"/><ellipse cx="1390" cy="200" rx="60" ry="30"/>
+</g>
+<%- include('scene-plane', { x: 320, y: 60 }) %>
+<%# Brick faculty buildings: rows of white floor bands with dark windows between them. %>
+<% const bricks = [[110, 220, 140], [700, 400, 112]]; %>
+<% bricks.forEach(([bx, bw, by]) => { %>
+<g>
+  <rect x="<%= bx %>" y="<%= by %>" width="<%= bw %>" height="<%= 232 - by %>" fill="#c9663f"/>
+  <rect x="<%= bx - 8 %>" y="<%= by - 10 %>" width="<%= bw + 16 %>" height="12" fill="#7fb5a0"/>
+  <% for (let fy = by + 14; fy < 220; fy += 22) { %>
+  <rect x="<%= bx %>" y="<%= fy %>" width="<%= bw %>" height="6" fill="#faf5ea"/>
+  <g fill="#6b4a3a" opacity=".55">
+    <% for (let wx = bx + 10; wx < bx + bw - 10; wx += 20) { %><rect x="<%= wx %>" y="<%= fy + 9 %>" width="10" height="9"/><% } %>
+  </g>
+  <% } %>
+</g>
+<% }) %>
+<%# White tower with a glass column and a tall orange panel. %>
+<g>
+  <rect x="430" y="76" width="130" height="156" fill="#faf5ea"/>
+  <rect x="424" y="68" width="142" height="10" fill="#d9c9ac"/>
+  <g fill="#0e5a52" opacity=".45">
+    <% for (let ry = 92; ry <= 206; ry += 19) { for (let rx = 500; rx <= 540; rx += 20) { %><rect x="<%= rx %>" y="<%= ry %>" width="12" height="11"/><% } } %>
+  </g>
+  <rect x="446" y="88" width="38" height="120" fill="#e8673d"/>
+  <rect x="560" y="84" width="54" height="148" fill="#3f8f8a"/>
+  <path d="<% for (let gy = 100; gy < 232; gy += 16) { %>M560 <%= gy %>h54<% } %>M587 84v148" stroke="#cfe2da" stroke-width="1.500" opacity=".6"/>
+</g>
+<%# Covered skywalk running level into the brick building: flat white roof, glazed sides, an orange truss with a white zigzag,
+    and legs down to the lawn, so it reads as a walkway rather than a floating band. %>
+<g>
+  <path d="M380 200v32M520 200v32M660 200v32" stroke="#d9c9ac" stroke-width="8"/>
+  <rect x="338" y="174" width="362" height="12" fill="#cfe2da" opacity=".85"/>
+  <path d="<% for (let gx = 348; gx < 700; gx += 22) { %>M<%= gx %> 174v12<% } %>" stroke="#faf5ea" stroke-width="2"/>
+  <rect x="326" y="166" width="380" height="9" rx="4" fill="#faf5ea"/>
+  <rect x="338" y="186" width="362" height="14" fill="#e8673d"/>
+  <path d="M338 200<% for (let zx = 338; zx < 700; zx += 28) { %>L<%= zx + 14 %> 186L<%= zx + 28 %> 200<% } %>" fill="none" stroke="#faf5ea" stroke-width="2" opacity=".8"/>
+</g>
+<path d="M0 232h1440v68H0Z" fill="#0e5a52"/>
+<%# Tall flagpole with the Thai flag on the lawn. %>
+<g>
+  <path d="M960 250V66" stroke="#d9c9ac" stroke-width="4"/>
+  <circle cx="960" cy="64" r="4" fill="#e8a33d"/>
+  <rect x="962" y="70" width="52" height="6" fill="#bf4b2c"/>
+  <rect x="962" y="76" width="52" height="6" fill="#faf5ea"/>
+  <rect x="962" y="82" width="52" height="12" fill="#24497a"/>
+  <rect x="962" y="94" width="52" height="6" fill="#faf5ea"/>
+  <rect x="962" y="100" width="52" height="6" fill="#bf4b2c"/>
+</g>
+<%# Row of small orange flags and a lamp post, as along the campus lawn. %>
+<g>
+  <% for (let fx = 1150; fx <= 1270; fx += 30) { %>
+  <path d="M<%= fx %> 246V196" stroke="#d9c9ac" stroke-width="2.500"/>
+  <path d="M<%= fx + 1 %> 198h16l-4 7 4 7h-16Z" fill="#e8a33d"/>
+  <% } %>
+  <path d="M1110 252V172" stroke="#faf5ea" stroke-width="4"/>
+  <ellipse cx="1110" cy="170" rx="10" ry="5" fill="#faf5ea"/>
+</g>
+<%# Rain trees framing the lawn. %>
+<g>
+  <%# Kept clear of the skywalk so its legs stay visible. %>
+  <path d="M240 240v-26M1360 240v-30M800 244v-22" stroke="#6b4a3a" stroke-width="7"/>
+  <g fill="#2f7a5f">
+    <ellipse cx="240" cy="208" rx="46" ry="26"/><ellipse cx="1360" cy="204" rx="52" ry="30"/><ellipse cx="800" cy="218" rx="34" ry="18"/>
+  </g>
+</g>
+<g fill="none" stroke="#9fc4b8" stroke-width="2.500" stroke-linecap="round" opacity=".6">
+  <path d="M60 270l6-10 6 10M280 286l6-10 6 10M520 266l6-10 6 10M880 282l6-10 6 10M1200 270l6-10 6 10M1400 288l6-10 6 10"/>
+</g>
