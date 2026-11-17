@@ -95,10 +95,13 @@ jobs:
         run: docker build -t painaidee .
 
       # --network host: inside the container, localhost:5432 is the job's database.
+      # NODE_ENV=development for the same reason as the next step: the image
+      # defaults to production, which requires an https PUBLIC_ORIGIN and
+      # TRUST_PROXY, and the seed loads that configuration too.
       - name: Create the tables and load the starting places
         run: >-
           docker run --rm --network host
-          -e DATABASE_URL -e SESSION_SECRET
+          -e NODE_ENV=development -e DATABASE_URL -e SESSION_SECRET
           painaidee sh -c "npx prisma migrate deploy && npx prisma db seed"
 
       - name: Start the app
