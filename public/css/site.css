@@ -3565,31 +3565,39 @@ button,
   background: var(--brick-tint);
   text-decoration: none;
 }
+/* One compact row under a review or reply: the badge, "ดูสมาชิก" and
+   "นำ…ออก" sit side by side; the open remove form takes its own full row.
+   40px rows keep the links easy to tap without a tall empty band. */
 .admin-item-tools {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 16px;
+  gap: 0 14px;
   margin-top: 6px;
-  padding: 2px 10px;
+  padding: 0 12px;
   border-left: 3px solid var(--marigold);
-  background: var(--marigold-tint);
   border-radius: 0 var(--radius-small) var(--radius-small) 0;
+  background: var(--marigold-tint);
+  font-size: 0.92rem;
 }
-.admin-item-tools .text-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-}
+.admin-item-tools .text-link,
 .admin-item-tools summary {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  min-height: 40px;
+}
+.admin-item-tools summary {
   cursor: pointer;
   font-weight: 600;
   color: var(--brick);
 }
+.admin-item-tools details {
+  margin: 0;
+}
 .admin-item-tools details[open] {
   flex-basis: 100%;
-  padding-bottom: 8px;
+  padding-bottom: 10px;
+}
+.admin-item-tools details[open] > form {
+  margin-top: 4px;
 }

@@ -44,6 +44,7 @@ function createApp() {
   app.locals.csrfToken = () => '';
   app.locals.takeFlash = () => null;
   Object.assign(app.locals, viewHelpers); // icon(), rating(), date() ...
+  app.locals.asset = require('./utils/assetUrl').assetUrl; // CSS/JS URLs that change when the file does
   app.locals.suspensionEnd = require('./utils/suspension').suspensionEnd; // the suspended member's banner
   // The district border as JSON, for the map pickers to draw (see utils/district.js).
   app.locals.districtBoundaryJson = JSON.stringify(require('./utils/district').BOUNDARY);

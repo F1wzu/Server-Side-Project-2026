@@ -171,7 +171,7 @@ describe('show/hide button on password fields', () => {
     const { text } = await createClient(app).get('/login');
     expect(text).toContain(toggleFor('password'));
     expect(count(text, 'data-password-toggle')).toBe(1);
-    expect(text).toContain('<script src="/js/password.js" defer></script>');
+    expect(text).toMatch(/<script src="\/js\/password\.js\?v=[0-9a-f]{10}" defer><\/script>/);
     expect(text).toMatch(/id="password"[^>]*autocomplete="current-password"/);
   });
 
@@ -181,7 +181,7 @@ describe('show/hide button on password fields', () => {
     expect(text).toContain(toggleFor('confirmPassword'));
     expect(count(text, 'data-password-toggle')).toBe(2);
     expect(text).toMatch(/id="confirmPassword"[^>]*autocomplete="new-password"/);
-    expect(text).toContain('<script src="/js/password.js" defer></script>');
+    expect(text).toMatch(/<script src="\/js\/password\.js\?v=[0-9a-f]{10}" defer><\/script>/);
   });
 
   test('the account page has one per password field; other fields have none', async () => {
@@ -191,7 +191,7 @@ describe('show/hide button on password fields', () => {
     for (const name of ['currentPassword', 'newPassword', 'confirmNewPassword', 'sessionsPassword', 'password']) expect(text).toContain(toggleFor(name));
     expect(count(text, 'data-password-toggle')).toBe(5);
     expect(text).not.toContain('aria-controls="username"');
-    expect(text).toContain('<script src="/js/password.js" defer></script>');
+    expect(text).toMatch(/<script src="\/js\/password\.js\?v=[0-9a-f]{10}" defer><\/script>/);
   });
 
   test('the script is served and names both states in Thai', async () => {
