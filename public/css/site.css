@@ -504,6 +504,28 @@ ol {
   opacity: 0;
   transform: translateY(-6px);
 }
+/* After an admin action without a reload (site.js softSubmit) the admin may
+   be scrolled far down, so the message floats at the bottom of the screen.
+   The white box under it keeps the light tint readable over the page. */
+.flash-floating {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  z-index: 1000;
+  width: min(560px, calc(100% - 32px));
+  padding: 0;
+  transform: translateX(-50%);
+  background: var(--card);
+  border-radius: var(--radius-small);
+  box-shadow: var(--shadow-lift);
+}
+.flash-floating .notice {
+  margin: 0;
+  cursor: pointer;
+}
+.flash-floating .notice.is-leaving {
+  transform: translateY(6px);
+}
 .panel {
   padding: 24px;
   background: var(--card);

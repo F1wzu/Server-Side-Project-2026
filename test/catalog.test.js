@@ -214,6 +214,22 @@ describe('public API', () => {
     expect(body.data.at(-1).ratingAvg).toBeNull();
   });
 
+  // Thai dictionary order (migration place_name_thai_order): a name that
+  // starts with a leading vowel sorts under its consonant (เดอะ under ด, not
+  // after ห), and letter case does not matter (Mariya before MASON).
+  test('sorting by name follows Thai dictionary order', async () => {
+    const names = ['ห้องสมุด เรียงชื่อ', 'เดอะมอลล์ เรียงชื่อ', 'ตลาด เรียงชื่อ', 'MASON เรียงชื่อ', 'Mariya เรียงชื่อ'];
+    const made = await Promise.all(
+      names.map((name) => prisma.place.create({ data: { name, categoryId: market.id, description: 'ทดสอบการเรียง', address: 'ลาดกระบัง' } }))
+    );
+    try {
+      const { data } = await placeModel.list({ q: 'เรียงชื่อ', sort: 'name' });
+      expect(data.map((place) => place.name)).toEqual(['เดอะมอลล์ เรียงชื่อ', 'ตลาด เรียงชื่อ', 'ห้องสมุด เรียงชื่อ', 'Mariya เรียงชื่อ', 'MASON เรียงชื่อ']);
+    } finally {
+      await prisma.place.deleteMany({ where: { id: { in: made.map((place) => place.id) } } });
+    }
+  });
+
   test('the map lists only places that have a pin', async () => {
     const { body } = await api('/places/map');
     expect(body.data.map((place) => place.id).sort()).toEqual([allDay.id, shut.id, overnight.id].sort());

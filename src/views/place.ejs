@@ -131,7 +131,8 @@
             arrange, or while a filter is on (so it can always be cleared). %>
         <% const reviewFiltering = reviewFilter.sort !== 'newest' || reviewFilter.rating !== null; %>
         <% if (place.ratingCount > 1 || reviewFiltering) { %>
-        <form class="review-filter" method="get" action="/places/<%= place.id %>#reviews" aria-label="เรียงและกรองรีวิว">
+        <%# data-soft: with JavaScript the list updates in place (public/js/site.js softGet). %>
+        <form class="review-filter" method="get" action="/places/<%= place.id %>#reviews" aria-label="เรียงและกรองรีวิว" data-soft>
           <div class="field">
             <label for="reviewSort">เรียงตาม</label>
             <select id="reviewSort" name="reviewSort">

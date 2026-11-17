@@ -54,7 +54,15 @@ function createApp() {
   //    other kind of content may only come from this site.
   app.use(
     helmet({
-      contentSecurityPolicy: { directives: { 'img-src': ["'self'", 'data:', 'https://tile.openstreetmap.org', CLOUD_HOST] } },
+      contentSecurityPolicy: {
+        directives: {
+          'img-src': ["'self'", 'data:', 'https://tile.openstreetmap.org', CLOUD_HOST],
+          // Only over HTTPS: on a computer running the site over plain http
+          // it turned the admin pages' background requests (site.js
+          // softSubmit) into https requests that fail.
+          'upgrade-insecure-requests': env.isProduction ? [] : null,
+        },
+      },
     })
   );
   app.use(compression()); // 3. smaller responses

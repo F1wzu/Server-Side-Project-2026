@@ -90,6 +90,13 @@ describe('pages obey the Content Security Policy', () => {
     for (const [pattern, label] of INLINE) expect([label, pattern.test(res.text)]).toEqual([label, false]);
   });
 
+  // Outside production the site runs over plain http; asking the browser to
+  // upgrade requests to https there broke the admin pages' background posts.
+  test('upgrade-insecure-requests is only sent in production', async () => {
+    const res = await request(app).get('/');
+    expect(res.headers['content-security-policy']).not.toContain('upgrade-insecure-requests');
+  });
+
   test('a place page and the member pages have none either', async () => {
     const alice = await member('alice@example.com');
     for (const path of [`/places/${place.id}`, '/me', '/me/reviews', '/me/favorites', '/submissions/new', '/me/submissions']) {
