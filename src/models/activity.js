@@ -87,6 +87,23 @@ const feed = Prisma.sql`
     JOIN places p ON p.id = r.place_id
    WHERE rr.resolved_at IS NOT NULL
   UNION ALL
+  SELECT xr.created_at, 'reports', 'reply_reported',
+         xr.user_id, a.username, r.place_id, NULL, p.name, xr.details, NULL
+    FROM reply_reports xr
+    JOIN review_replies rp ON rp.id = xr.reply_id
+    JOIN reviews r ON r.id = rp.review_id
+    JOIN users a ON a.id = xr.user_id
+    JOIN places p ON p.id = r.place_id
+  UNION ALL
+  SELECT xr.resolved_at, 'reports', 'reply_report_' || xr.status::text,
+         xr.resolved_by, a.username, r.place_id, NULL, p.name, NULL, NULL
+    FROM reply_reports xr
+    JOIN review_replies rp ON rp.id = xr.reply_id
+    JOIN reviews r ON r.id = rp.review_id
+    JOIN users a ON a.id = xr.resolved_by
+    JOIN places p ON p.id = r.place_id
+   WHERE xr.resolved_at IS NOT NULL
+  UNION ALL
   -- Suspending a member and lifting it (models/userModeration.js). The subject
   -- is the member; the note is the reason, or what the admin wrote when lifting.
   SELECT e.created_at, 'members', 'member_' || e.action::text,
@@ -102,7 +119,7 @@ function linkOf(row) {
   if (!row.place_id) return null;
   if (row.grp === 'reviews') return `/admin/places/${row.place_id}/reviews`;
   if (row.kind.startsWith('place_report') || row.kind === 'place_reported') return `/admin/places/${row.place_id}/reports`;
-  if (row.kind.startsWith('review_report') || row.kind === 'review_reported') return `/admin/places/${row.place_id}/reviews`;
+  if (/^(review|reply)_report/.test(row.kind)) return `/admin/places/${row.place_id}/reviews`;
   return `/admin/places/${row.place_id}/edit`;
 }
 

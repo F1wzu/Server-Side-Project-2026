@@ -4,6 +4,7 @@ const reviewModel = require('../models/review');
 const reportModel = require('../models/report');
 const replyModel = require('../models/reply');
 const reviewReportModel = require('../models/reviewReport');
+const replyReportModel = require('../models/replyReport');
 const adminPlaceModel = require('../models/adminPlace');
 const { removeReviewSchema, removeReplySchema, closeReportSchema } = require('../validation/moderation');
 const { REPORT_REASONS } = require('../validation/report');
@@ -37,6 +38,13 @@ function flashError(req, err) {
 }
 
 const meta = ({ page, pageSize, total }) => ({ page, pageSize, total });
+
+// The remove forms on the public place page (partials/admin-item-tools.ejs)
+// send `next` so the admin lands back on that place. Only /places/<id> with an
+// optional ?reviewsPage=N and a #review-<id> or #reply-<id> anchor is accepted;
+// anything else falls back to the admin list as before.
+const PLACE_NEXT = /^\/places\/[1-9]\d{0,9}(\?reviewsPage=[1-9]\d{0,5})?(#(review|reply)-[1-9]\d{0,9})?$/;
+const placeNext = (body) => (typeof body?.next === 'string' && PLACE_NEXT.test(body.next) ? body.next : null);
 
 // `extra` carries the review search (see reviewSearchFrom) so paging and the
 // return trip after removing a review keep the admin's search.
@@ -138,6 +146,9 @@ async function removeReviewFromForm(req, res) {
   } catch (err) {
     flashError(req, err);
   }
+  // From the place page: back to the place, without the removed review's anchor.
+  const next = placeNext(req.body);
+  if (next) return res.redirect(303, next.replace(/#review-\d+$/, '#reviews'));
   const base = backPlaceId === null ? '/admin/reviews' : placeReviewsBase(backPlaceId);
   res.redirect(303, listUrl(base, 'all', status, page, reviewSearchFrom(req.body)));
 }
@@ -176,6 +187,10 @@ async function removeReplyFromForm(req, res) {
   } catch (err) {
     flashError(req, err);
   }
+  // From the place page: back to the review the reply was under (the form
+  // sends that review's anchor, since the reply itself is gone from the page).
+  const next = placeNext(req.body);
+  if (next) return res.redirect(303, next);
   const base = backPlaceId === null ? '/admin/reviews' : placeReviewsBase(backPlaceId);
   res.redirect(303, listUrl(base, 'all', status, page, reviewSearchFrom(req.body)));
 }
@@ -184,6 +199,27 @@ async function removeReplyFromForm(req, res) {
 async function apiRemoveReply(req, res) {
   const id = idFrom(req.params.id, 'ความเห็นตอบกลับ');
   res.json({ data: await replyModel.adminRemove(req.user.id, id, validate(removeReplySchema, req.body).reason) });
+}
+
+// POST /admin/replies/:id/reports/dismiss  ("ไม่ดำเนินการ" for a reported reply;
+// the form sends status, page, search and placeId like the removal form)
+async function dismissReplyReportsFromForm(req, res) {
+  const status = filterFrom(req.body?.status, REVIEW_FILTERS, 'all');
+  const backPlaceId = parseId(req.body?.placeId);
+  const page = pageFrom(req.body?.page);
+  try {
+    await replyReportModel.dismissOpen(req.user.id, idFrom(req.params.id, 'ความเห็นตอบกลับ'));
+    setFlash(req, 'success', 'ปิดรายงานของความเห็นนี้แล้ว (ไม่ดำเนินการ)');
+  } catch (err) {
+    flashError(req, err);
+  }
+  const base = backPlaceId === null ? '/admin/reviews' : placeReviewsBase(backPlaceId);
+  res.redirect(303, listUrl(base, 'all', status, page, reviewSearchFrom(req.body)));
+}
+
+// POST /api/v1/admin/replies/:id/reports/dismiss
+async function apiDismissReplyReports(req, res) {
+  res.json({ data: await replyReportModel.dismissOpen(req.user.id, idFrom(req.params.id, 'ความเห็นตอบกลับ')) });
 }
 
 // GET /api/v1/admin/reviews  (?status=…&placeId=…&q=…&user=…&place=…&rating=…&sort=…&page=…)
@@ -277,6 +313,8 @@ module.exports = {
   apiRemoveReview,
   removeReplyFromForm,
   apiRemoveReply,
+  dismissReplyReportsFromForm,
+  apiDismissReplyReports,
   reportsPage,
   placeReportsPage,
   closeReportFromForm,

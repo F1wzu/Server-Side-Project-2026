@@ -1,0 +1,10 @@
+<%# Admin-only strip on the public place page: shortcuts to this place's
+    admin tabs, with the number of open "wrong info" reports. Params: place,
+    admin ({ placeReports } from placeController.adminView). %>
+<nav class="place-admin-bar" aria-label="เครื่องมือผู้ดูแลของ <%= place.name %>">
+  <span class="place-admin-label"><%- icon('shield', 16) %>ผู้ดูแล</span>
+  <a href="/admin/places/<%= place.id %>/edit">แก้ไขข้อมูล</a>
+  <a href="/admin/places/<%= place.id %>/photos">รูปภาพ</a>
+  <a href="/admin/places/<%= place.id %>/reviews">รีวิว</a>
+  <a href="/admin/places/<%= place.id %>/reports">แจ้งข้อมูลผิด<% if (admin.placeReports) { %> <span class="count-badge"><%= admin.placeReports %> รอตรวจ</span><% } %></a>
+</nav>

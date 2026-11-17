@@ -25,6 +25,11 @@ function listOpenCount() {
   return prisma.placeReport.count({ where: { status: 'open' } });
 }
 
+// For the admin bar on a place page: open reports of that one place.
+function openCountForPlace(placeId) {
+  return prisma.placeReport.count({ where: { placeId, status: 'open' } });
+}
+
 // ---------- admin ----------
 
 const REPORT_STATUSES = ['open', 'resolved', 'dismissed'];
@@ -78,4 +83,4 @@ async function close(adminId, reportId, status, note = null) {
   });
 }
 
-module.exports = { create, listOpenCount, listAll, close, REPORT_STATUSES };
+module.exports = { create, listOpenCount, openCountForPlace, listAll, close, REPORT_STATUSES };

@@ -1,0 +1,30 @@
+<%# "รายงานความเห็นนี้" under a reply. Params: reply, back (where the form returns to).
+    Only for a logged-in member who is not the author, on an active reply.
+    Admins get the remove tools instead (admin-item-tools.ejs).
+    Same reasons as review reports (REVIEW_REPORT_REASONS in src/validation/reviewReport.js). %>
+<% if (currentUser && currentUser.role !== 'admin' && reply.status === 'active' && reply.user && reply.user.id !== currentUser.id) {
+  const replyReasons = [['spam', 'สแปมหรือโฆษณา'], ['offensive', 'ไม่สุภาพหรือสร้างความเกลียดชัง'], ['false_info', 'ข้อมูลเท็จหรือทำให้เข้าใจผิด'], ['other', 'อื่น ๆ']];
+  const replyBack = back.replace(/#.*$/, '') + '#reply-' + reply.id;
+%>
+<details class="review-report reply-report">
+  <summary>รายงาน<span class="sr-only">ความเห็นของ <%= reply.user.username %></span></summary>
+  <form class="stack-form" action="/replies/<%= reply.id %>/reports" method="post">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <input type="hidden" name="next" value="<%= replyBack %>">
+    <fieldset class="field">
+      <legend>เหตุผล</legend>
+      <% replyReasons.forEach(([value, label], index) => { %>
+      <label class="radio-row" for="xr-<%= reply.id %>-<%= value %>">
+        <input type="radio" id="xr-<%= reply.id %>-<%= value %>" name="reason" value="<%= value %>" <%= index === 0 ? 'required' : '' %>> <%= label %>
+      </label>
+      <% }) %>
+    </fieldset>
+    <div class="field">
+      <label for="xr-details-<%= reply.id %>">รายละเอียด</label>
+      <textarea id="xr-details-<%= reply.id %>" name="details" rows="2" maxlength="1000"></textarea>
+      <small>ไม่เกิน 1000 ตัวอักษร ต้องกรอกเมื่อเลือก "อื่น ๆ"</small>
+    </div>
+    <button type="submit" class="button button-outline button-small">ส่งรายงาน</button>
+  </form>
+</details>
+<% } %>

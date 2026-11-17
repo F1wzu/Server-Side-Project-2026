@@ -5,6 +5,9 @@ const categoryModel = require('../models/category');
 const reviewModel = require('../models/review');
 const { isUpload } = require('../storage/paths');
 const favoriteModel = require('../models/favorite');
+const reportModel = require('../models/report');
+const reviewReportModel = require('../models/reviewReport');
+const replyReportModel = require('../models/replyReport');
 const AppError = require('../utils/AppError');
 const { bangkokNow } = require('../utils/openingHours');
 const { validate } = require('../utils/validate');
@@ -31,6 +34,19 @@ async function findPlace(req) {
 function randomFilters(query) {
   const parsed = randomQuerySchema.safeParse(query);
   return parsed.success ? parsed.data : {};
+}
+
+// What an admin sees on top of the public place page: open "wrong info"
+// reports of the place, and open reports per review and reply on the current
+// page of reviews ({ id: count }). Members and visitors get none of this.
+async function adminView(placeId, reviews) {
+  const replyIds = reviews.flatMap((review) => (review.replies ?? []).map((reply) => reply.id));
+  const [placeReports, reviewReports, replyReports] = await Promise.all([
+    reportModel.openCountForPlace(placeId),
+    reviewReportModel.openCountsByReview(reviews.map((review) => review.id)),
+    replyReportModel.openCountsByReply(replyIds),
+  ]);
+  return { placeReports, reviewReports, replyReports };
 }
 
 // ---------- pages ----------
@@ -76,6 +92,7 @@ async function show(req, res) {
   ]);
   const relatedIds = [...related.nearby, ...related.sameCategory].map((item) => item.id);
   const savedIds = req.user ? await favoriteModel.savedPlaceIds(req.user.id, relatedIds) : null;
+  const admin = req.user?.role === 'admin' ? await adminView(place.id, reviews.data) : null;
   // Paging keeps the chosen order and star filter.
   const reviewsPageLink = (page) => {
     const query = new URLSearchParams();
@@ -101,6 +118,7 @@ async function show(req, res) {
     ownReview,
     saved,
     savedIds,
+    admin,
     cardNext: req.originalUrl,
     reviewsPageLink,
     todayWeekday: bangkokNow().weekday,

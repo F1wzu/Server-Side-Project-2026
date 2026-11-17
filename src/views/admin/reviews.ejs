@@ -140,6 +140,27 @@
             </div>
             <p class="preserve-lines"><%= reply.body %></p>
             <% if (reply.status === 'removed') { %><p class="small-note">เหตุผลที่นำออก: <%= reply.removedReason %></p><% } %>
+            <% if (reply.reports && reply.reports.length) { %>
+            <div class="feedback-panel review-reports">
+              <h4>ความเห็นนี้ถูกรายงาน <%= reply.reports.length %> ครั้ง</h4>
+              <ul class="reply-list">
+                <% reply.reports.forEach((report) => { %>
+                <li>
+                  <strong><%= reasonLabels[report.reason] %></strong> · <%= report.user.username %> · <time class="meta" datetime="<%= report.createdAt.toISOString() %>"><%= date(report.createdAt) %></time>
+                  <% if (report.details) { %><p class="preserve-lines small-note"><%= report.details %></p><% } %>
+                </li>
+                <% }) %>
+              </ul>
+              <form class="stack-form" action="/admin/replies/<%= reply.id %>/reports/dismiss" method="post">
+                <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+                <input type="hidden" name="status" value="<%= status %>">
+                <input type="hidden" name="page" value="<%= result.pagination.page %>">
+                <% searchFields.forEach(([key, value]) => { %><input type="hidden" name="<%= key %>" value="<%= value %>"><% }) %>
+                <% if (place) { %><input type="hidden" name="placeId" value="<%= place.id %>"><% } %>
+                <button class="button button-outline button-small" type="submit">ไม่ดำเนินการ<span class="sr-only">กับรายงานความเห็นของ <%= reply.user.username %></span></button>
+              </form>
+            </div>
+            <% } %>
             <% if (reply.status === 'active') { %>
             <details>
               <summary>นำความเห็นนี้ออก</summary>

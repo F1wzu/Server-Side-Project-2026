@@ -3525,3 +3525,71 @@ button,
   font-size: 0.88rem;
   color: var(--ink-soft);
 }
+
+/* ---------- Admin tools on the public place page (admins only) ---------- */
+.place-admin-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 18px;
+  margin: -8px 0 24px;
+  padding: 8px 16px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-small);
+  background: var(--marigold-tint);
+}
+.place-admin-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--marigold-deep);
+}
+.place-admin-bar a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-weight: 600;
+  color: var(--klong);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.count-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--brick);
+  background: var(--brick-tint);
+  text-decoration: none;
+}
+.admin-item-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  margin-top: 6px;
+  padding: 2px 10px;
+  border-left: 3px solid var(--marigold);
+  background: var(--marigold-tint);
+  border-radius: 0 var(--radius-small) var(--radius-small) 0;
+}
+.admin-item-tools .text-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.admin-item-tools summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--brick);
+}
+.admin-item-tools details[open] {
+  flex-basis: 100%;
+  padding-bottom: 8px;
+}

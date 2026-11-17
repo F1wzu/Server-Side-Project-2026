@@ -33,6 +33,7 @@ test('the database has the fourteen tables from the design', async () => {
     'place_photos',
     'place_reports',
     'places',
+    'reply_reports',
     'review_replies',
     'review_reports',
     'reviews',

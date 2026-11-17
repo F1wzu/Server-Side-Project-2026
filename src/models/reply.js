@@ -3,6 +3,7 @@
 // admin may remove one with a reason the author can see.
 const prisma = require('../config/db');
 const AppError = require('../utils/AppError');
+const replyReport = require('./replyReport');
 
 const authorFields = { select: { id: true, username: true } };
 const MAX_SHOWN = 50; // replies shown under one review
@@ -33,13 +34,13 @@ function includeFor(viewerId) {
   };
 }
 
-// Admins see every reply, whatever its status.
+// Admins see every reply, whatever its status, with its open reports.
 // `take` so a review never loads unbounded rows (the cap on create is 50
 // visible ones, so 100 leaves room for deleted ones).
 const includeAll = {
   take: 100,
   orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-  include: { user: authorFields },
+  include: { user: authorFields, reports: replyReport.openReportsInclude },
 };
 
 // Replies to an active review of a published place. A review that is
@@ -87,18 +88,26 @@ const update = (userId, replyId, body) => changeOwn(userId, replyId, { body });
 const remove = (userId, replyId) => changeOwn(userId, replyId, { status: 'deleted' });
 
 // An admin takes down an active reply. Only an active row matches, so two
-// admins (or an admin and the author) cannot both act on it.
+// admins (or an admin and the author) cannot both act on it. The reply is
+// gone from the site, so open reports about it are handled in the same
+// transaction.
 async function adminRemove(adminId, replyId, reason) {
-  const { count } = await prisma.reviewReply.updateMany({
-    where: { id: replyId, status: 'active' },
-    data: { status: 'removed', removedById: adminId, removedReason: reason },
+  return prisma.$transaction(async (tx) => {
+    const { count } = await tx.reviewReply.updateMany({
+      where: { id: replyId, status: 'active' },
+      data: { status: 'removed', removedById: adminId, removedReason: reason },
+    });
+    if (count === 0) {
+      const exists = await tx.reviewReply.findUnique({ where: { id: replyId }, select: { id: true } });
+      if (!exists) throw notFound();
+      throw new AppError(409, 'INVALID_STATE', 'ความเห็นตอบกลับนี้ไม่ได้อยู่ในสถานะที่นำออกได้');
+    }
+    await tx.replyReport.updateMany({
+      where: { replyId, status: 'open' },
+      data: { status: 'resolved', resolvedById: adminId, resolvedAt: new Date() },
+    });
+    return present(await tx.reviewReply.findUnique({ where: { id: replyId }, include: { user: authorFields } }));
   });
-  if (count === 0) {
-    const exists = await prisma.reviewReply.findUnique({ where: { id: replyId }, select: { id: true } });
-    if (!exists) throw notFound();
-    throw new AppError(409, 'INVALID_STATE', 'ความเห็นตอบกลับนี้ไม่ได้อยู่ในสถานะที่นำออกได้');
-  }
-  return present(await prisma.reviewReply.findUnique({ where: { id: replyId }, include: { user: authorFields } }));
 }
 
 module.exports = { create, update, remove, adminRemove, includeFor, includeAll, present, MAX_SHOWN };

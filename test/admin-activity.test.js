@@ -74,6 +74,7 @@ describe('the feed', () => {
     const review = await ok(alice.post(`/api/v1/places/${place.id}/reviews`, { rating: 4, comment: 'อร่อยมาก' }), 201);
     const reply = await ok(bob.post(`/api/v1/reviews/${review.id}/replies`, { body: 'ขอบคุณครับ' }), 201);
     await ok(bob.post(`/api/v1/reviews/${review.id}/reports`, { reason: 'spam', details: 'โฆษณา' }), 201);
+    await ok(alice.post(`/api/v1/replies/${reply.id}/reports`, { reason: 'offensive' }), 201);
     const report = await ok(bob.post(`/api/v1/places/${place.id}/reports`, { reason: 'closed', details: 'ปิดแล้ว' }), 201);
     await ok(admin.post(`/api/v1/admin/reports/${report.id}/resolve`, { status: 'dismissed', note: 'ข้อมูลถูกต้องอยู่แล้ว' }), 200);
     await ok(admin.post(`/api/v1/admin/replies/${reply.id}/remove`, { reason: 'ไม่สุภาพ' }), 200);
@@ -91,6 +92,9 @@ describe('the feed', () => {
         'place_reported',
         'place_report_dismissed',
         'reply_removed',
+        'reply_reported',
+        // Removing the reply closes its open report as resolved.
+        'reply_report_resolved',
         'review_removed',
         // Removing the review closes its open report as resolved.
         'review_report_resolved',

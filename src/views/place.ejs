@@ -28,11 +28,9 @@
       <% } else { %>
       <a class="button button-outline" href="/login?next=<%= encodeURIComponent('/places/' + place.id) %>"><%- icon('heart', 18) %>บันทึกสถานที่</a>
       <% } %>
-      <% if (currentUser && currentUser.role === 'admin') { %>
-      <a class="button button-outline" href="/admin/places/<%= place.id %>/edit"><%- icon('shield', 18) %>จัดการ<span class="sr-only"> <%= place.name %> ในส่วนผู้ดูแล</span></a>
-      <% } %>
     </div>
   </header>
+  <% if (admin) { %><%- include('partials/place-admin-bar', { place, admin }) %><% } %>
 
   <div class="detail-grid">
     <div class="detail-main">
@@ -165,6 +163,7 @@
             <div class="review-top"><strong><%= review.user.username %></strong><%- include('partials/stars', { value: review.rating }) %></div>
             <time class="meta" datetime="<%= review.createdAt.toISOString() %>"><%= date(review.createdAt) %></time>
             <% if (review.comment) { %><p class="preserve-lines"><%= review.comment %></p><% } %>
+            <% if (admin) { %><%- include('partials/admin-item-tools', { kind: 'review', item: review, reportCount: admin.reviewReports[review.id] || 0, back: '/places/' + place.id + (reviews.pagination.page > 1 ? '?reviewsPage=' + reviews.pagination.page : '') + '#review-' + review.id }) %><% } %>
             <%- include('partials/review-replies', { review, place, reviewsPage: reviews.pagination.page }) %>
             <%- include('partials/review-report-form', { review, place, reviewsPage: reviews.pagination.page }) %>
           </div>

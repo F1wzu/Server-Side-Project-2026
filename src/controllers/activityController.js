@@ -24,6 +24,9 @@ const KIND_LABELS = {
   review_reported: 'รายงานรีวิว',
   review_report_resolved: 'ปิดรายงานรีวิว (ดำเนินการแล้ว)',
   review_report_dismissed: 'ปิดรายงานรีวิว (ไม่ดำเนินการ)',
+  reply_reported: 'รายงานความเห็นตอบกลับ',
+  reply_report_resolved: 'ปิดรายงานความเห็น (ดำเนินการแล้ว)',
+  reply_report_dismissed: 'ปิดรายงานความเห็น (ไม่ดำเนินการ)',
 };
 const GROUP_LABELS = {
   all: 'ทั้งหมด',

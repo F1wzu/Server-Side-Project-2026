@@ -9,6 +9,7 @@ const reviewController = require('../controllers/reviewController');
 const replyController = require('../controllers/replyController');
 const reportController = require('../controllers/reportController');
 const reviewReportController = require('../controllers/reviewReportController');
+const replyReportController = require('../controllers/replyReportController');
 const submissionController = require('../controllers/submissionController');
 const pageController = require('../controllers/pageController');
 const { photosUpload, deferUploadError } = require('../middleware/upload');
@@ -53,6 +54,7 @@ router.post('/favorites/:placeId', requireLogin, reviewController.favoriteFromFo
 router.get('/me/favorites', requireLogin, reviewController.myFavorites);
 router.post('/places/:id/reports', requireLogin, memberWriteLimiter, reportController.create);
 router.post('/reviews/:id/reports', requireLogin, memberWriteLimiter, reviewReportController.create);
+router.post('/replies/:id/reports', requireLogin, memberWriteLimiter, replyReportController.create);
 
 // Submissions (members). Login is checked before the upload is read.
 router.get('/submissions/new', requireLogin, submissionController.newForm);

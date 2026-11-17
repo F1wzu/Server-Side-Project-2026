@@ -1,8 +1,9 @@
 <%# "รายงานรีวิวนี้" under a review card. Params: review, place, reviewsPage.
-    Only for a logged-in member who is not the author. A <details> block, so
+    Only for a logged-in member who is not the author;
+    admins get the remove tools instead (admin-item-tools.ejs). A <details> block, so
     no script is needed. The reasons match REVIEW_REPORT_REASONS in
     src/validation/reviewReport.js. %>
-<% if (currentUser && review.user && review.user.id !== currentUser.id) {
+<% if (currentUser && currentUser.role !== 'admin' && review.user && review.user.id !== currentUser.id) {
   const reportBack = '/places/' + place.id + (typeof reviewsPage === 'number' && reviewsPage > 1 ? '?reviewsPage=' + reviewsPage : '') + '#review-' + review.id;
   const reportReasons = [['spam', 'สแปมหรือโฆษณา'], ['offensive', 'ไม่สุภาพหรือสร้างความเกลียดชัง'], ['false_info', 'ข้อมูลเท็จหรือทำให้เข้าใจผิด'], ['other', 'อื่น ๆ']];
 %>

@@ -1,0 +1,30 @@
+<%# Admin tools under one review or reply on the public place page.
+    Params: kind ('review' | 'reply'), item (the review or reply, with .user),
+    reportCount (open reports, 0 when none), back (the place-page URL to return to).
+    The remove form posts to the same admin route as the admin reviews page and
+    sends `next`, so the admin lands back here. Never shown on the admin's own
+    review or reply (they have the member's own edit and delete). %>
+<% if (currentUser && currentUser.role === 'admin' && item.user && item.user.id !== currentUser.id && item.status === 'active') {
+  const what = kind === 'review' ? 'รีวิว' : 'ความเห็น';
+  const action = kind === 'review' ? '/admin/reviews/' + item.id + '/remove' : '/admin/replies/' + item.id + '/remove';
+  const fieldId = 'admin-remove-' + kind + '-' + item.id;
+%>
+<div class="admin-item-tools">
+  <% if (reportCount) { %>
+  <a class="count-badge" href="/admin/places/<%= place.id %>/reviews?status=reported">ถูกรายงาน <%= reportCount %> ครั้ง</a>
+  <% } %>
+  <a class="text-link" href="/admin/users/<%= item.user.id %>">ดูสมาชิก<span class="sr-only"> <%= item.user.username %> ในส่วนผู้ดูแล</span></a>
+  <details>
+    <summary>นำ<%= what %>ออก</summary>
+    <form class="stack-form" action="<%= action %>" method="post">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <input type="hidden" name="next" value="<%= back %>">
+      <div class="field">
+        <label for="<%= fieldId %>">เหตุผล (ผู้เขียนจะเห็นข้อความนี้)</label>
+        <textarea id="<%= fieldId %>" name="reason" maxlength="500" rows="2" required></textarea>
+      </div>
+      <button class="button button-danger button-small" type="submit">นำ<%= what %>ออก</button>
+    </form>
+  </details>
+</div>
+<% } %>

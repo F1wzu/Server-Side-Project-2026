@@ -35,9 +35,27 @@ const openReportsInclude = {
   select: { id: true, reason: true, details: true, createdAt: true, user: { select: { id: true, username: true } } },
 };
 
-// For the admin dashboard: reviews still on show that have an open report.
+// The admin "reported" filter: a review still on show with an open report of
+// its own, or with a reply still on show that has an open report.
+const reportedReviewWhere = {
+  status: 'active',
+  OR: [
+    { reports: { some: { status: 'open' } } },
+    { replies: { some: { status: 'active', reports: { some: { status: 'open' } } } } },
+  ],
+};
+
+// For the admin dashboard: reviews (or their replies) waiting on a report.
 function countReviewsWithOpen() {
-  return prisma.review.count({ where: { status: 'active', reports: { some: { status: 'open' } } } });
+  return prisma.review.count({ where: reportedReviewWhere });
+}
+
+// For the place page when an admin views it: open reports per review, as
+// { id: count } (ids without an open report are left out).
+async function openCountsByReview(ids) {
+  if (!ids.length) return {};
+  const rows = await prisma.reviewReport.groupBy({ by: ['reviewId'], where: { reviewId: { in: ids }, status: 'open' }, _count: { _all: true } });
+  return Object.fromEntries(rows.map((row) => [row.reviewId, row._count._all]));
 }
 
 // Admin: "no action". Closes every open report of one review at once.
@@ -52,4 +70,4 @@ async function dismissOpen(adminId, reviewId) {
   return { reviewId, dismissed: count };
 }
 
-module.exports = { create, openReportsInclude, countReviewsWithOpen, dismissOpen };
+module.exports = { create, openReportsInclude, reportedReviewWhere, countReviewsWithOpen, openCountsByReview, dismissOpen };

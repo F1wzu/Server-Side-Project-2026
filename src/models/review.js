@@ -8,7 +8,7 @@ const prisma = require('../config/db');
 const AppError = require('../utils/AppError');
 const { paginate } = require('../utils/pagination');
 const replyModel = require('./reply');
-const { openReportsInclude } = require('./reviewReport');
+const { openReportsInclude, reportedReviewWhere } = require('./reviewReport');
 
 const authorFields = { select: { id: true, username: true } };
 
@@ -218,10 +218,7 @@ const REVIEW_SORTS = {
 // part of the place's name, `rating` exact stars. Text matches ignore case.
 async function listAll({ status, placeId = null, q = '', user = '', place = '', rating = null, sort = 'newest', page = 1, pageSize = 20 } = {}) {
   const where = REVIEW_STATUSES.includes(status) ? { status } : {};
-  if (status === 'reported') {
-    where.status = 'active';
-    where.reports = { some: { status: 'open' } };
-  }
+  if (status === 'reported') Object.assign(where, reportedReviewWhere);
   if (placeId !== null) where.placeId = placeId;
   if (q) where.comment = containing(q);
   if (user) where.user = { username: containing(user) };

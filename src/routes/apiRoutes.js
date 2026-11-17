@@ -7,6 +7,7 @@ const reviewController = require('../controllers/reviewController');
 const replyController = require('../controllers/replyController');
 const reportController = require('../controllers/reportController');
 const reviewReportController = require('../controllers/reviewReportController');
+const replyReportController = require('../controllers/replyReportController');
 const submissionController = require('../controllers/submissionController');
 const { photosUpload } = require('../middleware/upload');
 const { csrfAfterUpload } = require('../middleware/csrf');
@@ -54,6 +55,7 @@ router.put('/me/favorites/:placeId', requireLogin, reviewController.apiSaveFavor
 router.delete('/me/favorites/:placeId', requireLogin, reviewController.apiRemoveFavorite);
 router.post('/places/:id/reports', requireLogin, memberWriteLimiter, reportController.apiCreate);
 router.post('/reviews/:id/reports', requireLogin, memberWriteLimiter, reviewReportController.apiCreate);
+router.post('/replies/:id/reports', requireLogin, memberWriteLimiter, replyReportController.apiCreate);
 
 // Submissions (members)
 router.post('/submissions', requireLogin, memberWriteLimiter, withPhotos, submissionController.apiCreate);

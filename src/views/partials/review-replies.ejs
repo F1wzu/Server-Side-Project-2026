@@ -35,6 +35,9 @@
           <button class="text-button" type="submit">ลบ<span class="sr-only">ความเห็นตอบกลับของฉัน</span></button>
         </form>
       </div>
+      <% } else { %>
+      <%- include('reply-report-form', { reply, back }) %>
+      <% if (typeof admin !== 'undefined' && admin) { %><%- include('admin-item-tools', { kind: 'reply', item: reply, reportCount: admin.replyReports[reply.id] || 0, back }) %><% } %>
       <% } %>
       <% } %>
     </li>

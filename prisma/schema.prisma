@@ -126,6 +126,8 @@ model User {
   resolvedReports  PlaceReport[]     @relation("ReportResolver")
   reviewReports         ReviewReport[] @relation("ReviewReportAuthor")
   resolvedReviewReports ReviewReport[] @relation("ReviewReportResolver")
+  replyReports          ReplyReport[]  @relation("ReplyReportAuthor")
+  resolvedReplyReports  ReplyReport[]  @relation("ReplyReportResolver")
   moderationEvents      UserModerationEvent[] @relation("ModerationTarget")
   moderationActions     UserModerationEvent[] @relation("ModerationActor")
 
@@ -255,6 +257,7 @@ model ReviewReply {
   review    Review @relation(fields: [reviewId], references: [id], onDelete: Restrict)
   user      User   @relation("ReplyAuthor", fields: [userId], references: [id], onDelete: Restrict)
   removedBy User?  @relation("ReplyRemover", fields: [removedById], references: [id], onDelete: Restrict)
+  reports   ReplyReport[]
 
   @@index([reviewId, status, createdAt])
   @@map("review_replies")
@@ -380,6 +383,28 @@ model ReviewReport {
 
   @@index([status, createdAt])
   @@map("review_reports")
+}
+
+// A member reporting another member's reply under a review. Same reasons and
+// rules as review reports; one open report per member per reply is enforced by
+// a partial unique index written by hand in the migration.
+model ReplyReport {
+  id           Int                @id @default(autoincrement())
+  replyId      Int                @map("reply_id")
+  userId       Int                @map("user_id")
+  reason       ReviewReportReason
+  details      String?            @db.VarChar(1000)
+  status       ReportStatus       @default(open)
+  resolvedById Int?               @map("resolved_by")
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  resolvedAt   DateTime?          @map("resolved_at") @db.Timestamptz(6)
+
+  reply      ReviewReply @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  user       User        @relation("ReplyReportAuthor", fields: [userId], references: [id], onDelete: Restrict)
+  resolvedBy User?       @relation("ReplyReportResolver", fields: [resolvedById], references: [id], onDelete: Restrict)
+
+  @@index([status, createdAt])
+  @@map("reply_reports")
 }
 
 // Owned by the session store (connect-pg-simple, added in step 2).
